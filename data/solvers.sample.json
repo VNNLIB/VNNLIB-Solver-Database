@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-10T04:39:35Z",
+  "solvers": [
+    {
+      "id": "vibecheck",
+      "name": "vibecheck",
+      "repo": "https://github.com/stanleybak/vibecheck-nn",
+      "versions": [
+        {
+          "version": "1.1.0",
+          "collected_at": "2026-08-10T04:41:02Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [8, 20],
+            "element_types": ["real", "float32", "float64"],
+            "operators": {
+              "Conv": ["float64", "float32"],
+              "Relu": [],
+              "MaxPool": [],
+              "Gemm": []
+            },
+            "vnnlib_versions": ["1.0", "2.0"],
+            "hidden_nodes": ["NH"],
+            "multiple_io": ["SIO"],
+            "multiple_networks": ["SNET", "MENET", "MINET"],
+            "node_comparisons": ["SNC"],
+            "arithmetic": ["BND", "OUTC", "LIN", "POLY"],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": ["NH"],
+            "multiple_io": ["SIO"],
+            "multiple_networks": ["SNET", "MENET", "MINET"],
+            "node_comparisons": ["SNC"],
+            "arithmetic": ["BND", "OUTC", "LIN", "POLY"]
+          },
+          "partial_support": {
+            "element_types": {
+              "float32": "bounds computed in real arithmetic, not IEEE-754-faithful",
+              "float64": "bounds computed in real arithmetic, not IEEE-754-faithful"
+            },
+            "multiple_io": {
+              "SIO": "multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)"
+            },
+            "multiple_networks": {
+              "MINET": "two-network pairs only"
+            },
+            "arithmetic": {
+              "POLY": "polynomial constraints transpiled via nonlinear-augment"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "brokennn",
+      "name": "BrokenSolver",
+      "repo": "https://github.com/example/brokennn",
+      "versions": [
+        {
+          "version": "0.9.0",
+          "collected_at": "2026-08-10T04:39:33Z",
+          "status": "incomplete",
+          "errors": [
+            "--multiple-node-comparison-theories: produced no output",
+            "--arithmetic-complexity-theories: returned ['LINEAR'], expected a subset of ['BND', 'LIN', 'OUTC', 'POLY']"
+          ],
+          "capabilities": {
+            "onnx_opset": [15, 18],
+            "element_types": ["float32"],
+            "operators": { "Relu": [], "Gemm": [] },
+            "vnnlib_versions": ["2.0", "2.0"],
+            "hidden_nodes": ["NH"],
+            "multiple_io": ["SIO"],
+            "multiple_networks": ["SNET"],
+            "node_comparisons": null,
+            "arithmetic": null,
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": ["NH"],
+            "multiple_io": ["SIO"],
+            "multiple_networks": ["SNET"],
+            "node_comparisons": [],
+            "arithmetic": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "deadsolver",
+      "name": "deadsolver",
+      "repo": "https://github.com/example/deadsolver",
+      "versions": [
+        {
+          "version": "unknown",
+          "collected_at": "2026-08-10T04:39:35Z",
+          "status": "install_failed",
+          "errors": [
+            "install script exited 1: resolving dependencies... | E: Unable to locate package libgmp-dev"
+          ]
+        }
+      ]
+    }
+  ]
+}
