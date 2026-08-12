@@ -19,6 +19,11 @@ registering.
 A shell script that installs your solver. It runs on a fresh Ubuntu machine that
 is destroyed immediately afterwards.
 
+It is executed directly, as `./install.sh`, not passed to an interpreter
+explicitly. That means the first line must be `#!/usr/bin/env bash`, the file
+must be executable, and it must be valid bash. This is also why line endings
+matter, see below.
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
