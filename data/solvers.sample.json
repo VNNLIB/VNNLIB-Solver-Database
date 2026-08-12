@@ -36,21 +36,18 @@
             "node_comparisons": ["SNC"],
             "arithmetic": ["BND", "OUTC", "LIN", "POLY"]
           },
-          "partial_support": {
-            "element_types": {
-              "float32": "bounds computed in real arithmetic, not IEEE-754-faithful",
-              "float64": "bounds computed in real arithmetic, not IEEE-754-faithful"
-            },
-            "multiple_io": {
-              "SIO": "multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)"
-            },
-            "multiple_networks": {
-              "MINET": "two-network pairs only"
-            },
-            "arithmetic": {
-              "POLY": "polynomial constraints transpiled via nonlinear-augment"
-            }
-          }
+          "notes": [
+            { "field": "element_types", "identifier": "float32",
+              "text": "bounds computed in real arithmetic, not IEEE-754-faithful" },
+            { "field": "element_types", "identifier": "float64",
+              "text": "bounds computed in real arithmetic, not IEEE-754-faithful" },
+            { "field": "multiple_io", "identifier": "SIO",
+              "text": "multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)" },
+            { "field": "multiple_networks", "identifier": "MINET",
+              "text": "two-network pairs only" },
+            { "field": "arithmetic", "identifier": "POLY",
+              "text": "polynomial constraints transpiled via nonlinear-augment" }
+          ]
         }
       ]
     },

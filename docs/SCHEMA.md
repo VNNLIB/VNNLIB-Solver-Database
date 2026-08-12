@@ -53,7 +53,7 @@ There is no `latest_version`. It is the last element of `versions`.
 | `errors` | when not `ok` | One entry per failure, naming the command and what was observed |
 | `capabilities` | unless install failed | What the solver reported |
 | `satisfies` | unless install failed | Downward closure of the reported theories |
-| `partial_support` | when the solver flagged any | Caveats the solver attached to specific identifiers |
+| `notes` | when the solver attached any | Free-text caveats, linked to a specific capability where that was possible to tell, otherwise general |
 
 ### Status values
 
@@ -145,7 +145,7 @@ eventually disagree.
 
 ---
 
-## Partial support
+## Notes
 
 Some solvers qualify a capability rather than claiming it outright. vibecheck
 writes `IDENT * note` on the relevant output line:
@@ -157,20 +157,34 @@ LIN
 POLY * polynomial constraints transpiled via nonlinear-augment
 ```
 
-**This notation is not in the standard.** A parser assuming a bare identifier
-rejects all four of those lines and marks a fully conforming solver as broken.
+**This notation is not in the standard, and nothing says another solver will
+use it, or use it the same way.** It is vibecheck's own convention. The
+collector matches a recognised identifier at the start of a line and treats
+anything trailing it as a note, but that is opportunistic parsing of one
+solver's habit, not a rule every solver is expected to follow. A future
+solver's caveat might not attach to a single identifier at all.
 
-The identifier stays in `capabilities`, the note goes here:
+So `notes` is a flat list, not a structure keyed by field and identifier.
+Each entry records the note text, plus a field and identifier **only when
+the parser was actually able to tell what the note was about**:
 
 ```json
-"partial_support": {
-  "arithmetic": { "POLY": "polynomial constraints transpiled via nonlinear-augment" }
-}
+"notes": [
+  { "field": "arithmetic", "identifier": "POLY",
+    "text": "polynomial constraints transpiled via nonlinear-augment" },
+  { "field": null, "identifier": null,
+    "text": "a caveat some other solver attached in a way that could not be tied to one capability" }
+]
 ```
 
-A partially supported capability still matches a search. The user is better
-placed than we are to judge whether the caveat matters to them, so it is shown
-alongside the result rather than used to exclude it.
+The identifier itself still stays in `capabilities` either way — `notes` only
+ever adds the caveat text, never changes whether a capability is reported.
+
+A capability with a note still matches a search; `field`/`identifier` are what
+let a consumer show the note next to the right result when it can, and fall
+back to showing it against the solver generally when it can't. The user is
+better placed than we are to judge whether a caveat matters to them, so it is
+surfaced rather than used to exclude a match.
 
 ---
 
