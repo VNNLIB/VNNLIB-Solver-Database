@@ -1,0 +1,18 @@
+# Normalise line endings so Windows, macOS and Linux contributors do not
+# produce spurious whole-file diffs.
+#
+# Everything is stored as LF in the repository. Git checks out whatever is
+# native on each machine, so nobody has to change their editor.
+* text=auto eol=lf
+
+# Shell scripts must be LF even in a Windows checkout. A submitted install.sh
+# with CRLF line endings fails on a Linux runner with a confusing
+# "bad interpreter" error.
+*.sh text eol=lf
+
+# Binary, never touch.
+*.onnx binary
+*.pb   binary
+*.png  binary
+*.jpg  binary
+*.zip  binary
