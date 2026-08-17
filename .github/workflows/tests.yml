@@ -2,7 +2,7 @@ name: tests
 
 on:
   push:
-    branches: [hung]
+    branches: [main]
   pull_request:
   schedule:
     # Weekly, for the --slow job only: real solvers depend on PyPI, so this
