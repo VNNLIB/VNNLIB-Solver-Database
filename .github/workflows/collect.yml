@@ -1,0 +1,99 @@
+name: collect (main)
+
+# The second collection SUBMITTING.md describes: after a maintainer merges,
+# install the solver again on main, record what it reports, and commit it.
+#
+# The pull request run is advisory — it shows the author what will be recorded.
+# This run is the one whose result actually enters the database.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "solvers/**"
+  workflow_dispatch:
+    inputs:
+      solver_dir:
+        description: "One solvers/<id>/<version> to re-collect (blank = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  # Never two runs committing to data/solvers.json at once.
+  group: collect-main
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Decide what to collect
+        id: targets
+        run: |
+          if [ -n "${{ github.event.inputs.solver_dir }}" ]; then
+            dirs="${{ github.event.inputs.solver_dir }}"
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            # First push, or a force-push with no usable ancestor: collect
+            # everything rather than guessing what changed.
+            dirs=$(ls -d solvers/*/*/ 2>/dev/null | sed 's:/$::' | sort -u)
+          else
+            dirs=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" \
+                   | grep '^solvers/[^/]\+/[^/]\+/' \
+                   | cut -d/ -f1-3 | sort -u)
+          fi
+          echo "dirs<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$dirs" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "$dirs"
+
+      - name: Validate
+        run: |
+          [ -n "${{ steps.targets.outputs.dirs }}" ] || exit 0
+          python3 scripts/validate.py ${{ steps.targets.outputs.dirs }}
+
+      - name: Install and collect
+        run: |
+          [ -n "${{ steps.targets.outputs.dirs }}" ] || exit 0
+          for dir in ${{ steps.targets.outputs.dirs }}; do
+            python3 scripts/register.py "$dir" --timeout 1800 >> results.jsonl
+          done
+
+      - name: Merge into the database
+        run: |
+          [ -s results.jsonl ] || exit 0
+          python3 scripts/build.py results.jsonl --database data/solvers.json
+
+      - name: Commit
+        run: |
+          # build.py leaves the file untouched when nothing changed, so this
+          # is the whole no-op check: no diff, no commit.
+          if git diff --quiet -- data/solvers.json; then
+            echo "no change to data/solvers.json"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/solvers.json
+          git commit -m "Record collected capabilities
+
+          Collected from: ${{ steps.targets.outputs.dirs }}
+          Triggered by ${{ github.sha }}."
+          git push
+
+      - name: Report
+        if: always()
+        run: |
+          [ -s results.jsonl ] || exit 0
+          python3 scripts/report.py results.jsonl >> "$GITHUB_STEP_SUMMARY"

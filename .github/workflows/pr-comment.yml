@@ -1,0 +1,49 @@
+name: comment (pull request)
+
+# Posts what pr-collect.yml found, as a comment on the pull request.
+#
+# Split from pr-collect.yml on purpose. That job runs a contributor's
+# install.sh and therefore must not hold a write token. This one holds the
+# write token but only ever reads a JSON artifact — it never checks out the
+# branch and never executes anything from it.
+
+on:
+  workflow_run:
+    workflows: ["collect (pull request)"]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  actions: read
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: collection-report
+          path: artifact
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post or update the comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          pr=$(cat artifact/pr-number.txt)
+          marker="<!-- vnnlib-solver-database:collection -->"
+          { echo "$marker"; cat artifact/report.md; } > body.md
+
+          # Update the existing comment rather than adding one per push, so a
+          # long-running pull request does not accumulate a dozen reports.
+          existing=$(gh api "repos/$REPO/issues/$pr/comments" \
+            --jq "map(select(.body | startswith(\"$marker\"))) | .[0].id // empty")
+
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -F body=@body.md
+          else
+            gh api -X POST "repos/$REPO/issues/$pr/comments" -F body=@body.md
+          fi
