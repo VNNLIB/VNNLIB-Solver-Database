@@ -8,7 +8,7 @@ name: collect (main)
 
 on:
   push:
-    branches: [main]
+    branches: [hung]
     paths:
       - "solvers/**"
   workflow_dispatch:
