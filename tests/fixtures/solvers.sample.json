@@ -38,15 +38,15 @@
           },
           "notes": [
             { "field": "element_types", "identifier": "float32",
-              "text": "bounds computed in real arithmetic, not IEEE-754-faithful" },
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful" },
             { "field": "element_types", "identifier": "float64",
-              "text": "bounds computed in real arithmetic, not IEEE-754-faithful" },
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful" },
             { "field": "multiple_io", "identifier": "SIO",
-              "text": "multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)" },
+              "text": "* multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)" },
             { "field": "multiple_networks", "identifier": "MINET",
-              "text": "two-network pairs only" },
+              "text": "* two-network pairs only" },
             { "field": "arithmetic", "identifier": "POLY",
-              "text": "polynomial constraints transpiled via nonlinear-augment" }
+              "text": "* polynomial constraints transpiled via nonlinear-augment" }
           ]
         }
       ]

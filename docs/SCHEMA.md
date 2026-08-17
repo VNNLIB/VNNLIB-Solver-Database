@@ -8,22 +8,6 @@ standard. Nothing here is invented.
 
 ---
 
-## Design rules
-
-**Raw before derived.** `capabilities` holds exactly what the solver printed,
-normalised only for whitespace. Anything computed from it is either stored
-separately or not stored at all.
-
-**Store knowledge, compute arithmetic.** A derived value is only written into
-the file if deriving it needs information from outside the file. The Chapter 4
-subset relations live in the standard, so `satisfies` is stored. Version ranges
-are pure grouping over `versions[]`, so they are not.
-
-**Never assert what was not measured.** Only releases that were actually
-installed and queried appear. No interpolation between them.
-
----
-
 ## Top level
 
 | Field | Type | Meaning |
@@ -171,11 +155,20 @@ the parser was actually able to tell what the note was about**:
 ```json
 "notes": [
   { "field": "arithmetic", "identifier": "POLY",
-    "text": "polynomial constraints transpiled via nonlinear-augment" },
+    "text": "* polynomial constraints transpiled via nonlinear-augment" },
   { "field": null, "identifier": null,
     "text": "a caveat some other solver attached in a way that could not be tied to one capability" }
 ]
 ```
+
+**`text` keeps everything that trailed the identifier, delimiter included —
+it is not stripped.** The collector does not assume the delimiter looks like
+`* `, only that *something* separates the identifier from the note; stripping
+a specific character would itself be an assumption about vibecheck's own
+convention leaking into code meant to stay generic across solvers. So for
+vibecheck today, `text` starts with `* `; a solver using a different
+convention would produce whatever it prints trailing its identifier,
+unmodified.
 
 The identifier itself still stays in `capabilities` either way — `notes` only
 ever adds the caveat text, never changes whether a capability is reported.

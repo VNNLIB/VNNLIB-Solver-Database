@@ -1,0 +1,347 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-17T04:16:38Z",
+  "solvers": [
+    {
+      "id": "brokensolver",
+      "name": "BrokenSolver",
+      "repo": "",
+      "versions": [
+        {
+          "version": "0.9.0",
+          "collected_at": "2026-08-17T04:15:19Z",
+          "status": "incomplete",
+          "errors": [
+            "--version: reported '0.9.0-dev', submission directory says '0.9.0'",
+            "--onnx-opset-versions: exited 1: error: opset table not built",
+            "--vnnlib-versions: expected two version lines, got '2.0'",
+            "--multiple-node-comparison-theories: produced no output",
+            "--arithmetic-complexity-theories: returned ['LINEAR'], expected a subset of ['BND', 'LIN', 'OUTC', 'POLY']"
+          ],
+          "capabilities": {
+            "onnx_opset": null,
+            "element_types": [
+              "float32"
+            ],
+            "operators": [
+              "Relu",
+              "Gemm"
+            ],
+            "vnnlib_versions": null,
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": null,
+            "arithmetic": null,
+            "optimised_disjunction": "false",
+            "serialise_assignments": "false"
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [],
+            "arithmetic": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "deadsolver",
+      "name": "deadsolver",
+      "repo": "",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "collected_at": "2026-08-17T04:15:20Z",
+          "status": "install_failed",
+          "errors": [
+            "install script exited 1: resolving dependencies... | E: Unable to locate package libgmp-dev"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ghostsolver",
+      "name": "ghostsolver",
+      "repo": "",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "collected_at": "2026-08-17T04:15:22Z",
+          "status": "install_failed",
+          "errors": [
+            "install script exited 0 but left no executable named 'ghostsolver' on PATH"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testsolver",
+      "name": "TestSolver",
+      "repo": "",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "collected_at": "2026-08-17T04:15:23Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              8,
+              20
+            ],
+            "element_types": [
+              "real",
+              "float32",
+              "float64"
+            ],
+            "operators": [
+              "Conv float64 float32",
+              "Relu",
+              "MaxPool",
+              "Gemm"
+            ],
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": "true",
+            "serialise_assignments": "true"
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          },
+          "notes": [
+            {
+              "field": "element_types",
+              "identifier": "float32",
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful"
+            },
+            {
+              "field": "element_types",
+              "identifier": "float64",
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful"
+            },
+            {
+              "field": "multiple_io",
+              "identifier": "SIO",
+              "text": "* multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)"
+            },
+            {
+              "field": "multiple_networks",
+              "identifier": "MINET",
+              "text": "* two-network pairs only"
+            },
+            {
+              "field": "arithmetic",
+              "identifier": "POLY",
+              "text": "* polynomial constraints transpiled via nonlinear-augment"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vibecheck",
+      "name": "vibecheck",
+      "repo": "",
+      "versions": [
+        {
+          "version": "1.1.0",
+          "collected_at": "2026-08-17T04:16:32Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              8,
+              20
+            ],
+            "element_types": [
+              "real",
+              "float32",
+              "float64"
+            ],
+            "operators": [
+              "Add",
+              "ArgMax",
+              "AveragePool",
+              "BatchNormalization",
+              "Cast",
+              "Clip",
+              "Concat",
+              "ConstantOfShape",
+              "Conv",
+              "ConvTranspose",
+              "Cos",
+              "Div",
+              "Dropout",
+              "Equal",
+              "Expand",
+              "Flatten",
+              "Floor",
+              "Gather",
+              "Gemm",
+              "Identity",
+              "LeakyRelu",
+              "MatMul",
+              "Max",
+              "MaxPool",
+              "Min",
+              "Mul",
+              "Neg",
+              "PWLLookup",
+              "Pad",
+              "Pow",
+              "ReduceMean",
+              "ReduceSum",
+              "Relu",
+              "Reshape",
+              "Resize",
+              "ScatterND",
+              "Shape",
+              "Sigmoid",
+              "Sign",
+              "Sin",
+              "Slice",
+              "Softmax",
+              "Split",
+              "SplitOutput",
+              "Squeeze",
+              "Sub",
+              "Tanh",
+              "Transpose",
+              "Unsqueeze",
+              "Upsample",
+              "Where"
+            ],
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": "true",
+            "serialise_assignments": "true"
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          },
+          "notes": [
+            {
+              "field": "element_types",
+              "identifier": "float32",
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful"
+            },
+            {
+              "field": "element_types",
+              "identifier": "float64",
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful"
+            },
+            {
+              "field": "multiple_io",
+              "identifier": "SIO",
+              "text": "* multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)"
+            },
+            {
+              "field": "multiple_networks",
+              "identifier": "MINET",
+              "text": "* two-network pairs only"
+            },
+            {
+              "field": "arithmetic",
+              "identifier": "POLY",
+              "text": "* polynomial constraints transpiled via nonlinear-augment"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
