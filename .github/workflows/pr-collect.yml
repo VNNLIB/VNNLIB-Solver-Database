@@ -47,17 +47,27 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
           echo "$dirs"
 
+      - name: Prepare the report directory
+        # Before anything that can fail, so the report step always has
+        # somewhere to write even when validation rejects the submission.
+        run: |
+          mkdir -p artifact
+          echo "${{ github.event.pull_request.number }}" > artifact/pr-number.txt
+
       - name: Validate
         # Before installing anything: layout, line endings, shebang,
         # executable bit, solver.toml, and that install.sh names its version.
         # Milliseconds, and a failure here means nothing is installed at all.
         run: |
           [ -n "${{ steps.changed.outputs.dirs }}" ] || exit 0
-          python3 scripts/validate.py ${{ steps.changed.outputs.dirs }}
+          # pipefail, or tee would swallow validate.py's exit code and the
+          # job would carry on to install a rejected submission.
+          set -o pipefail
+          python3 scripts/validate.py ${{ steps.changed.outputs.dirs }} \
+            2>&1 | tee artifact/validation.txt
 
       - name: Install and collect
         run: |
-          mkdir -p artifact
           [ -n "${{ steps.changed.outputs.dirs }}" ] || exit 0
           for dir in ${{ steps.changed.outputs.dirs }}; do
             python3 scripts/register.py "$dir" --timeout 1800 \
@@ -67,8 +77,23 @@ jobs:
       - name: Render the report
         if: always()
         run: |
-          echo "${{ github.event.pull_request.number }}" > artifact/pr-number.txt
           python3 scripts/report.py artifact/results.jsonl > artifact/report.md
+          # A rejected submission never reaches collection, so without this
+          # the author would be told only that nothing was collected.
+          if grep -q '^FAIL' artifact/validation.txt 2>/dev/null; then
+            {
+              echo "## Submission rejected before installing"
+              echo
+              echo "Nothing was installed and nothing will be recorded."
+              echo "Fix these and push again:"
+              echo
+              echo '```'
+              cat artifact/validation.txt
+              echo '```'
+              echo
+            } | cat - artifact/report.md > artifact/full.md
+            mv artifact/full.md artifact/report.md
+          fi
           cat artifact/report.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4

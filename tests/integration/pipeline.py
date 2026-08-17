@@ -108,6 +108,22 @@ def run_build(results_path, database_path, *extra):
     return completed.stderr
 
 
+def test_fixtures_are_valid_submissions(state):
+    """
+    Runs first, because a fixture that fails validation fails every test after
+    it in a way that says nothing useful. The case this exists for: git records
+    the executable bit separately from the filesystem, so a fixture committed
+    as mode 644 works locally and fails on a runner with Permission denied.
+    """
+    spec = importlib.util.spec_from_file_location("solver_validate", REPO / "scripts" / "validate.py")
+    validate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validate)
+
+    for solver_id, (version, _, _) in {**EXPECTED, **SLOW}.items():
+        problems = validate.validate(FIXTURES / solver_id / version)
+        assert problems == [], f"{solver_id} {version}: {problems}"
+
+
 def test_register_every_fixture(state):
     """Each fixture reaches the status it was written to demonstrate."""
     for solver_id, (version, status, has_capabilities) in EXPECTED.items():
@@ -284,6 +300,7 @@ def main():
         # Ordered by definition, not alphabetically: each step builds on the
         # state the previous one left.
         ordered = [
+            test_fixtures_are_valid_submissions,
             test_register_every_fixture,
             test_install_failed_names_the_cause,
             test_build_merges_results,
