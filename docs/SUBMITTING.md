@@ -44,6 +44,22 @@ pip install --quiet mysolver==1.2.0
 When the script finishes, an executable named exactly `<id>` must be on `PATH`.
 That is the whole contract. Anything else is up to you.
 
+**It must install the version the directory names.**
+
+The script has to mention `<version>` somewhere — normally as the pin itself,
+`pip install mysolver==1.2.0`. A script in `1.2.0/` that installs `1.1.0`, or
+that leaves the version unpinned and installs whatever is newest, is rejected
+before anything is installed and you will be asked to push a fix.
+
+This is checked two ways. Before installing, the text of your script must
+contain the version string. After installing, `<solver> --version` is compared
+against the directory name. The directory always wins: it decides which
+release the record describes, so a script that installs something else would
+record one release's capabilities under another's name.
+
+If your script installs from a git tag or builds from source, name the version
+in it anyway — the tag, the checkout, or a comment.
+
 **What counts as failure**
 
 - the script exits non-zero
@@ -52,6 +68,9 @@ That is the whole contract. Anything else is up to you.
 
 Any of those is recorded as `install_failed`, with the error, and the solver
 appears in the database marked as such rather than being silently dropped.
+
+Failing the checks above is different: nothing is installed, nothing is
+recorded, and the pull request cannot be merged until it is fixed.
 
 **Line endings must be LF.** A script saved with Windows line endings fails on
 the runner with a confusing `bad interpreter` error. The `.gitattributes` in
@@ -79,10 +98,14 @@ contact = "you@example.edu"
 
 ## What happens next
 
-1. A workflow installs your solver and posts its capabilities as a comment on
+1. A workflow checks your submission without installing anything: layout, line
+   endings, shebang, executable bit, `solver.toml`, and that the install script
+   names the version its directory claims. Anything wrong here fails in seconds
+   and needs a fix pushed before the rest runs.
+2. A workflow installs your solver and posts its capabilities as a comment on
    your pull request. 
-2. A maintainer reviews the install script and merges.
-3. A second workflow installs it again on the main branch, records the
+3. A maintainer reviews the install script and merges.
+4. A second workflow installs it again on the main branch, records the
    capabilities, and commits them.
 
 The solver is deleted after each collection. Nothing about it is kept except
