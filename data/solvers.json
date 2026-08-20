@@ -1,5 +1,157 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-17T05:09:06Z",
-  "solvers": []
+  "generated_at": "2026-08-20T03:28:48Z",
+  "solvers": [
+    {
+      "id": "vibecheck",
+      "name": "vibecheck",
+      "repo": "https://github.com/stanleybak/vibecheck-nn",
+      "versions": [
+        {
+          "version": "1.1.0",
+          "collected_at": "2026-08-20T03:28:47Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              8,
+              20
+            ],
+            "element_types": [
+              "real",
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Add": [],
+              "ArgMax": [],
+              "AveragePool": [],
+              "BatchNormalization": [],
+              "Cast": [],
+              "Clip": [],
+              "Concat": [],
+              "ConstantOfShape": [],
+              "Conv": [],
+              "ConvTranspose": [],
+              "Cos": [],
+              "Div": [],
+              "Dropout": [],
+              "Equal": [],
+              "Expand": [],
+              "Flatten": [],
+              "Floor": [],
+              "Gather": [],
+              "Gemm": [],
+              "Identity": [],
+              "LeakyRelu": [],
+              "MatMul": [],
+              "Max": [],
+              "MaxPool": [],
+              "Min": [],
+              "Mul": [],
+              "Neg": [],
+              "PWLLookup": [],
+              "Pad": [],
+              "Pow": [],
+              "ReduceMean": [],
+              "ReduceSum": [],
+              "Relu": [],
+              "Reshape": [],
+              "Resize": [],
+              "ScatterND": [],
+              "Shape": [],
+              "Sigmoid": [],
+              "Sign": [],
+              "Sin": [],
+              "Slice": [],
+              "Softmax": [],
+              "Split": [],
+              "SplitOutput": [],
+              "Squeeze": [],
+              "Sub": [],
+              "Tanh": [],
+              "Transpose": [],
+              "Unsqueeze": [],
+              "Upsample": [],
+              "Where": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          },
+          "notes": [
+            {
+              "field": "element_types",
+              "identifier": "float32",
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful"
+            },
+            {
+              "field": "element_types",
+              "identifier": "float64",
+              "text": "* bounds computed in real arithmetic, not IEEE-754-faithful"
+            },
+            {
+              "field": "multiple_io",
+              "identifier": "SIO",
+              "text": "* multi-input models run only through the attack-only quantized-surrogate handler (sat/timeout, never unsat)"
+            },
+            {
+              "field": "multiple_networks",
+              "identifier": "MINET",
+              "text": "* two-network pairs only"
+            },
+            {
+              "field": "arithmetic",
+              "identifier": "POLY",
+              "text": "* polynomial constraints transpiled via nonlinear-augment"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
