@@ -130,17 +130,47 @@ the line and reload once the real database has content.
 
 ### Updating the data
 
+By hand:
+
 ```bash
 cd ~/VNNLIB-Solver-Database && git pull
 ```
 
-That is the whole update. **No reload needed for data changes**: the process
-re-reads the file whenever its mtime changes, so the next request serves the
-new database. Reload only after changing code.
+**No reload needed for data changes**: the process re-reads the file whenever
+its mtime changes, so the next request serves the new database. Reload only
+after changing code.
 
-To automate it, Tasks tab → a daily scheduled task running the line above.
-Free accounts get one, which is plenty for a database that changes when a
-solver is submitted.
+### Updating it automatically
+
+`collect.yml` pushes the database straight to PythonAnywhere after a
+collection, using their Files API. Set two repository secrets (Settings →
+Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `PA_USERNAME` | your PythonAnywhere username |
+| `PA_API_TOKEN` | Account page → API Token tab |
+
+Add a repository *variable* `PA_HOST` = `eu.pythonanywhere.com` if your
+account is on their EU system. Without the secrets the step prints
+`no PythonAnywhere secrets set, skipping publish` and the workflow carries on.
+
+It uploads to `/home/<you>/solvers.json` — **outside** the git clone on
+purpose, so the checkout stays clean and `git pull` there never conflicts with
+a file the API overwrote. Point the web app at it in the WSGI file:
+
+```python
+from api.app import app as application
+import api.app, pathlib
+api.app.DATABASE = pathlib.Path('/home/<you>/solvers.json')
+```
+
+Nothing needs reloading afterwards: a new upload changes the file's mtime, and
+the next request re-reads it.
+
+This lives inside `collect.yml` rather than in a workflow watching `data/**`,
+because a push made with `GITHUB_TOKEN` deliberately does not trigger further
+workflows — a separate one would simply never run.
 
 Two things about the free tier: the web app expires every three months until
 you click the button on the Web tab, and outbound HTTP from your code is
