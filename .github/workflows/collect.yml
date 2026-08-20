@@ -59,14 +59,21 @@ jobs:
           echo "$dirs"
 
       - name: Validate
+        # Through the environment, not ${{ }}: that substitutes text into the
+        # script before bash sees it, so a multi-line value turns every line
+        # after the first into its own command.
+        env:
+          DIRS: ${{ steps.targets.outputs.dirs }}
         run: |
-          [ -n "${{ steps.targets.outputs.dirs }}" ] || exit 0
-          python3 scripts/validate.py ${{ steps.targets.outputs.dirs }}
+          [ -n "$DIRS" ] || exit 0
+          python3 scripts/validate.py $DIRS
 
       - name: Install and collect
+        env:
+          DIRS: ${{ steps.targets.outputs.dirs }}
         run: |
-          [ -n "${{ steps.targets.outputs.dirs }}" ] || exit 0
-          for dir in ${{ steps.targets.outputs.dirs }}; do
+          [ -n "$DIRS" ] || exit 0
+          for dir in $DIRS; do
             python3 scripts/register.py "$dir" --timeout 1800 >> results.jsonl
           done
 
@@ -76,6 +83,9 @@ jobs:
           python3 scripts/build.py results.jsonl --database data/solvers.json
 
       - name: Commit
+        env:
+          DIRS: ${{ steps.targets.outputs.dirs }}
+          SHA: ${{ github.sha }}
         run: |
           # build.py leaves the file untouched when nothing changed, so this
           # is the whole no-op check: no diff, no commit.
@@ -86,10 +96,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/solvers.json
-          git commit -m "Record collected capabilities
+          # Built as a variable so the body is not indented by the YAML block.
+          message="Record collected capabilities
 
-          Collected from: ${{ steps.targets.outputs.dirs }}
-          Triggered by ${{ github.sha }}."
+          Collected from: $(echo "$DIRS" | tr '\n' ' ')
+          Triggered by $SHA."
+          git commit -m "$message"
           git push
 
       - name: Publish the database to PythonAnywhere
