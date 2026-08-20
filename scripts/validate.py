@@ -64,9 +64,13 @@ def check_install_script(path, version):
         problems.append(f"install.sh must start with {SHEBANG!r}, found {first!r}")
 
     if not os.access(path, os.X_OK):
-        # Note: a Windows filesystem mounted under WSL reports everything as
-        # executable, so this only bites in CI. git update-index --chmod=+x.
-        problems.append("install.sh is not executable")
+        # Authoring on Windows is the usual cause: git records the bit itself,
+        # and a Windows filesystem mounted under WSL reports everything as
+        # executable, so `ls -l` cannot be trusted here — only `git ls-files`.
+        problems.append(
+            f"install.sh is not executable. Fix with: "
+            f"git update-index --chmod=+x {path}"
+        )
 
     if version not in text:
         problems.append(

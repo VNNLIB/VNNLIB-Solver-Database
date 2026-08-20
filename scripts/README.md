@@ -80,10 +80,11 @@ abort the workflow's loop over the remaining solvers.
 
 ## Known gaps
 
-- **`operators` and the two booleans are unparsed.** Their real output has
-  never been observed from a running solver, so `parse_operators` returns raw
-  lines and `parse_boolean` returns raw text, rather than the object and
-  `true`/`false` that `solvers.sample.json` shows.
+- **The two booleans are unparsed.** `--optimised-disjunctive-reasoning` and
+  `--serialise-assignments` have never been seen from a running solver, so
+  `parse_boolean` returns raw text rather than guessing whether `true`,
+  `True` or `yes` is the spelling. They come out as the string `"true"`,
+  not `true`.
 - **Version ordering is natural sort, not semver.** `1.0.0-rc1` sorts after
   `1.0.0`. Nothing says these strings are semver, so it is not assumed.
 

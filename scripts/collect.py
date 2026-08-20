@@ -253,24 +253,45 @@ def parse_element_types(raw_text):
 
 def parse_operators(raw_text):
     """
-    NOT YET SPECIFIED. This flag's real output has never been observed from a
-    running solver, so this returns the raw non-empty lines rather than the
-    object shape solvers.sample.json shows.
+    One operator per line: a name, then zero or more element types.
 
-    For later: Section 5.4.1 says an empty type list after an operator name
-    means every type in element_types, not none.
+        'Conv float64 float32'  ->  {'Conv': ['float64', 'float32']}
+        'Relu'                  ->  {'Relu': []}
+
+    The empty list is stored as printed, NOT expanded. Section 5.4.1 says an
+    empty type list means every type in element_types, not none — but that is
+    a reading, and SCHEMA.md's rule is that capabilities holds exactly what
+    the solver printed. Expanding here would also freeze today's element_types
+    into a record whose solver actually said "all of them".
+
+    Consumers do the expansion; api/app.py's operator_matches is the example.
     """
-    return [line.strip() for line in raw_text.splitlines() if line.strip()]
+    operators = {}
+    for line in raw_text.splitlines():
+        if not line.strip():
+            continue
+        name, *types = line.split()
+        operators[name] = types
+    return operators
 
 
 def parse_boolean(raw_text):
     """
-    For --optimised-disjunctive-reasoning and --serialise-assignments. Also
-    unobserved, so this returns the raw stripped text: mapping it to a real
-    bool means guessing a truthy vocabulary blind, and silently recording
-    False for any spelling not guessed.
+    For --optimised-disjunctive-reasoning and --serialise-assignments.
+    Returns True, False, or None if it is neither.
+
+    Exactly 'true' or 'false', case-sensitive. A solver printing 'Yes' is not
+    conforming, and the caller records that as an error rather than guessing —
+    the same treatment a theory field gets for an identifier outside its
+    permitted set. Guessing would silently record False for any spelling not
+    anticipated, which is a wrong answer dressed as a real one.
     """
-    return raw_text.strip()
+    text = raw_text.strip()
+    if text == "true":
+        return True
+    if text == "false":
+        return False
+    return None
 
 
 def expand_closure(field_name, reported_identifiers):
@@ -369,6 +390,8 @@ def collect(binary, solver_id, version):
             value = parse_operators(stdout)
         else:
             value = parse_boolean(stdout)
+            if value is None:
+                errors.append(f"{flag}: expected 'true' or 'false', got {stdout.strip()!r}")
 
         capabilities[field] = value
         if is_theory:

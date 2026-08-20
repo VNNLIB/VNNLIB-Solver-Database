@@ -110,16 +110,31 @@ def test_element_types():
     assert parse_element_types("") == ([], [])
 
 
-def test_unspecified_parsers():
-    # Raw lines, no invented key/value shape.
-    assert parse_operators("Conv float64 float32\nRelu\n\n") == [
-        "Conv float64 float32",
-        "Relu",
-    ]
-    assert parse_operators("") == []
-    # Raw text, no guessed truthy vocabulary.
-    assert parse_boolean(" true \n") == "true"
-    assert parse_boolean("yes") == "yes"
+def test_operators():
+    assert parse_operators("Conv float64 float32\nRelu float64 float32\n") == {
+        "Conv": ["float64", "float32"],
+        "Relu": ["float64", "float32"],
+    }
+    # A bare name is stored as an empty list, exactly as printed. It MEANS
+    # every type in element_types, but expanding it here would put derived
+    # data in capabilities — consumers do that reading.
+    assert parse_operators("Conv float64\nRelu\nGemm\n") == {
+        "Conv": ["float64"],
+        "Relu": [],
+        "Gemm": [],
+    }
+    assert parse_operators("") == {}
+    assert parse_operators("  Relu  \n\n") == {"Relu": []}
+
+
+def test_boolean():
+    assert parse_boolean(" true \n") is True
+    assert parse_boolean("false\n") is False
+    # Not conforming, and not guessed at: the caller turns None into an error
+    # and leaves the field null.
+    assert parse_boolean("yes") is None
+    assert parse_boolean("True") is None
+    assert parse_boolean("") is None
 
 
 def test_closure():
@@ -161,7 +176,7 @@ def _conforming_responses():
             "",
         ),
         ("supports", "--optimised-disjunctive-reasoning"): (0, "true\n", ""),
-        ("supports", "--serialise-assignments"): (0, "true\n", ""),
+        ("supports", "--serialise-assignments"): (0, "false\n", ""),
     }
 
 
@@ -202,6 +217,8 @@ def test_collect_conforming_solver():
         "serialise_assignments",
     ]
     assert record["capabilities"]["onnx_opset"] == [8, 20]
+    assert record["capabilities"]["optimised_disjunction"] is True
+    assert record["capabilities"]["serialise_assignments"] is False
     assert record["satisfies"]["multiple_networks"] == ["SNET", "MENET", "MINET"]
     assert [n["identifier"] for n in record["notes"]] == ["float32", "POLY"]
     assert record["collected_at"].endswith("Z")

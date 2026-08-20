@@ -76,6 +76,19 @@ recorded, and the pull request cannot be merged until it is fixed.
 the runner with a confusing `bad interpreter` error. The `.gitattributes` in
 this repository enforces this, so it should happen automatically.
 
+**The executable bit is recorded by git, not by your filesystem.** If you
+author on Windows, the file is committed as non-executable even when it looks
+executable locally, and the collection fails on the runner. `.gitattributes`
+cannot set this. Check and fix with:
+
+```bash
+git ls-files -s solvers/<id>/<version>/install.sh   # want 100755, not 100644
+git update-index --chmod=+x solvers/<id>/<version>/install.sh
+```
+
+Running `git config core.hooksPath .githooks` once in your clone does it
+automatically on every commit.
+
 ---
 
 ## solver.toml
