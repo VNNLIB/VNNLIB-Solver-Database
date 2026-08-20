@@ -60,18 +60,24 @@ jobs:
         # Before installing anything: layout, line endings, shebang,
         # executable bit, solver.toml, and that install.sh names its version.
         # Milliseconds, and a failure here means nothing is installed at all.
+        # Through the environment, not ${{ }}: that substitutes text into the
+        # script before bash sees it, so a multi-line value turns every line
+        # after the first into its own command.
+        env:
+          DIRS: ${{ steps.changed.outputs.dirs }}
         run: |
-          [ -n "${{ steps.changed.outputs.dirs }}" ] || exit 0
+          [ -n "$DIRS" ] || exit 0
           # pipefail, or tee would swallow validate.py's exit code and the
           # job would carry on to install a rejected submission.
           set -o pipefail
-          python3 scripts/validate.py ${{ steps.changed.outputs.dirs }} \
-            2>&1 | tee artifact/validation.txt
+          python3 scripts/validate.py $DIRS 2>&1 | tee artifact/validation.txt
 
       - name: Install and collect
+        env:
+          DIRS: ${{ steps.changed.outputs.dirs }}
         run: |
-          [ -n "${{ steps.changed.outputs.dirs }}" ] || exit 0
-          for dir in ${{ steps.changed.outputs.dirs }}; do
+          [ -n "$DIRS" ] || exit 0
+          for dir in $DIRS; do
             python3 scripts/register.py "$dir" --timeout 1800 \
               >> artifact/results.jsonl
           done
