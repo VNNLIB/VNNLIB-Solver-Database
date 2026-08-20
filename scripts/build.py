@@ -83,8 +83,16 @@ def load_results(path):
                 entry = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise SystemExit(f"{path}:{number}: not valid JSON ({exc})")
-            if not entry.get("id") or "versions" not in entry:
-                raise SystemExit(f"{path}:{number}: missing 'id' or 'versions'")
+            # Shape-checked here so a malformed record fails by name. Reaching
+            # the merge with a version that has no "version" key would be a
+            # KeyError traceback naming nothing useful.
+            if not isinstance(entry, dict):
+                raise SystemExit(f"{path}:{number}: expected an object, got {type(entry).__name__}")
+            if not entry.get("id") or not isinstance(entry.get("versions"), list):
+                raise SystemExit(f"{path}:{number}: missing 'id', or 'versions' is not a list")
+            for record in entry["versions"]:
+                if not isinstance(record, dict) or not record.get("version"):
+                    raise SystemExit(f"{path}:{number}: a version record has no 'version'")
             solvers.append(entry)
     return solvers
 

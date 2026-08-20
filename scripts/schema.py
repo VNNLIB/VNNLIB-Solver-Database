@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 """
 schema.py — the handful of constants docs/SCHEMA.md defines as a contract,
-in one place so collect.py, register.py and build.py cannot disagree about
-them.
+in one place so the other scripts cannot disagree about them.
 
-Nothing here parses or produces records; it is only the things all three
-have to spell identically.
+Nothing here parses or produces records; it is only the things they all have
+to spell identically.
 """
+
+# The version this project is developed and run against, everywhere: the
+# workflows, the WSL machine that collects, and the API host. register.py
+# builds each solver's venv by cloning the interpreter running it, so the
+# version here is the version solvers get installed under.
+PYTHON_VERSION = "3.12"
+
+# Below this, a solver pinning a recent dependency cannot be installed at all:
+# vibecheck requires onnxruntime 1.26, which publishes nothing for 3.10.
+MINIMUM_PYTHON = (3, 11)
 
 # Bumped on any change that could break a reader. MAJOR.MINOR: a reader may
 # refuse a file whose MAJOR it does not understand, rather than half-read it.

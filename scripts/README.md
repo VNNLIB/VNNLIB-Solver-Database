@@ -1,19 +1,21 @@
 # The collection pipeline
 
-Four modules. One installs, one asks, one records, one holds the constants
-they all have to agree on.
+Six files. One checks, one installs, one asks, one records, one reports, and
+one holds the constants the rest have to agree on.
 
 ```
-register.py  ──imports──>  collect.py  ──> the solver binary
-     │                          │
-     │ one Solver entry         └── schema.py
-     ▼
-results.jsonl  ──>  build.py  ──>  data/solvers.json
+validate.py  ──>  register.py  ──imports──>  collect.py  ──> the solver binary
+                       │                          │
+                       │ one Solver entry         └── schema.py
+                       ▼
+                 results.jsonl  ──>  build.py   ──>  data/solvers.json
+                       │
+                       └────────>  report.py    ──>  markdown for a PR comment
 ```
 
-Only `register.py` and `build.py` are commands. `collect.py` is a library —
-it runs on every solver, but always through `register.py`, never as its own
-process.
+`validate.py`, `register.py`, `build.py` and `report.py` are commands.
+`collect.py` and `schema.py` are libraries — `collect.py` runs on every solver,
+but always through `register.py`, never as its own process.
 
 ## What happens to one submission
 
@@ -56,14 +58,19 @@ network, milliseconds.
 | `register.py` | `register.py <dir> [--timeout N]` | install, collect, tear down. One line of JSON on stdout, status on stderr |
 | `collect.py` | library | run the 13 queries, parse them into SCHEMA.md's shapes |
 | `build.py` | `build.py <results.jsonl> [--database P] [--dry-run]` | merge records into the database |
-| `schema.py` | library | `SCHEMA_VERSION`, `now_iso()` — the things all three must spell identically |
+| `report.py` | `report.py <results.jsonl>` | render records as markdown, for a PR comment or job summary |
+| `schema.py` | library | `SCHEMA_VERSION`, `now_iso()` — the things the others must spell identically |
 
 ## Things that are easy to get wrong
 
 **The venv inherits the interpreter running `register.py`.** `venv.EnvBuilder`
-clones the current Python, so `python3 register.py` builds a 3.10 venv even
-with 3.12 installed. Launch it with the version you want:
-`python3.12 scripts/register.py ...`.
+clones the current Python, so `python3 register.py` on Ubuntu 22.04 builds a
+3.10 venv even with 3.12 installed. `register.py` refuses below
+`schema.MINIMUM_PYTHON` rather than letting that surface minutes later as an
+unresolvable pip pin. Launch it as `python3.12 scripts/register.py ...`.
+
+The project is on **3.12 everywhere** — `.python-version`, both workflows, and
+`schema.PYTHON_VERSION`.
 
 **The directory name is the authority on version.** `--version` is
 cross-checked against it, never substituted for it. A solver reporting
@@ -80,13 +87,15 @@ abort the workflow's loop over the remaining solvers.
 
 ## Known gaps
 
-- **The two booleans are unparsed.** `--optimised-disjunctive-reasoning` and
-  `--serialise-assignments` have never been seen from a running solver, so
-  `parse_boolean` returns raw text rather than guessing whether `true`,
-  `True` or `yes` is the spelling. They come out as the string `"true"`,
-  not `true`.
 - **Version ordering is natural sort, not semver.** `1.0.0-rc1` sorts after
   `1.0.0`. Nothing says these strings are semver, so it is not assumed.
+- **`schema_version` is still `1.0`** although `operators` changed from raw
+  lines to an object and the two booleans from strings to real booleans. The
+  argument for not bumping it: SCHEMA.md described both shapes all along, so
+  the code was wrong rather than the contract. Worth raising with the client.
+- **A duplicate `repo` is a warning, not a failure.** `build.py` prints when
+  two ids claim the same repository, because deciding which one is real needs
+  a human.
 
 ## Testing
 

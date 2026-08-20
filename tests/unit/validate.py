@@ -87,6 +87,32 @@ def test_id_must_be_url_safe():
     assert any("lowercase letters" in p for p in problems)
 
 
+def test_install_script_that_is_not_a_file():
+    """A directory named install.sh used to raise IsADirectoryError."""
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = pathlib.Path(tmp) / "thesolver" / "1.2.0"
+        directory.mkdir(parents=True)
+        (directory / "install.sh").mkdir()
+        (directory / "solver.toml").write_text(GOOD_TOML, encoding="utf-8")
+        assert validate(directory) == ["install.sh is not a file"]
+
+
+def test_repo_must_be_a_quoted_url():
+    """
+    Typed explicitly because the two TOML readers disagree otherwise: tomllib
+    returns `repo = 12345` as an int, the 3.10 regex fallback sees no quoted
+    string at all. Same submission, different verdict per interpreter.
+    """
+    def problems_for(toml):
+        with tempfile.TemporaryDirectory() as tmp:
+            return validate(make_submission(tmp, toml=toml))
+
+    assert problems_for("repo = 'https://github.com/example/x'\n") == []
+    assert any("must be a quoted URL" in p or "no 'repo'" in p
+               for p in problems_for("repo = 12345\n"))
+    assert any("should be a URL" in p for p in problems_for('repo = "example.com"\n'))
+
+
 def test_missing_directory_is_reported_not_raised():
     assert validate("/nonexistent/solver/1.0.0") == [
         "/nonexistent/solver/1.0.0 is not a directory"

@@ -225,7 +225,28 @@ def register(solver_dir, timeout_seconds=DEFAULT_TIMEOUT_SECONDS):
     }
 
 
+def check_interpreter():
+    """
+    Refuse to collect under an interpreter too old to install solvers with.
+
+    make_isolated_env clones the running Python, so `python3 register.py` on
+    Ubuntu 22.04 silently builds a 3.10 venv even with 3.12 installed, and the
+    failure surfaces minutes later as an unresolvable pip pin. Cheaper to say
+    so now.
+    """
+    if sys.version_info[:2] < schema.MINIMUM_PYTHON:
+        running = ".".join(str(v) for v in sys.version_info[:2])
+        least = ".".join(str(v) for v in schema.MINIMUM_PYTHON)
+        raise SystemExit(
+            f"register.py needs Python {least}+ and is running {running}. "
+            f"The venv it builds for each solver clones this interpreter, so "
+            f"solvers pinning recent dependencies cannot be installed. "
+            f"Run it as python{schema.PYTHON_VERSION} instead."
+        )
+
+
 def main():
+    check_interpreter()
     parser = argparse.ArgumentParser(
         description="Install one submitted solver, collect its capabilities, "
         "and print the record as one line of JSON."

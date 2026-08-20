@@ -62,20 +62,42 @@ RANGE_FIELDS = ["onnx_opset", "vnnlib_versions"]
 _cache = {"mtime": None, "data": None}
 
 
+EMPTY = {"schema_version": None, "generated_at": None, "solvers": []}
+
+
 def database():
     """
     The database, re-read when the file changes on disk.
 
     Cached on mtime so a workflow committing a new file is picked up without
     a restart, but a busy endpoint does not re-parse JSON on every request.
+
+    A missing, corrupt or wrongly shaped file yields the empty database and an
+    "error" field rather than a 500 on every endpoint. A half-written upload
+    should degrade to "no solvers, here is why", not take the site down until
+    someone reads the server log.
     """
     if not DATABASE.exists():
-        return {"schema_version": None, "generated_at": None, "solvers": []}
+        return dict(EMPTY)
+
     mtime = DATABASE.stat().st_mtime
     if _cache["mtime"] != mtime:
-        _cache["data"] = json.loads(DATABASE.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(DATABASE.read_text(encoding="utf-8"))
+            if not isinstance(data, dict) or not isinstance(data.get("solvers"), list):
+                raise ValueError("no 'solvers' list")
+            data = {**EMPTY, **data}
+        except (ValueError, OSError) as exc:
+            data = {**EMPTY, "error": f"{DATABASE.name} could not be read: {exc}"}
+        _cache["data"] = data
         _cache["mtime"] = mtime
     return _cache["data"]
+
+
+def solver_versions(solver):
+    """A solver's releases, tolerating an entry that has none."""
+    versions = solver.get("versions")
+    return versions if isinstance(versions, list) else []
 
 
 def operator_types(capabilities):
@@ -187,7 +209,9 @@ def search(query):
     """Solvers with at least one release matching, carrying only those releases."""
     results = []
     for solver in database()["solvers"]:
-        matching = [v for v in solver["versions"] if version_matches(v, query)]
+        if not isinstance(solver, dict):
+            continue
+        matching = [v for v in solver_versions(solver) if version_matches(v, query)]
         if matching:
             results.append({**solver, "versions": matching})
     return results
@@ -225,19 +249,25 @@ def index():
                 "/health": "liveness",
             },
             "filters": THEORY_FIELDS + RANGE_FIELDS + ["operators", "element_types"],
+            **({"error": data["error"]} if "error" in data else {}),
         }
     )
 
 
 @app.get("/health")
 def health():
+    data = database()
     return jsonify(
         {
-            "ok": True,
+            # False when the file is there but unreadable: the process is
+            # alive, the data is not, and a monitor should tell them apart.
+            "ok": "error" not in data,
             "database": str(DATABASE),
             "exists": DATABASE.exists(),
             "source": "demo" if DATABASE == DEMO_DATABASE else "collected",
-            "generated_at": database()["generated_at"],
+            "generated_at": data["generated_at"],
+            "solvers": len(data["solvers"]),
+            **({"error": data["error"]} if "error" in data else {}),
         }
     )
 
@@ -251,7 +281,7 @@ def solvers():
 @app.get("/solvers/<solver_id>")
 def solver(solver_id):
     for entry in database()["solvers"]:
-        if entry["id"] == solver_id:
+        if isinstance(entry, dict) and entry.get("id") == solver_id:
             return jsonify(entry)
     return jsonify({"error": f"no solver with id {solver_id!r}"}), 404
 

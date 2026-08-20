@@ -17,14 +17,34 @@ solvers/<id>/<version>/       one directory per solver release
     solver.toml                 who wrote it, where it lives
 
 data/solvers.json             the collected solvers
-data/solvers.sample.json     hand-written fixture for development
+
 scripts/                      the collection pipeline
+    validate.py                 check a submission, installing nothing
+    register.py                 install it, hand it to collect, tear down
+    collect.py                  ask the solver what it supports
+    build.py                    merge records into the database
+    report.py                   render records as markdown for a PR comment
+    schema.py                   constants the others must agree on
+
+api/                          read-only HTTP API over the database
 src/vnnfilter/                the Python package
 tests/
+    unit/                       pure functions, no solver, milliseconds
+    integration/                the whole pipeline against fake solvers
+    fixtures/                   fake solvers, one per outcome
 
 docs/SUBMITTING.md            what a submission must contain
 docs/SCHEMA.md                what the database records mean
 ```
+
+Each directory has its own README: [scripts](scripts/README.md) for the
+pipeline, [tests](tests/README.md) for how to run everything, [api](api/README.md)
+for the HTTP endpoints and hosting.
+
+**Python 3.12**, everywhere — the workflows, the machine that collects, and
+the API host. `register.py` builds each solver's virtualenv by cloning the
+interpreter that runs it, so the version you launch it with is the version
+solvers get installed under.
 
 ## Searching the database
 
