@@ -97,6 +97,15 @@ def main():
         status, body = run(client, "/health")
         check("health", status == 200 and body["ok"])
 
+        response = client.get("/search?arithmetic=BND")
+        check("cross-origin allowed, or a browser cannot read this at all",
+              response.headers.get("Access-Control-Allow-Origin") == "*",
+              dict(response.headers))
+
+        status, body = run(client, "/")
+        check("says whether it is serving demo or collected data",
+              body["source"] in ("demo", "collected"), body.get("source"))
+
         status, body = run(client, "/solvers")
         check("list every solver", status == 200 and len(body["solvers"]) == 3)
 

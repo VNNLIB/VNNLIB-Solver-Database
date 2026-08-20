@@ -15,7 +15,8 @@ by a workflow; this process only reads the file back.
     python3 api/app.py --dev            # tests/fixtures/solvers.demo.json
     python3 api/app.py --database PATH  # anything else
 
-Under gunicorn there is no command line, so SOLVERS_JSON does the same job.
+A WSGI host imports this module instead of running it, so there is no command
+line there — SOLVERS_JSON does the same job.
 """
 
 import argparse
@@ -27,15 +28,21 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
+# Anchored to this file, not to the working directory. A WSGI server imports
+# the module from wherever it happens to be running, so a relative path would
+# resolve to nothing and every request would report an empty database.
+REPO = Path(__file__).resolve().parent.parent
+
 # What the collection pipeline writes, and what a deployment serves.
-LIVE_DATABASE = Path("data/solvers.json")
+LIVE_DATABASE = REPO / "data" / "solvers.json"
 
 # Fixture data: every status in one file, including releases that failed to
 # install. Useful precisely because the real database may hold only successes.
-DEMO_DATABASE = Path("tests/fixtures/solvers.demo.json")
+DEMO_DATABASE = REPO / "tests" / "fixtures" / "solvers.demo.json"
 
-# Module level so gunicorn, which never runs __main__, can still be pointed
-# somewhere else. The command line below overrides it.
+# Module level so a WSGI host, which imports this file rather than running it
+# and so never reaches __main__, can still be pointed somewhere else. The
+# command line below overrides it.
 DATABASE = Path(os.environ.get("SOLVERS_JSON", LIVE_DATABASE))
 
 # Theory fields are matched against `satisfies`, not `capabilities`: the
@@ -186,6 +193,20 @@ def search(query):
     return results
 
 
+@app.after_request
+def allow_cross_origin(response):
+    """
+    Let a page on another origin read this.
+
+    Without it a browser blocks the response, so the Stage 3 search page — and
+    anyone else's script — would see an empty result and no explanation. Safe
+    to open to everyone: the data is public, read-only, and there is no
+    session or credential to steal.
+    """
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
+
+
 @app.get("/")
 def index():
     data = database()
@@ -193,6 +214,9 @@ def index():
         {
             "schema_version": data["schema_version"],
             "generated_at": data["generated_at"],
+            # Says out loud whether this is collected data or the fixture, so
+            # nobody builds against demo numbers thinking they are real.
+            "source": "demo" if DATABASE == DEMO_DATABASE else "collected",
             "solvers": len(data["solvers"]),
             "endpoints": {
                 "/solvers": "every solver",
@@ -207,7 +231,15 @@ def index():
 
 @app.get("/health")
 def health():
-    return jsonify({"ok": True, "database": str(DATABASE), "exists": DATABASE.exists()})
+    return jsonify(
+        {
+            "ok": True,
+            "database": str(DATABASE),
+            "exists": DATABASE.exists(),
+            "source": "demo" if DATABASE == DEMO_DATABASE else "collected",
+            "generated_at": database()["generated_at"],
+        }
+    )
 
 
 @app.get("/solvers")
