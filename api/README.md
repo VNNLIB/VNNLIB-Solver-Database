@@ -15,8 +15,8 @@ python3 api/app.py --port 8080
 
 It prints which file it is serving at startup, because serving the demo
 fixture while believing it is the real database is the one mistake `--dev`
-makes easy. Under gunicorn there is no command line, so `SOLVERS_JSON` does
-the same job.
+makes easy. A WSGI host imports this module rather than running it, so there
+is no command line there — `SOLVERS_JSON` does the same job.
 
 ## Endpoints
 
@@ -27,6 +27,14 @@ the same job.
 | `GET /solvers` | everything, including releases that failed to install |
 | `GET /solvers/<id>` | one solver, 404 if unknown |
 | `GET /search?...` | filter; returns solvers with only their matching releases |
+
+Every response carries `Access-Control-Allow-Origin: *`, so a page on another
+origin — the Stage 3 search page, or anyone's script — can read it. The data
+is public and read-only, and there is no session or credential involved.
+
+`/` and `/health` report `"source"`: `collected` for the real database,
+`demo` for the fixture. Anyone building against this should check it before
+trusting the numbers.
 
 ## Filtering
 
@@ -71,22 +79,85 @@ your range".
 answers "what can do this", and nothing was measured about them — they are
 still visible through `/solvers`.
 
-## Serving it for real
+## Hosting it on PythonAnywhere
 
-`app.run()` is the development server. In front of anything public:
+Free tier, no card, and `.github.com` / `.githubusercontent.com` are on their
+whitelist, so `git pull` works.
+
+**1. Get the code there.** Bash console:
 
 ```bash
-gunicorn --chdir . --workers 2 --bind 0.0.0.0:8000 api.app:app
+git clone https://github.com/<you>/VNNLIB-Solver-Database.git
+mkvirtualenv --python=/usr/bin/python3.13 solverdb
+pip install flask
 ```
 
-The data is a static file that a workflow updates, so the process re-reads it
-whenever its mtime changes — a new commit is picked up without a restart, and
-requests in between do not re-parse the JSON.
+**2. Web tab → Add a new web app → Manual configuration**, same Python
+version. Set **Virtualenv** to `solverdb`.
 
-Worth knowing before paying for hosting: because it *is* a static file,
-`raw.githubusercontent.com/<user>/<repo>/main/data/solvers.json` already
-serves the same data over HTTP for free, with no server to operate. This API
-exists for the filtering, not for the file.
+**3. Edit the WSGI file** (link near the top of the Web tab). Delete what is
+there and put:
+
+```python
+import sys
+path = '/home/<you>/VNNLIB-Solver-Database'
+if path not in sys.path:
+    sys.path.insert(0, path)
+
+from api.app import app as application
+```
+
+Note it imports `app`; it never calls `app.run()`. That call lives under
+`if __name__ == "__main__"` and would crash the site if it ran on import.
+
+**4. Reload.** Done — `https://<you>.pythonanywhere.com/health`.
+
+### Serving the demo data while the real database is still empty
+
+`data/solvers.json` holds nothing until a collection has run on `main`, so
+until then point the deployment at the fixture by adding one line to the WSGI
+file, after the import:
+
+```python
+from api.app import app as application
+import api.app
+api.app.DATABASE = api.app.DEMO_DATABASE   # remove once main has real data
+```
+
+`/health` and `/` then report `"source": "demo"`, so whoever builds against
+this knows they are looking at fixture data rather than collected data. Delete
+the line and reload once the real database has content.
+
+### Updating the data
+
+```bash
+cd ~/VNNLIB-Solver-Database && git pull
+```
+
+That is the whole update. **No reload needed for data changes**: the process
+re-reads the file whenever its mtime changes, so the next request serves the
+new database. Reload only after changing code.
+
+To automate it, Tasks tab → a daily scheduled task running the line above.
+Free accounts get one, which is plenty for a database that changes when a
+solver is submitted.
+
+Two things about the free tier: the web app expires every three months until
+you click the button on the Web tab, and outbound HTTP from your code is
+restricted to their whitelist — irrelevant here, since this API makes no
+outbound requests.
+
+## Anywhere else
+
+Any WSGI host imports `api.app:app` the same way PythonAnywhere does; the
+`app.run()` at the bottom is only for running it locally. Paths are resolved
+relative to `api/app.py`, not the working directory, so it does not matter
+where the server is started from.
+
+Worth knowing before paying for hosting: because the database *is* a static
+file, `raw.githubusercontent.com/<you>/VNNLIB-Solver-Database/main/data/solvers.json`
+already serves the same data over HTTP for free, with nothing to operate.
+This API exists for the filtering, not for the file.
 
 ## Tests
 
