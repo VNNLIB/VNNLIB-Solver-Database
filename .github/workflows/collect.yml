@@ -92,6 +92,27 @@ jobs:
           Triggered by ${{ github.sha }}."
           git push
 
+      - name: Publish the database to PythonAnywhere
+        # Here rather than in a workflow watching data/**, because a push made
+        # with GITHUB_TOKEN deliberately does not trigger further workflows.
+        env:
+          PA_USERNAME: ${{ secrets.PA_USERNAME }}
+          PA_TOKEN: ${{ secrets.PA_API_TOKEN }}
+          # eu.pythonanywhere.com for EU-registered accounts.
+          PA_HOST: ${{ vars.PA_HOST || 'www.pythonanywhere.com' }}
+        run: |
+          if [ -z "$PA_TOKEN" ] || [ -z "$PA_USERNAME" ]; then
+            echo "no PythonAnywhere secrets set, skipping publish"
+            exit 0
+          fi
+          # Uploaded outside the clone on purpose: writing into the checkout
+          # would leave it dirty and the next git pull there would conflict.
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Token $PA_TOKEN" \
+            -F "content=@data/solvers.json" \
+            "https://$PA_HOST/api/v0/user/$PA_USERNAME/files/path/home/$PA_USERNAME/solvers.json"
+          echo "published to $PA_HOST"
+
       - name: Report
         if: always()
         run: |
