@@ -126,6 +126,26 @@ def main():
         status, body = run(client, "/search?operators=Conv,Relu")
         check("several operators mean all of them", ids(body) == ["strong"], ids(body))
 
+        # "Conv float64 float32" -> restricted to those two types.
+        status, body = run(client, "/search?operators=Conv:float64")
+        check("operator at a listed type", ids(body) == ["strong"], ids(body))
+
+        status, body = run(client, "/search?operators=Conv:bfloat16")
+        check("operator at a type it is not listed for", body["count"] == 0)
+
+        # "Relu" with no types means every type in element_types, not none.
+        status, body = run(client, "/search?operators=Relu:real")
+        check("empty type list means every element type, not none",
+              ids(body) == ["strong"], ids(body))
+
+        status, body = run(client, "/search?operators=Relu:float64")
+        check("empty type list is still bounded by element_types",
+              body["count"] == 0, ids(body))
+
+        module_ops = module.operator_types({"operators": {"Conv": ["float64"], "Relu": []}})
+        check("object shape from SCHEMA.md parses too",
+              module_ops == {"Conv": ["float64"], "Relu": []}, module_ops)
+
         status, body = run(client, "/search?onnx_opset=16")
         check("opset inside both ranges", ids(body) == ["strong", "weak"], ids(body))
 

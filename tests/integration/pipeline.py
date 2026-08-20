@@ -147,6 +147,10 @@ def test_register_every_fixture(state):
     record = testsolver["versions"][0]
     assert testsolver["name"] == "TestSolver", "display name from solver.toml"
     assert record["capabilities"]["onnx_opset"] == [8, 20]
+    # Typed and bare operators end up in the shape SCHEMA.md describes; the
+    # bare one keeps its empty list rather than being expanded.
+    assert record["capabilities"]["operators"]["Conv"] == ["float64", "float32"]
+    assert record["capabilities"]["operators"]["Relu"] == []
     assert record["satisfies"]["arithmetic"] == ["BND", "OUTC", "LIN", "POLY"]
     assert any(n["identifier"] == "POLY" for n in record["notes"])
 

@@ -10,11 +10,15 @@ Nothing here writes. The database is produced by scripts/build.py and updated
 by a workflow; this process only reads the file back.
 
     pip install -r api/requirements.txt
-    python3 api/app.py                      # http://127.0.0.1:5000
 
-Set SOLVERS_JSON to point at a different database.
+    python3 api/app.py                  # the real database, data/solvers.json
+    python3 api/app.py --dev            # tests/fixtures/solvers.demo.json
+    python3 api/app.py --database PATH  # anything else
+
+Under gunicorn there is no command line, so SOLVERS_JSON does the same job.
 """
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -23,7 +27,16 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-DATABASE = Path(os.environ.get("SOLVERS_JSON", "data/solvers.json"))
+# What the collection pipeline writes, and what a deployment serves.
+LIVE_DATABASE = Path("data/solvers.json")
+
+# Fixture data: every status in one file, including releases that failed to
+# install. Useful precisely because the real database may hold only successes.
+DEMO_DATABASE = Path("tests/fixtures/solvers.demo.json")
+
+# Module level so gunicorn, which never runs __main__, can still be pointed
+# somewhere else. The command line below overrides it.
+DATABASE = Path(os.environ.get("SOLVERS_JSON", LIVE_DATABASE))
 
 # Theory fields are matched against `satisfies`, not `capabilities`: the
 # downward closure is already computed there, so "give me OUTC" correctly
@@ -58,19 +71,45 @@ def database():
     return _cache["data"]
 
 
-def operator_names(capabilities):
+def operator_types(capabilities):
     """
-    The operator names a version reports.
+    {operator name: [types it is restricted to]} for one version.
 
-    SCHEMA.md warns that an empty type list after an operator means *every*
-    type, not none — so filtering by name alone is the one reading that
-    cannot be got backwards. collect.py currently stores raw lines like
-    "Conv float64 float32", so the name is the first token.
+    Handles both shapes collect.py might hand over: the raw lines it stores
+    today ("Conv float64 float32", "Relu"), and the object SCHEMA.md
+    describes ({"Conv": ["float64"], "Relu": []}).
     """
     operators = capabilities.get("operators") or []
     if isinstance(operators, dict):
-        return set(operators)
-    return {str(line).split(" ", 1)[0] for line in operators}
+        return {name: list(types or []) for name, types in operators.items()}
+    parsed = {}
+    for line in operators:
+        name, *types = str(line).split()
+        parsed[name] = types
+    return parsed
+
+
+def operator_matches(capabilities, wanted):
+    """
+    Whether a version supports one operator, optionally at one element type:
+    "Conv" or "Conv:float64".
+
+    The trap, straight from Section 5.4.1: an operator listed with NO types
+    supports *every* type in element_types, not none. Reading an empty list
+    as "supports nothing" is the single easiest mistake to make here, and it
+    would silently exclude the solvers that support the most.
+    """
+    name, _, wanted_type = wanted.partition(":")
+    supported = operator_types(capabilities)
+    if name not in supported:
+        return False
+    if not wanted_type:
+        return True
+
+    restricted_to = supported[name]
+    if restricted_to:
+        return wanted_type in restricted_to
+    return wanted_type in (capabilities.get("element_types") or [])
 
 
 def in_range(pair, wanted):
@@ -111,7 +150,7 @@ def version_matches(record, query):
                 return False
 
     for wanted in query.get("operators", []):
-        if wanted not in operator_names(capabilities):
+        if not operator_matches(capabilities, wanted):
             return False
 
     for wanted in query.get("element_types", []):
@@ -207,5 +246,28 @@ def search_endpoint():
     )
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument(
+        "--dev",
+        action="store_true",
+        help=f"serve the demo fixture ({DEMO_DATABASE}) instead of the real database",
+    )
+    source.add_argument("--database", help="serve a specific file")
+    parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", 5000)))
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    app.run(host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", 5000)))
+    args = parse_args()
+    if args.dev:
+        DATABASE = DEMO_DATABASE
+    elif args.database:
+        DATABASE = Path(args.database)
+
+    # Said out loud at startup: serving the demo fixture while believing it is
+    # the real database is the one mistake this flag makes easy.
+    print(f"serving {DATABASE.resolve()}" + ("" if DATABASE.exists() else "  (MISSING)"))
+    app.run(host=args.host, port=args.port)

@@ -6,9 +6,17 @@ it?*
 
 ```bash
 pip install -r api/requirements.txt
-python3 api/app.py                                  # http://127.0.0.1:5000
-SOLVERS_JSON=tests/fixtures/solvers.demo.json python3 api/app.py
+
+python3 api/app.py                    # data/solvers.json — the real database
+python3 api/app.py --dev              # tests/fixtures/solvers.demo.json
+python3 api/app.py --database PATH    # anything else
+python3 api/app.py --port 8080
 ```
+
+It prints which file it is serving at startup, because serving the demo
+fixture while believing it is the real database is the one mistake `--dev`
+makes easy. Under gunicorn there is no command line, so `SOLVERS_JSON` does
+the same job.
 
 ## Endpoints
 
@@ -37,9 +45,23 @@ a 400, not a silent match-everything.
 downward closure is already computed there, so `?arithmetic=OUTC` correctly
 matches a solver that only ever reported `POLY`.
 
-**Operators are matched by name only.** SCHEMA.md warns that an empty type
-list after an operator name means *every* type in `element_types`, not none —
-matching on the name is the reading that cannot be got backwards.
+**Operators can be asked for with or without an element type.**
+
+```
+/search?operators=Conv            # supports Conv at all
+/search?operators=Conv:float64    # supports Conv for float64
+```
+
+An operator listed with **no** types supports *every* type in that solver's
+`element_types`, not none — Section 5.4.1 says so, and reading the empty list
+backwards would silently exclude the solvers that support the most. So
+`Relu:float64` matches a solver that printed a bare `Relu` and lists `float64`
+among its element types.
+
+Caveat: no solver observed so far prints a type list at all — vibecheck
+reports 51 bare operator names. The typed shape comes from SCHEMA.md's
+example, so the `Name:type` filter is written to the specification, not to
+observed output.
 
 **Ranges take a single value.** `onnx_opset` and `vnnlib_versions` are stored
 as inclusive `[min, max]` pairs, so `?onnx_opset=16` asks "does 16 fall in

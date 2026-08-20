@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-17T04:16:38Z",
+  "generated_at": "2026-08-20T02:33:11Z",
   "solvers": [
     {
       "id": "brokensolver",
       "name": "BrokenSolver",
-      "repo": "",
+      "repo": "https://github.com/example/brokensolver",
       "versions": [
         {
           "version": "0.9.0",
-          "collected_at": "2026-08-17T04:15:19Z",
+          "collected_at": "2026-08-20T02:33:07Z",
           "status": "incomplete",
           "errors": [
             "--version: reported '0.9.0-dev', submission directory says '0.9.0'",
@@ -23,10 +23,10 @@
             "element_types": [
               "float32"
             ],
-            "operators": [
-              "Relu",
-              "Gemm"
-            ],
+            "operators": {
+              "Relu": [],
+              "Gemm": []
+            },
             "vnnlib_versions": null,
             "hidden_nodes": [
               "NH"
@@ -39,8 +39,8 @@
             ],
             "node_comparisons": null,
             "arithmetic": null,
-            "optimised_disjunction": "false",
-            "serialise_assignments": "false"
+            "optimised_disjunction": false,
+            "serialise_assignments": false
           },
           "satisfies": {
             "hidden_nodes": [
@@ -61,26 +61,26 @@
     {
       "id": "deadsolver",
       "name": "deadsolver",
-      "repo": "",
+      "repo": "https://github.com/example/deadsolver",
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-08-17T04:15:20Z",
+          "collected_at": "2026-08-20T02:33:09Z",
           "status": "install_failed",
           "errors": [
-            "install script exited 1: resolving dependencies... | E: Unable to locate package libgmp-dev"
+            "install script exited 1: installing deadsolver 1.0.0 | resolving dependencies... | E: Unable to locate package libgmp-dev"
           ]
         }
       ]
     },
     {
       "id": "ghostsolver",
-      "name": "ghostsolver",
-      "repo": "",
+      "name": "GhostSolver",
+      "repo": "https://github.com/example/ghostsolver",
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-08-17T04:15:22Z",
+          "collected_at": "2026-08-20T02:33:11Z",
           "status": "install_failed",
           "errors": [
             "install script exited 0 but left no executable named 'ghostsolver' on PATH"
@@ -91,11 +91,11 @@
     {
       "id": "testsolver",
       "name": "TestSolver",
-      "repo": "",
+      "repo": "https://github.com/example/testsolver",
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-08-17T04:15:23Z",
+          "collected_at": "2026-08-20T02:33:05Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -107,12 +107,15 @@
               "float32",
               "float64"
             ],
-            "operators": [
-              "Conv float64 float32",
-              "Relu",
-              "MaxPool",
-              "Gemm"
-            ],
+            "operators": {
+              "Conv": [
+                "float64",
+                "float32"
+              ],
+              "Relu": [],
+              "MaxPool": [],
+              "Gemm": []
+            },
             "vnnlib_versions": [
               "1.0",
               "2.0"
@@ -137,8 +140,8 @@
               "LIN",
               "POLY"
             ],
-            "optimised_disjunction": "true",
-            "serialise_assignments": "true"
+            "optimised_disjunction": true,
+            "serialise_assignments": true
           },
           "satisfies": {
             "hidden_nodes": [
@@ -211,59 +214,59 @@
               "float32",
               "float64"
             ],
-            "operators": [
-              "Add",
-              "ArgMax",
-              "AveragePool",
-              "BatchNormalization",
-              "Cast",
-              "Clip",
-              "Concat",
-              "ConstantOfShape",
-              "Conv",
-              "ConvTranspose",
-              "Cos",
-              "Div",
-              "Dropout",
-              "Equal",
-              "Expand",
-              "Flatten",
-              "Floor",
-              "Gather",
-              "Gemm",
-              "Identity",
-              "LeakyRelu",
-              "MatMul",
-              "Max",
-              "MaxPool",
-              "Min",
-              "Mul",
-              "Neg",
-              "PWLLookup",
-              "Pad",
-              "Pow",
-              "ReduceMean",
-              "ReduceSum",
-              "Relu",
-              "Reshape",
-              "Resize",
-              "ScatterND",
-              "Shape",
-              "Sigmoid",
-              "Sign",
-              "Sin",
-              "Slice",
-              "Softmax",
-              "Split",
-              "SplitOutput",
-              "Squeeze",
-              "Sub",
-              "Tanh",
-              "Transpose",
-              "Unsqueeze",
-              "Upsample",
-              "Where"
-            ],
+            "operators": {
+              "Add": [],
+              "ArgMax": [],
+              "AveragePool": [],
+              "BatchNormalization": [],
+              "Cast": [],
+              "Clip": [],
+              "Concat": [],
+              "ConstantOfShape": [],
+              "Conv": [],
+              "ConvTranspose": [],
+              "Cos": [],
+              "Div": [],
+              "Dropout": [],
+              "Equal": [],
+              "Expand": [],
+              "Flatten": [],
+              "Floor": [],
+              "Gather": [],
+              "Gemm": [],
+              "Identity": [],
+              "LeakyRelu": [],
+              "MatMul": [],
+              "Max": [],
+              "MaxPool": [],
+              "Min": [],
+              "Mul": [],
+              "Neg": [],
+              "PWLLookup": [],
+              "Pad": [],
+              "Pow": [],
+              "ReduceMean": [],
+              "ReduceSum": [],
+              "Relu": [],
+              "Reshape": [],
+              "Resize": [],
+              "ScatterND": [],
+              "Shape": [],
+              "Sigmoid": [],
+              "Sign": [],
+              "Sin": [],
+              "Slice": [],
+              "Softmax": [],
+              "Split": [],
+              "SplitOutput": [],
+              "Squeeze": [],
+              "Sub": [],
+              "Tanh": [],
+              "Transpose": [],
+              "Unsqueeze": [],
+              "Upsample": [],
+              "Where": []
+            },
             "vnnlib_versions": [
               "1.0",
               "2.0"
