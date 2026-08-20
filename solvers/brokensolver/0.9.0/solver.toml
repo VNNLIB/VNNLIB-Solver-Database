@@ -1,0 +1,4 @@
+name    = "BrokenSolver"
+repo    = "https://github.com/example/brokensolver"
+license = "MIT"
+contact = "nobody@example.invalid"
