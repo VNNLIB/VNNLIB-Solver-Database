@@ -152,12 +152,18 @@ def split_note(line):
     'POLY * some note' -> ('POLY', '* some note')
     'POLY'              -> ('POLY', None)
 
-    Identifier is the first space-separated token; note is everything after
-    the first space, unstripped of its delimiter — per docs/SCHEMA.md, text
-    keeps whatever trailed the identifier, since the collector doesn't assume
-    the delimiter looks like '* ', only that something separates the two.
+    Identifier is the first token; note is everything after it, unstripped of
+    its delimiter — per docs/SCHEMA.md, text keeps whatever trailed the
+    identifier, since the collector doesn't assume the delimiter looks like
+    '* ', only that something separates the two.
+
+    Splits on any whitespace, not just a space. A solver separating the two
+    with a tab is still printing a valid identifier, and SCHEMA.md's rule is
+    that capabilities are "normalised only for whitespace".
     """
-    parts = line.split(" ", 1)
+    parts = line.split(None, 1)
+    if not parts:
+        return "", None
     identifier = parts[0]
     note = parts[1].strip() if len(parts) > 1 else None
     return identifier, note
@@ -215,8 +221,15 @@ def parse_opset(raw_text):
     --onnx-opset-versions prints two lines, min then max. Returns [min, max]
     as ints, or None if that isn't what came back; the caller records the
     error and leaves the field null.
+
+    min > max is rejected too. Such a range can never contain anything, so
+    keeping it would silently exclude the solver from every opset query
+    instead of telling its author the two lines are the wrong way round.
     """
-    return parse_min_max(raw_text, converter=int)
+    pair = parse_min_max(raw_text, converter=int)
+    if pair is None or pair[0] > pair[1]:
+        return None
+    return pair
 
 
 def parse_vnnlib_versions(raw_text):

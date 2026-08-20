@@ -63,6 +63,10 @@ SLOW = {
 # install.sh for a real solver pulls torch; 180s is not enough.
 SLOW_TIMEOUT = 30 * 60
 
+# Kept in step with scripts/schema.py without importing it: this file runs
+# before anything in scripts/ is known to be importable.
+MINIMUM_PYTHON = (3, 11)
+
 
 class Skipped(Exception):
     """Raised by a test that cannot run here — reported, not counted as a pass."""
@@ -76,6 +80,11 @@ def skip_reason():
         return "bash not found on PATH"
     if importlib.util.find_spec("ensurepip") is None:
         return "ensurepip missing, so venv creation will fail (apt install python3-venv)"
+    # register.py refuses below this, so every run_register would fail on an
+    # assertion about a return code rather than saying what is actually wrong.
+    if sys.version_info[:2] < MINIMUM_PYTHON:
+        running = ".".join(str(v) for v in sys.version_info[:2])
+        return f"needs Python 3.12; running {running}"
     return None
 
 

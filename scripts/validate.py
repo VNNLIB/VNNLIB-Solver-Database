@@ -38,9 +38,13 @@ def read_solver_toml(path):
         if tomllib:
             with path.open("rb") as handle:
                 return tomllib.load(handle)
-        # Good enough for the flat key = "value" file SUBMITTING.md documents.
+        # Python 3.10 has no tomllib. Good enough for the flat key = "value"
+        # file SUBMITTING.md documents, and single quotes are accepted because
+        # TOML allows them and rejecting them here would fail a submission
+        # that CI, running 3.12, would accept.
         text = path.read_text(encoding="utf-8")
-        return dict(re.findall(r'^\s*(\w+)\s*=\s*"([^"]*)"', text, re.MULTILINE))
+        pairs = re.findall(r"""^\s*(\w+)\s*=\s*["']([^"']*)["']""", text, re.MULTILINE)
+        return dict(pairs)
     except (OSError, ValueError):
         return None
 
@@ -49,9 +53,14 @@ def check_install_script(path, version):
     """Problems with install.sh, or an empty list."""
     if not path.exists():
         return [f"{path.name} is missing"]
+    if not path.is_file():
+        return ["install.sh is not a file"]
 
     problems = []
-    raw = path.read_bytes()
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return [f"install.sh could not be read: {exc}"]
 
     if b"\r\n" in raw:
         # SUBMITTING.md warns about this: CRLF fails on the runner with a
@@ -90,8 +99,18 @@ def check_solver_toml(path):
     data = read_solver_toml(path)
     if data is None:
         return ["solver.toml is not readable as TOML"]
-    if not data.get("repo"):
+
+    repo = data.get("repo")
+    if not repo:
         return ["solver.toml has no 'repo', which SUBMITTING.md requires"]
+    # Typed explicitly, because the two readers disagree otherwise: tomllib
+    # returns `repo = 12345` as an int, while the regex fallback used on
+    # Python 3.10 sees no quoted string and reports it missing. Same
+    # submission, different verdict depending on the interpreter.
+    if not isinstance(repo, str):
+        return [f"solver.toml 'repo' must be a quoted URL, got {type(repo).__name__}"]
+    if not repo.startswith(("http://", "https://")):
+        return [f"solver.toml 'repo' should be a URL, got {repo!r}"]
     return []
 
 

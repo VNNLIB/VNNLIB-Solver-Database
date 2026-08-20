@@ -66,10 +66,15 @@ backwards would silently exclude the solvers that support the most. So
 `Relu:float64` matches a solver that printed a bare `Relu` and lists `float64`
 among its element types.
 
-Caveat: no solver observed so far prints a type list at all — vibecheck
-reports 51 bare operator names. The typed shape comes from SCHEMA.md's
-example, so the `Name:type` filter is written to the specification, not to
-observed output.
+Both halves of this are real. The standard's own example prints types:
+
+```
+checkNN supports --onnx-operators
+Conv float64 float32
+Relu float64 float32
+```
+
+while vibecheck prints 51 bare names, restricting nothing.
 
 **Ranges take a single value.** `onnx_opset` and `vnnlib_versions` are stored
 as inclusive `[min, max]` pairs, so `?onnx_opset=16` asks "does 16 fall in
@@ -87,10 +92,16 @@ whitelist, so `git pull` works.
 **1. Get the code there.** Bash console:
 
 ```bash
-git clone https://github.com/<you>/VNNLIB-Solver-Database.git
-mkvirtualenv --python=/usr/bin/python3.13 solverdb
+git clone https://github.com/VNNLIB/VNNLIB-Solver-Database.git
+mkvirtualenv --python=/usr/bin/python3.12 solverdb
 pip install flask
 ```
+
+3.12, like the rest of the project. The API itself would run on anything from
+3.9 up — it only imports `json`, `pathlib`, `argparse` and Flask — but keeping
+one version everywhere means one thing to remember. The stricter requirement
+elsewhere belongs to `register.py`, which installs solvers; nothing is
+installed here.
 
 **2. Web tab → Add a new web app → Manual configuration**, same Python
 version. Set **Virtualenv** to `solverdb`.
@@ -195,4 +206,4 @@ This API exists for the filtering, not for the file.
 python3 tests/unit/api.py
 ```
 
-19 checks against Flask's test client — no server, no port, no network.
+26 checks against Flask's test client — no server, no port, no network.

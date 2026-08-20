@@ -1,15 +1,22 @@
 # Running the tests
 
-Everything here needs Python 3.11+ and, apart from the unit tests, bash.
+Everything here needs Python 3.12 and, apart from the unit tests, bash.
 Nothing writes to `data/solvers.json`.
 
 ## Unit tests — `tests/unit/`
 
-Pure functions over strings. No solver, no venv, no network, milliseconds.
+Pure functions over strings, and the API through Flask's test client. No
+solver, no venv, no network, no port. Milliseconds.
 
 ```bash
-python3 tests/unit/collect.py
+python3 tests/unit/collect.py      # the parsers and the closure
+python3 tests/unit/validate.py     # the submission checks
+python3 tests/unit/api.py          # the endpoints and the filters
 ```
+
+Each file is named after the module it tests, so it is loaded by path rather
+than imported — `tests/unit/collect.py` cannot `import collect` without
+importing itself.
 
 ## Integration test — `tests/integration/`
 
@@ -76,6 +83,55 @@ PATH=/tmp/solverbin:$PATH python3 -c "import collect, json; \
 
 ## Python version
 
-vibecheck pins `onnxruntime==1.26.0`, which needs Python 3.11+ and publishes
-no wheel for 3.13. Use 3.12 — it is what vibecheck itself is developed
-against. Ubuntu 22.04 needs the deadsnakes PPA to get it.
+**3.12 everywhere** — the workflows, the machine that collects, and the API
+host. It is recorded in `.python-version` and in `schema.PYTHON_VERSION`.
+
+`register.py` builds each solver's venv by cloning the interpreter that runs
+it, so `python3 scripts/register.py` on Ubuntu 22.04 would build a 3.10 venv
+even with 3.12 installed. It now refuses rather than letting that surface
+minutes later as an unresolvable pip pin:
+
+```
+register.py needs Python 3.11+ and is running 3.10.
+```
+
+Launch it as `python3.12 scripts/register.py`.
+
+Why not older: vibecheck pins `onnxruntime==1.26.0`, which requires 3.11+ and
+ships no wheel for 3.13. Ubuntu 22.04 carries neither 3.12 nor a stable 3.11,
+so it needs the deadsnakes PPA:
+
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.12 python3.12-venv
+```
+
+`python3.12-venv` is not optional — without it venv creation fails with an
+`ensurepip is not available` error.
+
+The unit tests and the API run on anything from 3.9 up — only `register.py`
+enforces a minimum, because only it installs solvers. Use 3.12 anyway, so
+what you run locally is what CI runs.
+
+## Windows
+
+The unit tests, `build.py`, `report.py` and the API all run under `cmd` with
+`python`. `register.py` and the integration test do not: they execute
+`./install.sh`, and Windows Python cannot run a shebang script through
+`subprocess`. Use WSL for those; the integration test skips itself with an
+explanation rather than failing.
+
+One trap: `validate.py` runs on Windows but its executable-bit check is
+meaningless there, because `os.access(..., X_OK)` reports every existing file
+as executable. Only `git ls-files -s` tells the truth:
+
+```bash
+git ls-files -s solvers/*/*/install.sh    # want 100755, not 100644
+```
+
+Enabling the repository's hook once per clone fixes it at commit time:
+
+```bash
+git config core.hooksPath .githooks
+```

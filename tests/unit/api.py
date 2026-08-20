@@ -8,9 +8,11 @@ no network.
 
 import importlib.util
 import json
+import os
 import pathlib
 import sys
 import tempfile
+import time
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
@@ -182,11 +184,30 @@ def main():
               all("broken" not in ids(run(client, u)[1])
                   for u in ["/search", "/search?arithmetic=BND", "/search?operators=Relu"]))
 
+        # A corrupt or half-written database must degrade to "no solvers, here
+        # is why", not 500 on every endpoint until someone reads the log.
+        broken = pathlib.Path(tmp) / "broken.json"
+        broken.write_text("{oops", encoding="utf-8")
+        module.DATABASE = broken
+        status, body = run(client, "/health")
+        check("corrupt database reports itself instead of crashing",
+              status == 200 and body["ok"] is False and "error" in body, body)
+        status, body = run(client, "/search")
+        check("search over a corrupt database is empty, not a 500",
+              status == 200 and body["count"] == 0, status)
+
+        broken.write_text('{"solvers": [{"id": "x"}]}', encoding="utf-8")
+        os.utime(broken, (time.time() + 5, time.time() + 5))
+        status, body = run(client, "/search")
+        check("solver entry with no versions does not crash search",
+              status == 200 and body["count"] == 0, status)
+
+        module.DATABASE = path
+
         # The file changing on disk is picked up without a restart.
         changed = json.loads(json.dumps(DATABASE))
         changed["solvers"] = changed["solvers"][:1]
         path.write_text(json.dumps(changed), encoding="utf-8")
-        import os, time
         os.utime(path, (time.time() + 1, time.time() + 1))
         status, body = run(client, "/solvers")
         check("database reloaded when the file changes", len(body["solvers"]) == 1)

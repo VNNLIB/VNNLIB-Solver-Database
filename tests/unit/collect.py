@@ -85,6 +85,33 @@ def test_theory_output_empty_is_not_an_error_here():
     assert parse_theory_output("", "arithmetic") == ([], [], [])
 
 
+def test_any_whitespace_separates_identifier_from_note():
+    """
+    A tab is still whitespace. Splitting on ' ' alone turned 'POLY\ttext' into
+    the identifier 'POLY\t*' — reported as a conformance failure for the theory
+    fields, and silently stored as a bogus type name for element_types.
+    """
+    assert split_note("POLY\t* note") == ("POLY", "* note")
+    assert split_note("POLY  * note") == ("POLY", "* note")
+
+    identifiers, notes, errors = parse_theory_output("POLY\t* note\n", "arithmetic")
+    assert identifiers == ["POLY"] and errors == []
+    assert notes[0]["text"] == "* note"
+
+    types, notes = parse_element_types("float32\t* note\n")
+    assert types == ["float32"]
+    assert notes[0]["identifier"] == "float32"
+
+
+def test_opset_range_must_not_be_inverted():
+    """
+    [20, 8] contains nothing, so keeping it would quietly exclude the solver
+    from every opset query instead of reporting two lines the wrong way round.
+    """
+    assert parse_opset("20\n8\n") is None
+    assert parse_opset("13\n13\n") == [13, 13]
+
+
 def test_min_max():
     assert parse_opset("8\n20\n") == [8, 20]
     assert parse_opset(" 15 \n\n 18 \n") == [15, 18]
