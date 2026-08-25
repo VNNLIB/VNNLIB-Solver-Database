@@ -1,0 +1,150 @@
+.solver-page {
+    background: #f7fafc;
+    padding-top: 88px;
+}
+
+.bg-secondary {
+    background-color: #020024 !important;
+}
+
+.bg-gradient {
+    background: linear-gradient(180deg, rgba(2,0,36,1) 0%, #008ae6);
+}
+
+.masthead-heading {
+    font-size: 1.6rem;
+    letter-spacing: .03em;
+}
+
+.navbar-brand .masthead-heading {
+    font-size: 1.25rem;
+}
+
+.page-section {
+    padding-top: 3rem;
+    padding-bottom: 3.5rem;
+}
+
+.solver-hero {
+    padding-top: 4.5rem;
+    padding-bottom: 3rem;
+}
+
+.solver-filter-panel {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 8px 24px rgba(2,0,36,0.08);
+}
+
+.solver-filter-panel label {
+    font-weight: 700;
+    color: #020024;
+}
+
+.solver-actions {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.solver-summary {
+    color: #445;
+    font-size: 1rem;
+}
+
+.solver-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.solver-card {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 100%;
+}
+
+.solver-card h3 {
+    font-size: 1.35rem;
+    margin-bottom: .25rem;
+}
+
+.solver-meta {
+    color: #58616f;
+    font-size: .95rem;
+    margin-bottom: .75rem;
+}
+
+.solver-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin: .5rem 0;
+}
+
+.solver-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #e8f4fc;
+    color: #06476f;
+    padding: .2rem .55rem;
+    font-size: .85rem;
+    line-height: 1.3;
+}
+
+.solver-badge.status-ok {
+    background: #e8f7ef;
+    color: #165f35;
+}
+
+.solver-badge.status-incomplete {
+    background: #fff4db;
+    color: #6b4a00;
+}
+
+.solver-badge.status-failed {
+    background: #fdecec;
+    color: #832020;
+}
+
+.solver-section-title {
+    font-size: .9rem;
+    font-weight: 700;
+    margin-top: .8rem;
+    margin-bottom: .25rem;
+    color: #020024;
+}
+
+.solver-operators {
+    max-height: 6.8rem;
+    overflow: auto;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 6px;
+    padding: .5rem;
+    background: #fbfdff;
+}
+
+.solver-empty,
+.solver-error {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.solver-error {
+    border-color: #f1b6b6;
+    color: #7a1d1d;
+}
+
+@media (max-width: 768px) {
+    .solver-filter-panel {
+        padding: 1rem;
+    }
+}
