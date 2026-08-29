@@ -4,6 +4,11 @@ This directory is the development version of the VNN-LIB solver capability
 search page. It reads the local database at `../data/solvers.json`, shows all
 matching solver releases in a table, and can be served as a static site.
 
+The current prototype filters in the browser so it can be developed and
+reviewed without a deployed server. The intended production integration is to
+query the web API that wraps the Python compatibility package, while keeping
+the same filter fields and result structure.
+
 From the repository root:
 
 ```bash
