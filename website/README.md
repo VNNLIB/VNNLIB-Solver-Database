@@ -9,6 +9,11 @@ reviewed without a deployed server. The intended production integration is to
 query the web API that wraps the Python compatibility package, while keeping
 the same filter fields and result structure.
 
+With no filters selected, the page shows every recorded solver release,
+including failed or non-conforming submissions. Capability filters only match
+releases that have a `capabilities` record; use the Status filter to inspect
+failed or incomplete records directly.
+
 From the repository root:
 
 ```bash

@@ -62,6 +62,7 @@
         setSelectValues("filter-multiple-io", valuesFromParams(params, "multiple_io"));
         setSelectValues("filter-multiple-networks", valuesFromParams(params, "multiple_networks"));
         setSelectValues("filter-element-types", valuesFromParams(params, "element_types"));
+        setSelectValues("filter-status", valuesFromParams(params, "status"));
         $("filter-operators").value = valuesFromParams(params, "operators").join(", ");
         $("filter-onnx-opset").value = params.get("onnx_opset") || "";
         $("filter-vnnlib-version").value = params.get("vnnlib_versions") || "";
@@ -75,6 +76,7 @@
             "multiple_io",
             "multiple_networks",
             "element_types",
+            "status",
             "operators"
         ].forEach(function (field) {
             (query[field] || []).forEach(function (value) {
@@ -125,11 +127,22 @@
         return (capabilities.element_types || []).indexOf(wantedType) !== -1;
     }
 
+    function hasCapabilityFilters(query) {
+        return THEORY_FIELDS.some(function (field) {
+            return (query[field] || []).length > 0;
+        }) || RANGE_FIELDS.some(function (field) {
+            return !!query[field];
+        }) || query.operators.length > 0 || query.element_types.length > 0;
+    }
+
     function versionMatches(version, query) {
         var capabilities = version.capabilities;
         var satisfies = version.satisfies || {};
-        if (!capabilities) {
+        if (query.status.length && query.status.indexOf(version.status) === -1) {
             return false;
+        }
+        if (!capabilities) {
+            return !hasCapabilityFilters(query);
         }
 
         for (var i = 0; i < THEORY_FIELDS.length; i += 1) {
@@ -173,6 +186,7 @@
             node_comparisons: [],
             operators: commaValues($("filter-operators").value),
             element_types: valuesFrom($("filter-element-types")),
+            status: valuesFrom($("filter-status")),
             onnx_opset: $("filter-onnx-opset").value.trim(),
             vnnlib_versions: $("filter-vnnlib-version").value.trim()
         };
@@ -394,6 +408,7 @@
             "filter-multiple-io",
             "filter-multiple-networks",
             "filter-element-types",
+            "filter-status",
             "filter-onnx-opset",
             "filter-vnnlib-version",
             "filter-operators"
