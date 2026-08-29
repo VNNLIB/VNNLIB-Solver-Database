@@ -185,6 +185,25 @@
         return items.map(escapeHtml).join(", ");
     }
 
+    function allOperators(solvers) {
+        var seen = {};
+        solvers.forEach(function (solver) {
+            (solver.versions || []).forEach(function (version) {
+                var capabilities = version.capabilities || {};
+                Object.keys(capabilities.operators || {}).forEach(function (operator) {
+                    seen[operator] = true;
+                });
+            });
+        });
+        return Object.keys(seen).sort();
+    }
+
+    function populateOperatorSuggestions(solvers) {
+        $("operator-suggestions").innerHTML = allOperators(solvers).map(function (operator) {
+            return '<option value="' + escapeHtml(operator) + '"></option>';
+        }).join("");
+    }
+
     function versionDetails(version) {
         var capabilities = version.capabilities || {};
         var operators = Object.keys(capabilities.operators || {}).sort();
@@ -299,6 +318,7 @@
                     return !!version.capabilities;
                 });
             });
+            populateOperatorSuggestions(state.solvers);
             $("database-meta").textContent = "Database generated at " + (data.generated_at || "unknown time");
             render();
         }).catch(function (error) {

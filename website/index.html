@@ -62,7 +62,9 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="filter-operators">ONNX operators</label>
-                        <input id="filter-operators" class="form-control" type="text" placeholder="Conv, Relu, Gemm">
+                        <input id="filter-operators" class="form-control" type="text" list="operator-suggestions"
+                            placeholder="Conv, Relu, Gemm">
+                        <datalist id="operator-suggestions"></datalist>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="filter-element-types">Element types</label>
