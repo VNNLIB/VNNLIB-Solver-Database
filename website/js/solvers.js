@@ -57,6 +57,7 @@
 
     function applyQueryFromUrl() {
         var params = new URLSearchParams(window.location.search);
+        $("filter-text").value = params.get("q") || "";
         setSelectValues("filter-arithmetic", valuesFromParams(params, "arithmetic"));
         setSelectValues("filter-hidden-nodes", valuesFromParams(params, "hidden_nodes"));
         setSelectValues("filter-multiple-io", valuesFromParams(params, "multiple_io"));
@@ -70,6 +71,9 @@
 
     function updateUrl(query) {
         var params = new URLSearchParams();
+        if (query.text) {
+            params.set("q", query.text);
+        }
         [
             "arithmetic",
             "hidden_nodes",
@@ -127,6 +131,18 @@
         return (capabilities.element_types || []).indexOf(wantedType) !== -1;
     }
 
+    function solverTextMatches(solver, queryText) {
+        if (!queryText) {
+            return true;
+        }
+        var haystack = [
+            solver.id,
+            solver.name,
+            solver.repo
+        ].join(" ").toLowerCase();
+        return haystack.indexOf(queryText.toLowerCase()) !== -1;
+    }
+
     function hasCapabilityFilters(query) {
         return THEORY_FIELDS.some(function (field) {
             return (query[field] || []).length > 0;
@@ -179,6 +195,7 @@
 
     function currentQuery() {
         return {
+            text: $("filter-text").value.trim(),
             arithmetic: valuesFrom($("filter-arithmetic")),
             hidden_nodes: valuesFrom($("filter-hidden-nodes")),
             multiple_io: valuesFrom($("filter-multiple-io")),
@@ -196,6 +213,9 @@
         var query = currentQuery();
         updateUrl(query);
         state.filtered = state.solvers.map(function (solver) {
+            if (!solverTextMatches(solver, query.text)) {
+                return null;
+            }
             var versions = (solver.versions || []).filter(function (version) {
                 return versionMatches(version, query);
             });
@@ -403,6 +423,7 @@
 
     function bindEvents() {
         [
+            "filter-text",
             "filter-arithmetic",
             "filter-hidden-nodes",
             "filter-multiple-io",
