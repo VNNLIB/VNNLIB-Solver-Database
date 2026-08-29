@@ -202,11 +202,6 @@
             .replace(/'/g, "&#039;");
     }
 
-    function latestVersion(solver) {
-        var versions = solver.versions || [];
-        return versions[versions.length - 1] || {};
-    }
-
     function statusClass(status) {
         if (status === "ok") {
             return "status-ok";
@@ -292,11 +287,16 @@
         ].join("");
     }
 
-    function solverRow(solver, index) {
-        var version = latestVersion(solver);
+    function solverVersionRows(solver, solverIndex) {
+        return (solver.versions || []).map(function (version, versionIndex) {
+            return solverRow(solver, version, solverIndex + "-" + versionIndex);
+        }).join("");
+    }
+
+    function solverRow(solver, version, rowId) {
         var capabilities = version.capabilities || {};
         var operators = Object.keys(capabilities.operators || {});
-        var detailId = "solver-detail-" + index;
+        var detailId = "solver-detail-" + rowId;
         var repo = solver.repo
             ? '<a href="' + escapeHtml(solver.repo) + '" target="_blank" rel="noopener">Repository</a>'
             : "Unknown";
@@ -318,10 +318,18 @@
         ].join("");
     }
 
+    function matchingVersionCount() {
+        return state.filtered.reduce(function (total, solver) {
+            return total + (solver.versions || []).length;
+        }, 0);
+    }
+
     function render() {
         var list = $("solver-results");
         var summary = $("solver-summary");
-        summary.textContent = state.filtered.length + " matching solver" + (state.filtered.length === 1 ? "" : "s");
+        var releaseCount = matchingVersionCount();
+        summary.textContent = state.filtered.length + " matching solver" + (state.filtered.length === 1 ? "" : "s")
+            + ", " + releaseCount + " matching release" + (releaseCount === 1 ? "" : "s");
 
         if (!state.filtered.length) {
             list.innerHTML = '<div class="solver-empty">No solvers match the selected filters.</div>';
@@ -334,7 +342,7 @@
             "<thead>",
             "<tr>",
             "<th>Solver</th>",
-            "<th>Latest version</th>",
+            "<th>Version</th>",
             "<th>VNN-LIB</th>",
             "<th>ONNX opset</th>",
             "<th>Arithmetic</th>",
@@ -346,7 +354,7 @@
             "</tr>",
             "</thead>",
             "<tbody>",
-            state.filtered.map(solverRow).join(""),
+            state.filtered.map(solverVersionRows).join(""),
             "</tbody>",
             "</table>",
             "</div>"
