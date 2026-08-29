@@ -37,6 +37,62 @@
             .filter(Boolean);
     }
 
+    function valuesFromParams(params, field) {
+        var values = [];
+        params.getAll(field).forEach(function (raw) {
+            values = values.concat(commaValues(raw));
+        });
+        return values;
+    }
+
+    function setSelectValues(id, values) {
+        var wanted = {};
+        values.forEach(function (value) {
+            wanted[value] = true;
+        });
+        Array.prototype.forEach.call($(id).options, function (option) {
+            option.selected = !!wanted[option.value];
+        });
+    }
+
+    function applyQueryFromUrl() {
+        var params = new URLSearchParams(window.location.search);
+        setSelectValues("filter-arithmetic", valuesFromParams(params, "arithmetic"));
+        setSelectValues("filter-hidden-nodes", valuesFromParams(params, "hidden_nodes"));
+        setSelectValues("filter-multiple-io", valuesFromParams(params, "multiple_io"));
+        setSelectValues("filter-multiple-networks", valuesFromParams(params, "multiple_networks"));
+        setSelectValues("filter-element-types", valuesFromParams(params, "element_types"));
+        $("filter-operators").value = valuesFromParams(params, "operators").join(", ");
+        $("filter-onnx-opset").value = params.get("onnx_opset") || "";
+        $("filter-vnnlib-version").value = params.get("vnnlib_versions") || "";
+    }
+
+    function updateUrl(query) {
+        var params = new URLSearchParams();
+        [
+            "arithmetic",
+            "hidden_nodes",
+            "multiple_io",
+            "multiple_networks",
+            "element_types",
+            "operators"
+        ].forEach(function (field) {
+            (query[field] || []).forEach(function (value) {
+                params.append(field, value);
+            });
+        });
+
+        RANGE_FIELDS.forEach(function (field) {
+            if (query[field]) {
+                params.set(field, query[field]);
+            }
+        });
+
+        var queryString = params.toString();
+        var next = window.location.pathname + (queryString ? "?" + queryString : "");
+        window.history.replaceState(null, "", next);
+    }
+
     function inRange(pair, wanted) {
         if (!pair || pair.length !== 2 || !wanted) {
             return true;
@@ -124,6 +180,7 @@
 
     function search() {
         var query = currentQuery();
+        updateUrl(query);
         state.filtered = state.solvers.map(function (solver) {
             var versions = (solver.versions || []).filter(function (version) {
                 return versionMatches(version, query);
@@ -313,14 +370,10 @@
 
         attempt(0).then(function (data) {
             state.solvers = data.solvers || [];
-            state.filtered = state.solvers.filter(function (solver) {
-                return (solver.versions || []).some(function (version) {
-                    return !!version.capabilities;
-                });
-            });
             populateOperatorSuggestions(state.solvers);
+            applyQueryFromUrl();
             $("database-meta").textContent = "Database generated at " + (data.generated_at || "unknown time");
-            render();
+            search();
         }).catch(function (error) {
             $("solver-results").innerHTML = '<div class="solver-error">Could not load solver data: ' + error.message + "</div>";
         });
