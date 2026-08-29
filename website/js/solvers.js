@@ -136,6 +136,15 @@
         render();
     }
 
+    function escapeHtml(value) {
+        return String(value === undefined || value === null ? "" : value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     function latestVersion(solver) {
         var versions = solver.versions || [];
         return versions[versions.length - 1] || {};
@@ -154,7 +163,7 @@
     function badges(items, limit) {
         var visible = (items || []).slice(0, limit || 12);
         var html = visible.map(function (item) {
-            return '<span class="solver-badge">' + item + '</span>';
+            return '<span class="solver-badge">' + escapeHtml(item) + '</span>';
         }).join("");
         if ((items || []).length > visible.length) {
             html += '<span class="solver-badge">+' + ((items || []).length - visible.length) + " more</span>";
@@ -162,20 +171,33 @@
         return html;
     }
 
-    function versionCard(solver, version) {
+    function rangeText(pair) {
+        if (!pair || pair.length !== 2) {
+            return "Unknown";
+        }
+        return escapeHtml(pair[0]) + " to " + escapeHtml(pair[1]);
+    }
+
+    function listText(items, fallback) {
+        if (!items || !items.length) {
+            return fallback || "Unknown";
+        }
+        return items.map(escapeHtml).join(", ");
+    }
+
+    function versionDetails(version) {
         var capabilities = version.capabilities || {};
         var operators = Object.keys(capabilities.operators || {}).sort();
-        var repo = solver.repo ? '<a href="' + solver.repo + '" target="_blank" rel="noopener">Repository</a>' : "";
         var notes = (version.notes || []).map(function (note) {
             var prefix = note.field && note.identifier ? note.field + " " + note.identifier + ": " : "";
-            return "<li>" + prefix + note.text + "</li>";
+            return "<li>" + escapeHtml(prefix + note.text) + "</li>";
+        }).join("");
+        var errors = (version.errors || []).map(function (error) {
+            return "<li>" + escapeHtml(error) + "</li>";
         }).join("");
 
         return [
-            '<article class="solver-card">',
-            "<h3>" + (solver.name || solver.id) + "</h3>",
-            '<div class="solver-meta">Version ' + version.version + (repo ? " | " + repo : "") + "</div>",
-            '<div class="solver-badges"><span class="solver-badge ' + statusClass(version.status) + '">' + version.status + "</span></div>",
+            '<div class="solver-detail-panel">',
             '<div class="solver-section-title">Core capabilities</div>',
             '<div class="solver-badges">',
             badges((capabilities.arithmetic || []).map(function (item) { return "Arithmetic " + item; }), 6),
@@ -183,13 +205,40 @@
             "</div>",
             '<div class="solver-section-title">Versions and opsets</div>',
             '<div class="solver-badges">',
-            capabilities.vnnlib_versions ? '<span class="solver-badge">VNN-LIB ' + capabilities.vnnlib_versions.join(" to ") + "</span>" : "",
-            capabilities.onnx_opset ? '<span class="solver-badge">ONNX opset ' + capabilities.onnx_opset.join(" to ") + "</span>" : "",
+            capabilities.vnnlib_versions ? '<span class="solver-badge">VNN-LIB ' + rangeText(capabilities.vnnlib_versions) + "</span>" : "",
+            capabilities.onnx_opset ? '<span class="solver-badge">ONNX opset ' + rangeText(capabilities.onnx_opset) + "</span>" : "",
             "</div>",
             '<div class="solver-section-title">Operators</div>',
             '<div class="solver-operators"><div class="solver-badges">' + badges(operators, 40) + "</div></div>",
             notes ? '<div class="solver-section-title">Notes</div><ul>' + notes + "</ul>" : "",
-            "</article>"
+            errors ? '<div class="solver-section-title">Errors</div><ul>' + errors + "</ul>" : "",
+            "</div>"
+        ].join("");
+    }
+
+    function solverRow(solver, index) {
+        var version = latestVersion(solver);
+        var capabilities = version.capabilities || {};
+        var operators = Object.keys(capabilities.operators || {});
+        var detailId = "solver-detail-" + index;
+        var repo = solver.repo
+            ? '<a href="' + escapeHtml(solver.repo) + '" target="_blank" rel="noopener">Repository</a>'
+            : "Unknown";
+
+        return [
+            "<tr>",
+            '<td><strong>' + escapeHtml(solver.name || solver.id) + '</strong><div class="solver-meta">' + escapeHtml(solver.id) + "</div></td>",
+            "<td>" + escapeHtml(version.version || "Unknown") + "</td>",
+            "<td>" + rangeText(capabilities.vnnlib_versions) + "</td>",
+            "<td>" + rangeText(capabilities.onnx_opset) + "</td>",
+            "<td>" + listText(capabilities.arithmetic) + "</td>",
+            "<td>" + listText(capabilities.element_types) + "</td>",
+            "<td>" + operators.length + "</td>",
+            '<td><span class="solver-badge ' + statusClass(version.status) + '">' + escapeHtml(version.status || "unknown") + "</span></td>",
+            "<td>" + repo + "</td>",
+            '<td><button class="btn btn-sm btn-outline-primary" type="button" data-toggle="collapse" data-target="#' + detailId + '" aria-expanded="false" aria-controls="' + detailId + '">Details</button></td>',
+            "</tr>",
+            '<tr class="solver-detail-row"><td colspan="10"><div class="collapse" id="' + detailId + '">' + versionDetails(version) + "</div></td></tr>"
         ].join("");
     }
 
@@ -203,9 +252,29 @@
             return;
         }
 
-        list.innerHTML = state.filtered.map(function (solver) {
-            return versionCard(solver, latestVersion(solver));
-        }).join("");
+        list.innerHTML = [
+            '<div class="solver-table-shell">',
+            '<table class="table table-hover solver-table">',
+            "<thead>",
+            "<tr>",
+            "<th>Solver</th>",
+            "<th>Latest version</th>",
+            "<th>VNN-LIB</th>",
+            "<th>ONNX opset</th>",
+            "<th>Arithmetic</th>",
+            "<th>Element types</th>",
+            "<th>Operators</th>",
+            "<th>Status</th>",
+            "<th>Link</th>",
+            "<th></th>",
+            "</tr>",
+            "</thead>",
+            "<tbody>",
+            state.filtered.map(solverRow).join(""),
+            "</tbody>",
+            "</table>",
+            "</div>"
+        ].join("");
     }
 
     function loadData() {

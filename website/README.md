@@ -1,8 +1,8 @@
 # Solver Website Prototype
 
 This directory is the development version of the VNN-LIB solver capability
-search page. It reads the local database at `../data/solvers.json` and can be
-served as a static site.
+search page. It reads the local database at `../data/solvers.json`, shows all
+matching solvers in a table, and can be served as a static site.
 
 From the repository root:
 

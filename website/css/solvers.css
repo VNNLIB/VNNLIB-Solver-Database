@@ -55,29 +55,46 @@
     font-size: 1rem;
 }
 
-.solver-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-}
-
-.solver-card {
+.solver-table-shell {
     background: #ffffff;
     border: 1px solid rgba(0,0,0,0.08);
     border-radius: 8px;
-    padding: 1rem;
-    min-height: 100%;
+    overflow-x: auto;
+    box-shadow: 0 8px 24px rgba(2,0,36,0.06);
 }
 
-.solver-card h3 {
-    font-size: 1.35rem;
-    margin-bottom: .25rem;
+.solver-table {
+    min-width: 980px;
+    margin-bottom: 0;
+    background: #ffffff;
+}
+
+.solver-table th {
+    border-top: 0;
+    color: #020024;
+    font-size: .9rem;
+    white-space: nowrap;
+}
+
+.solver-table td {
+    vertical-align: middle;
+    font-size: .95rem;
+}
+
+.solver-detail-row td {
+    padding: 0;
+    border-top: 0;
+}
+
+.solver-detail-panel {
+    padding: 1rem;
+    background: #fbfdff;
+    border-top: 1px solid rgba(0,0,0,0.06);
 }
 
 .solver-meta {
     color: #58616f;
-    font-size: .95rem;
-    margin-bottom: .75rem;
+    font-size: .85rem;
 }
 
 .solver-badges {
