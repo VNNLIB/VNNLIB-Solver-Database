@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Search VNN-LIB solver capabilities.">
+    <title>VNN-LIB Solvers</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"
+        crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/solvers.css">
+</head>
+
+<body id="page-top" class="solver-page">
+    <nav class="navbar navbar-expand-lg bg-secondary fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <h1 class="masthead-heading mb-0">VNN-LIB</h1>
+            </a>
+            <button class="navbar-toggler navbar-toggler-right font-weight-bold bg-primary text-white rounded"
+                type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive"
+                aria-expanded="false" aria-label="Toggle navigation"><i class="fas fa-bars"></i></button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded"
+                            href="https://www.vnnlib.org/#news">News</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded"
+                            href="https://www.vnnlib.org/#standard">Standard</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded active"
+                            href="index.html">Solvers</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded"
+                            href="https://www.vnnlib.org/#libraries">Libraries</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded"
+                            href="https://www.vnnlib.org/#team">Team</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="masthead solver-hero bg-gradient text-white">
+        <div class="container">
+            <h1 class="masthead-heading font-weight-bold mb-3">Solver Capability Search</h1>
+            <p class="lead mb-0">Find neural network verifiers whose recorded VNN-LIB 2.0 capabilities match a problem.</p>
+        </div>
+    </header>
+
+    <main class="page-section">
+        <div class="container">
+            <section class="solver-filter-panel mb-4" aria-label="Solver filters">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="filter-text">Search</label>
+                        <input id="filter-text" class="form-control" type="search" placeholder="Solver name or repository">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="filter-arithmetic">Arithmetic</label>
+                        <select id="filter-arithmetic" class="form-control" multiple>
+                            <option value="BND">BND</option>
+                            <option value="OUTC">OUTC</option>
+                            <option value="LIN">LIN</option>
+                            <option value="POLY">POLY</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="filter-operators">ONNX operators</label>
+                        <input id="filter-operators" class="form-control" type="text" list="operator-suggestions"
+                            placeholder="Conv, Relu, Gemm">
+                        <datalist id="operator-suggestions"></datalist>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="filter-element-types">Element types</label>
+                        <select id="filter-element-types" class="form-control" multiple>
+                            <option value="real">real</option>
+                            <option value="float32">float32</option>
+                            <option value="float64">float64</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="filter-vnnlib-version">VNN-LIB version</label>
+                        <input id="filter-vnnlib-version" class="form-control" type="text" placeholder="2.0">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="filter-onnx-opset">ONNX opset</label>
+                        <input id="filter-onnx-opset" class="form-control" type="number" min="1" placeholder="16">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="filter-hidden-nodes">Hidden nodes</label>
+                        <select id="filter-hidden-nodes" class="form-control">
+                            <option value="">Any</option>
+                            <option value="NH">NH</option>
+                            <option value="H">H</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="filter-multiple-io">Input/output</label>
+                        <select id="filter-multiple-io" class="form-control">
+                            <option value="">Any</option>
+                            <option value="SIO">SIO</option>
+                            <option value="MIO">MIO</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="filter-multiple-networks">Networks</label>
+                        <select id="filter-multiple-networks" class="form-control">
+                            <option value="">Any</option>
+                            <option value="SNET">SNET</option>
+                            <option value="MENET">MENET</option>
+                            <option value="MINET">MINET</option>
+                            <option value="MNET">MNET</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="filter-status">Status</label>
+                        <select id="filter-status" class="form-control">
+                            <option value="">Any</option>
+                            <option value="ok">ok</option>
+                            <option value="incomplete">incomplete</option>
+                            <option value="non_conforming">non_conforming</option>
+                            <option value="install_failed">install_failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="solver-actions">
+                    <button id="clear-filters" class="btn btn-outline-secondary" type="button">Clear filters</button>
+                    <span id="solver-summary" class="solver-summary">Loading solvers...</span>
+                    <span id="database-meta" class="solver-summary"></span>
+                </div>
+            </section>
+
+            <section id="solver-results" aria-live="polite"></section>
+        </div>
+    </main>
+
+    <footer class="copyright footer py-4 text-center text-white bg-secondary">
+        <div class="container">
+            <small class="pre-wrap"><a target="_blank" href="https://github.com/NeVerTools/NeVerTools.github.io/blob/master/LICENSE">MIT Licensed</a> | vnnlib.org 2023 | Hosted with love by <a href="https://github.com/" target="_blank">GitHub</a></small>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+    <script src="js/solvers.js"></script>
+</body>
+
+</html>
