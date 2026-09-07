@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vnnfilter"
+version = "0.1.0"
+description = "Search the VNN-LIB Solver Database for verifiers that support what you need."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "VNN-LIB Solver Database" }]
+keywords = ["vnnlib", "neural-network-verification", "formal-verification"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+vnnfilter = "vnnfilter.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/uwa-vnnlib/VNNLIB-Solver-Database"
+Repository = "https://github.com/uwa-vnnlib/VNNLIB-Solver-Database"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+vnnfilter = ["_data/*.json", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
