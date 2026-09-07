@@ -14,6 +14,11 @@ including failed or non-conforming submissions. Capability filters only match
 releases that have a `capabilities` record; use the Status filter to inspect
 failed or incomplete records directly.
 
+The filter names mirror `vnnfilter.Query`: `onnx_opset`, `element_types`,
+`operators`, `vnnlib_version`, `hidden_nodes`, `multiple_io`,
+`multiple_networks`, `node_comparisons`, `arithmetic`,
+`optimised_disjunction`, and `serialise_assignments`.
+
 From the repository root:
 
 ```bash

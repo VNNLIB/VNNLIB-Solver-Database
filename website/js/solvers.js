@@ -14,7 +14,9 @@
         "arithmetic"
     ];
 
-    var RANGE_FIELDS = ["onnx_opset", "vnnlib_versions"];
+    var RANGE_FIELDS = ["onnx_opset", "vnnlib_version"];
+
+    var BOOLEAN_FIELDS = ["optimised_disjunction", "serialise_assignments"];
 
     var state = {
         solvers: [],
@@ -62,11 +64,14 @@
         setSelectValues("filter-hidden-nodes", valuesFromParams(params, "hidden_nodes"));
         setSelectValues("filter-multiple-io", valuesFromParams(params, "multiple_io"));
         setSelectValues("filter-multiple-networks", valuesFromParams(params, "multiple_networks"));
+        setSelectValues("filter-node-comparisons", valuesFromParams(params, "node_comparisons"));
         setSelectValues("filter-element-types", valuesFromParams(params, "element_types"));
         setSelectValues("filter-status", valuesFromParams(params, "status"));
+        setSelectValues("filter-optimised-disjunction", valuesFromParams(params, "optimised_disjunction"));
+        setSelectValues("filter-serialise-assignments", valuesFromParams(params, "serialise_assignments"));
         $("filter-operators").value = valuesFromParams(params, "operators").join(", ");
         $("filter-onnx-opset").value = params.get("onnx_opset") || "";
-        $("filter-vnnlib-version").value = params.get("vnnlib_versions") || "";
+        $("filter-vnnlib-version").value = params.get("vnnlib_version") || params.get("vnnlib_versions") || "";
     }
 
     function updateUrl(query) {
@@ -79,8 +84,11 @@
             "hidden_nodes",
             "multiple_io",
             "multiple_networks",
+            "node_comparisons",
             "element_types",
             "status",
+            "optimised_disjunction",
+            "serialise_assignments",
             "operators"
         ].forEach(function (field) {
             (query[field] || []).forEach(function (value) {
@@ -131,6 +139,13 @@
         return (capabilities.element_types || []).indexOf(wantedType) !== -1;
     }
 
+    function booleanMatches(actual, wanted) {
+        if (!wanted.length) {
+            return true;
+        }
+        return wanted.indexOf(String(actual)) !== -1;
+    }
+
     function solverTextMatches(solver, queryText) {
         if (!queryText) {
             return true;
@@ -148,6 +163,8 @@
             return (query[field] || []).length > 0;
         }) || RANGE_FIELDS.some(function (field) {
             return !!query[field];
+        }) || BOOLEAN_FIELDS.some(function (field) {
+            return (query[field] || []).length > 0;
         }) || query.operators.length > 0 || query.element_types.length > 0;
     }
 
@@ -173,7 +190,15 @@
 
         for (var r = 0; r < RANGE_FIELDS.length; r += 1) {
             var rangeField = RANGE_FIELDS[r];
-            if (!inRange(capabilities[rangeField], query[rangeField])) {
+            var capabilityField = rangeField === "vnnlib_version" ? "vnnlib_versions" : rangeField;
+            if (!inRange(capabilities[capabilityField], query[rangeField])) {
+                return false;
+            }
+        }
+
+        for (var b = 0; b < BOOLEAN_FIELDS.length; b += 1) {
+            var booleanField = BOOLEAN_FIELDS[b];
+            if (!booleanMatches(capabilities[booleanField], query[booleanField])) {
                 return false;
             }
         }
@@ -200,12 +225,14 @@
             hidden_nodes: valuesFrom($("filter-hidden-nodes")),
             multiple_io: valuesFrom($("filter-multiple-io")),
             multiple_networks: valuesFrom($("filter-multiple-networks")),
-            node_comparisons: [],
+            node_comparisons: valuesFrom($("filter-node-comparisons")),
             operators: commaValues($("filter-operators").value),
             element_types: valuesFrom($("filter-element-types")),
             status: valuesFrom($("filter-status")),
+            optimised_disjunction: valuesFrom($("filter-optimised-disjunction")),
+            serialise_assignments: valuesFrom($("filter-serialise-assignments")),
             onnx_opset: $("filter-onnx-opset").value.trim(),
-            vnnlib_versions: $("filter-vnnlib-version").value.trim()
+            vnnlib_version: $("filter-vnnlib-version").value.trim()
         };
     }
 
@@ -307,6 +334,8 @@
             '<div class="solver-badges">',
             badges((capabilities.arithmetic || []).map(function (item) { return "Arithmetic " + item; }), 6),
             badges((capabilities.element_types || []).map(function (item) { return "Type " + item; }), 6),
+            capabilities.optimised_disjunction === undefined ? "" : badges(["Optimised disjunction " + capabilities.optimised_disjunction], 1),
+            capabilities.serialise_assignments === undefined ? "" : badges(["Serialise assignments " + capabilities.serialise_assignments], 1),
             "</div>",
             '<div class="solver-section-title">Versions and opsets</div>',
             '<div class="solver-badges">',
@@ -428,8 +457,11 @@
             "filter-hidden-nodes",
             "filter-multiple-io",
             "filter-multiple-networks",
+            "filter-node-comparisons",
             "filter-element-types",
             "filter-status",
+            "filter-optimised-disjunction",
+            "filter-serialise-assignments",
             "filter-onnx-opset",
             "filter-vnnlib-version",
             "filter-operators"
