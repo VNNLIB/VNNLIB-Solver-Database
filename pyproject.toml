@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vnnfilter"
-version = "0.1.0"
+version = "0.1.1"
 description = "Search the VNN-LIB Solver Database for verifiers that support what you need."
 readme = "README.md"
 license = { text = "MIT" }
