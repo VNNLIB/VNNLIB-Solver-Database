@@ -4,11 +4,11 @@ This directory is the development version of the redesigned VNN-LIB website.
 It follows the client request to split the original single-page site into
 multiple pages:
 
-- `index.html` for the homepage, introduction, news, and project workflow
-- `standards.html` for standard documents
+- `index.html` for the homepage, introduction, latest news, and team members
+- `standards.html` for the documents page
 - `solvers.html` for solver capability search
 - `libraries.html` for VNN-LIB libraries
-- `related.html` for related projects
+- `related.html` for related tools
 
 All pages share `css/site.css` so the prototype presents as one consistent
 site. The Solvers page reads the local database at `../data/solvers.json`,
