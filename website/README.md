@@ -1,10 +1,20 @@
-# Solver Website Prototype
+# VNN-LIB Website Prototype
 
-This directory is the development version of the VNN-LIB solver capability
-search page. It reads the local database at `../data/solvers.json`, shows all
-matching solver releases in a table, and can be served as a static site.
+This directory is the development version of the redesigned VNN-LIB website.
+It follows the client request to split the original single-page site into
+multiple pages:
 
-The current prototype filters in the browser so it can be developed and
+- `index.html` for the homepage, introduction, news, and project workflow
+- `standards.html` for standard documents
+- `solvers.html` for solver capability search
+- `libraries.html` for VNN-LIB libraries
+- `related.html` for related projects
+
+All pages share `css/site.css` so the prototype presents as one consistent
+site. The Solvers page reads the local database at `../data/solvers.json`,
+shows matching solver releases in a table, and can be served as a static site.
+
+The current Solvers page filters in the browser so it can be developed and
 reviewed without a deployed server. The intended production integration is to
 query the web API that wraps the Python compatibility package, while keeping
 the same filter fields and result structure.
@@ -31,6 +41,6 @@ Then open:
 http://127.0.0.1:8000/website/
 ```
 
-Keep feature work here first. Once the page is reviewed, copy the stable
-`index.html`, `css/solvers.css`, and `js/solvers.js` changes into the
-`vnnlib.github.io` repository for publication.
+Keep feature work here first. Once the site is reviewed, copy the stable pages,
+shared CSS, and solver search JavaScript into the `vnnlib.github.io` repository
+for publication.
