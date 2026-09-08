@@ -50,95 +50,78 @@
     <main class="page-section">
         <div class="container">
             <section class="solver-filter-panel mb-4" aria-label="Solver filters">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-text">Search</label>
-                        <input id="filter-text" class="form-control" type="search" placeholder="Solver name or repository">
+                <div class="filter-header">
+                    <div>
+                        <p class="eyebrow mb-2">Search console</p>
+                        <h2 class="filter-title">Match a solver to a VNN-LIB problem</h2>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-arithmetic">Arithmetic</label>
-                        <select id="filter-arithmetic" class="form-control" multiple>
-                            <option value="BND">BND</option>
-                            <option value="OUTC">OUTC</option>
-                            <option value="LIN">LIN</option>
-                            <option value="POLY">POLY</option>
-                        </select>
+                    <div class="filter-status">
+                        <span id="solver-summary" class="solver-summary">Loading solvers...</span>
+                        <span id="database-meta" class="solver-summary"></span>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-operators">ONNX operators</label>
-                        <input id="filter-operators" class="form-control" type="text" list="operator-suggestions"
-                            placeholder="Conv, Relu, Gemm">
-                        <datalist id="operator-suggestions"></datalist>
+                </div>
+
+                <div class="filter-block filter-block-primary">
+                    <div class="filter-block-heading">
+                        <span class="filter-accent"></span>
+                        <h3>Core capabilities</h3>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-element-types">Element types</label>
-                        <select id="filter-element-types" class="form-control" multiple>
-                            <option value="real">real</option>
-                            <option value="float32">float32</option>
-                            <option value="float64">float64</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <label for="filter-text">Search</label>
+                            <input id="filter-text" class="form-control filter-control" type="search" placeholder="Solver name or repository">
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <label for="filter-operators">ONNX operators</label>
+                            <input id="filter-operators" class="form-control filter-control" type="text" list="operator-suggestions"
+                                placeholder="Conv, Relu, Gemm">
+                            <datalist id="operator-suggestions"></datalist>
+                        </div>
+                        <div class="col-lg-2 col-md-6 mb-3">
+                            <label for="filter-arithmetic">Arithmetic</label>
+                            <select id="filter-arithmetic" class="form-control filter-control filter-chip-select" multiple>
+                                <option value="BND">BND</option>
+                                <option value="OUTC">OUTC</option>
+                                <option value="LIN">LIN</option>
+                                <option value="POLY">POLY</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-6 mb-3">
+                            <label for="filter-element-types">Element types</label>
+                            <select id="filter-element-types" class="form-control filter-control filter-chip-select" multiple>
+                                <option value="real">real</option>
+                                <option value="float32">float32</option>
+                                <option value="float64">float64</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="filter-vnnlib-version">VNN-LIB version</label>
-                        <input id="filter-vnnlib-version" class="form-control" type="text" placeholder="2.0">
+                </div>
+
+                <div class="filter-block-row">
+                    <div class="filter-block">
+                        <div class="filter-block-heading">
+                            <span class="filter-accent filter-accent-amber"></span>
+                            <h3>Version requirements</h3>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="filter-vnnlib-version">VNN-LIB version</label>
+                                <input id="filter-vnnlib-version" class="form-control filter-control" type="text" placeholder="2.0">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="filter-onnx-opset">ONNX opset</label>
+                                <input id="filter-onnx-opset" class="form-control filter-control" type="number" min="1" placeholder="16">
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="filter-onnx-opset">ONNX opset</label>
-                        <input id="filter-onnx-opset" class="form-control" type="number" min="1" placeholder="16">
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="filter-hidden-nodes">Hidden nodes</label>
-                        <select id="filter-hidden-nodes" class="form-control">
-                            <option value="">Any</option>
-                            <option value="NH">NH</option>
-                            <option value="H">H</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="filter-multiple-io">Input/output</label>
-                        <select id="filter-multiple-io" class="form-control">
-                            <option value="">Any</option>
-                            <option value="SIO">SIO</option>
-                            <option value="MIO">MIO</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-multiple-networks">Networks</label>
-                        <select id="filter-multiple-networks" class="form-control">
-                            <option value="">Any</option>
-                            <option value="SNET">SNET</option>
-                            <option value="MENET">MENET</option>
-                            <option value="MINET">MINET</option>
-                            <option value="MNET">MNET</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-node-comparisons">Node comparisons</label>
-                        <select id="filter-node-comparisons" class="form-control">
-                            <option value="">Any</option>
-                            <option value="SNC">SNC</option>
-                            <option value="MNC">MNC</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-optimised-disjunction">Optimised disjunction</label>
-                        <select id="filter-optimised-disjunction" class="form-control">
-                            <option value="">Any</option>
-                            <option value="true">Yes</option>
-                            <option value="false">No</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="filter-serialise-assignments">Serialise assignments</label>
-                        <select id="filter-serialise-assignments" class="form-control">
-                            <option value="">Any</option>
-                            <option value="true">Yes</option>
-                            <option value="false">No</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
+
+                    <div class="filter-block">
+                        <div class="filter-block-heading">
+                            <span class="filter-accent filter-accent-plum"></span>
+                            <h3>Implementation status</h3>
+                        </div>
                         <label for="filter-status">Status</label>
-                        <select id="filter-status" class="form-control">
+                        <select id="filter-status" class="form-control filter-control">
                             <option value="">Any</option>
                             <option value="ok">ok</option>
                             <option value="incomplete">incomplete</option>
@@ -147,10 +130,68 @@
                         </select>
                     </div>
                 </div>
+
+                <div class="filter-block filter-block-advanced">
+                    <div class="filter-block-heading">
+                        <span class="filter-accent filter-accent-rose"></span>
+                        <h3>Query structure</h3>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <label for="filter-hidden-nodes">Hidden nodes</label>
+                            <select id="filter-hidden-nodes" class="form-control filter-control">
+                                <option value="">Any</option>
+                                <option value="NH">NH</option>
+                                <option value="H">H</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <label for="filter-multiple-io">Input/output</label>
+                            <select id="filter-multiple-io" class="form-control filter-control">
+                                <option value="">Any</option>
+                                <option value="SIO">SIO</option>
+                                <option value="MIO">MIO</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <label for="filter-multiple-networks">Networks</label>
+                            <select id="filter-multiple-networks" class="form-control filter-control">
+                                <option value="">Any</option>
+                                <option value="SNET">SNET</option>
+                                <option value="MENET">MENET</option>
+                                <option value="MINET">MINET</option>
+                                <option value="MNET">MNET</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
+                            <label for="filter-node-comparisons">Node comparisons</label>
+                            <select id="filter-node-comparisons" class="form-control filter-control">
+                                <option value="">Any</option>
+                                <option value="SNC">SNC</option>
+                                <option value="MNC">MNC</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
+                            <label for="filter-optimised-disjunction">Optimised disjunction</label>
+                            <select id="filter-optimised-disjunction" class="form-control filter-control">
+                                <option value="">Any</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <label for="filter-serialise-assignments">Serialise assignments</label>
+                            <select id="filter-serialise-assignments" class="form-control filter-control">
+                                <option value="">Any</option>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="solver-actions">
                     <button id="clear-filters" class="btn btn-outline-secondary" type="button">Clear filters</button>
-                    <span id="solver-summary" class="solver-summary">Loading solvers...</span>
-                    <span id="database-meta" class="solver-summary"></span>
                 </div>
             </section>
 
