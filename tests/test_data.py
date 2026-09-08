@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from vnnfilter.data import DataError, load_database
+from vnnfilter.data import DataError, load_database, DEFAULT_API_URL 
 
 
 def test_loads_sample(database):
@@ -56,8 +56,13 @@ def test_explicit_path_beats_env_var(monkeypatch, tmp_path):
     assert data["solvers"] == ["from-explicit"]
 
 
-def test_bundled_default_loads():
-    # No path, no env var: falls back to the copy shipped inside the package.
+def test_no_args_fetches_live_api(monkeypatch):
+    calls = []
+    def fake_fetch(url, timeout=5.0):
+        calls.append(url)
+        return {"schema_version": "1.0", "solvers": []}
+    monkeypatch.setattr("vnnfilter.data.fetch_remote", fake_fetch)
+    monkeypatch.setattr("vnnfilter.data._refresh_bundle", lambda data: None)
     data = load_database()
-    assert "schema_version" in data
-    assert "solvers" in data
+    assert calls == [DEFAULT_API_URL]  # or hardcode the URL string
+    assert data["solvers"] == []

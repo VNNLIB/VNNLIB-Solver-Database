@@ -3,7 +3,7 @@ from pathlib import Path
 
 from vnnfilter.cli import main
 
-SAMPLE = str(Path(__file__).resolve().parent.parent / "data" / "solvers.sample.json")
+SAMPLE = str(Path(__file__).resolve().parent / "fixtures" / "solvers.sample.json")
 
 
 def test_readme_example_as_json(capsys):

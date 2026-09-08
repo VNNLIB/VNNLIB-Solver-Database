@@ -29,6 +29,12 @@ def _read_json(text: str, *, source:str )-> dict:
 def _bundled_path() -> Any:
     return resources.files("vnnfilter") / "_data" / "solvers.json"
 
+def _refresh_bundle(data: dict)-> None:
+    """Best-effort: cache the freshest successful live fetch as the offline fallback."""
+    try:
+        _bundled_path().write_text(json.dumps(data), encoding="utf-8")
+    except OSError:
+        pass  # read-only install (e.g. system site-packages) — not fatal, just skip the refresh
 
 def fetch_remote(url: str, timeout: float = 5.0) ->dict:
     try:
@@ -54,7 +60,19 @@ def load_database(path: str | os.PathLike | None = None, * ,url: str |None=None)
             raise DataError(f"${ENV_VAR}={p}: no such file")
         data = _read_json(p.read_text(encoding="utf-8"), source=str(p))
     else:
-        data = fetch_remote(DEFAULT_API_URL)
+        try :
+            data = fetch_remote(DEFAULT_API_URL)
+        except DataError:
+            bundle = _bundled_path()
+            if not bundle.is_file():
+                raise
+            data = _read_json(
+                bundle.read_text(encoding="utf-8"),
+                source="bundle vnnfilter/_data/solvers.json",
+            )
+        else:
+            _refresh_bundle(data)
+
 
     schema_version = str(data.get("schema_version", ""))
     major = schema_version.split(".", 1)[0]
