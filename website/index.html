@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="VNN-LIB is an international standard for neural network verification.">
+    <title>VNN-LIB</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/site.css">
+</head>
+
+<body class="solver-page">
+    <nav class="navbar navbar-expand-lg bg-secondary fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <h1 class="masthead-heading mb-0">VNN-LIB</h1>
+            </a>
+            <button class="navbar-toggler navbar-toggler-right font-weight-bold bg-primary text-white rounded"
+                type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive"
+                aria-expanded="false" aria-label="Toggle navigation"><i class="fas fa-bars"></i></button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded active" href="index.html">Home</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded" href="standards.html">Documents</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded" href="solvers.html">Solvers</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded" href="libraries.html">Libraries</a></li>
+                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded" href="related.html">Related Tools</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="masthead site-hero bg-gradient text-white">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <p class="eyebrow">International standard for neural network verification</p>
+                    <h1 class="display-title">VNN-LIB</h1>
+                    <p class="lead hero-copy">
+                        A shared language, solver interface, and capability database for checking
+                        satisfiability problems over neural networks.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="btn btn-light btn-lg" href="solvers.html">Find a Solver</a>
+                        <a class="btn btn-outline-light btn-lg" href="standards.html">Read the Standard</a>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="code-panel" aria-label="VNN-LIB example">
+                        <div class="code-panel-header"><span></span><span></span><span></span></div>
+                        <pre>(vnnlib-version &lt;2.0&gt;)
+
+(declare-network f
+  (declare-input X float32 [2,2])
+  (declare-output Y float32 [1]))
+
+(assert (and (&gt;= X[0,0] 0.0)
+             (&lt;= X[0,0] 1.0)))
+(assert (or (&lt;= Y[0] -3.0)
+            (&gt;= Y[0] 0.0)))</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="page-section">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">Introduction</p>
+                    <h2>What VNN-LIB Provides</h2>
+                    <p class="lead-copy">
+                        Verifying a neural network means proving, mathematically, that it always
+                        satisfies a given property &mdash; for example, that no small perturbation
+                        of an input can flip its classification. VNN-LIB is the shared query
+                        language and solver interface the neural network verification community
+                        uses to pose those problems, so that a property written for one solver can
+                        be checked by any other. Before VNN-LIB, every verifier defined its own
+                        input format, which made benchmarks and comparisons across tools slow and
+                        error-prone; the standard and the supporting parser libraries on this site
+                        remove that friction.
+                    </p>
+                    <p class="lead-copy">
+                        This website is being rebuilt to make that ecosystem easier to use: a
+                        clearer explanation of the standard itself, direct links to the reference
+                        libraries and documents, and &mdash; new in this release &mdash; a searchable
+                        database of solver capabilities, so you can find a compatible solver
+                        without installing and testing each one by hand.
+                    </p>
+                </div>
+                <div class="feature-grid">
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-code"></i></div>
+                        <h3>Standard Query Language</h3>
+                        <p>VNN-LIB defines the syntax and semantics for expressing satisfiability queries over neural networks.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-terminal"></i></div>
+                        <h3>Solver Interface</h3>
+                        <p>VNN-LIB 2.0 specifies a supports command so solvers can report their capabilities consistently.</p>
+                    </article>
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-search"></i></div>
+                        <h3>Capability Search</h3>
+                        <p>The solver database records reported capabilities and lets users search for compatible solver releases.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section section-muted">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="section-heading">
+                            <p class="eyebrow">Latest News</p>
+                            <h2>Project Updates</h2>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="timeline-list">
+                            <div class="timeline-item">
+                                <strong>June 2, 2026</strong>
+                                <span>
+                                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Python/releases/tag/v1.0.2">VNNLIB-Python 1.0.2</a>
+                                    and
+                                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-CPP/releases/tag/v1.0.1">VNNLIB-CPP 1.0.1</a>
+                                    released
+                                </span>
+                            </div>
+                            <div class="timeline-item">
+                                <strong>May 25, 2026</strong>
+                                <span>
+                                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Agda/releases/tag/v1.1.1">VNNLIB-Agda 1.1.1</a>
+                                    released
+                                </span>
+                            </div>
+                            <div class="timeline-item">
+                                <strong>December 15, 2025</strong>
+                                <span>
+                                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/tag/v2.0.0">VNN-LIB 2.0 standard</a>
+                                    released, alongside VNNLIB-Python, VNNLIB-CPP, and VNNLIB-Agda 1.0.0
+                                </span>
+                            </div>
+                            <div class="timeline-item">
+                                <strong>September 27, 2025</strong>
+                                <span>
+                                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/tag/v1.0">VNN-LIB 1.0 standard</a>
+                                    released
+                                </span>
+                            </div>
+                        </div>
+                        <p class="timeline-more">
+                            See every release on
+                            <a target="_blank" rel="noopener" href="https://github.com/orgs/VNNLIB/repositories">GitHub</a>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">Workflow</p>
+                    <h2>From Solver Submission to Search Result</h2>
+                </div>
+                <div class="process-grid">
+                    <div class="process-step">
+                        <span>1</span>
+                        <h3>Submit</h3>
+                        <p>A solver developer opens a pull request with an install script for a specific release.</p>
+                    </div>
+                    <div class="process-step">
+                        <span>2</span>
+                        <h3>Collect</h3>
+                        <p>Automation installs the solver temporarily and queries the VNN-LIB 2.0 supports interface.</p>
+                    </div>
+                    <div class="process-step">
+                        <span>3</span>
+                        <h3>Record</h3>
+                        <p>The solver release capabilities are stored in the database and exposed to the website.</p>
+                    </div>
+                    <div class="process-step">
+                        <span>4</span>
+                        <h3>Search</h3>
+                        <p>Users filter by capabilities, versions, and ONNX operators to find compatible solvers.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="page-section section-muted">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">Team Members</p>
+                    <h2>People Behind VNN-LIB</h2>
+                    <p class="lead-copy">
+                        VNN-LIB is maintained by researchers across three universities who
+                        develop the standard, its reference libraries, and this solver database.
+                    </p>
+                </div>
+                <div class="section-heading team-subheading">
+                    <h2>Current Team</h2>
+                </div>
+                <div class="team-grid">
+                    <article class="team-card">
+                        <img src="assets/img/team/md.jpg" alt="Matthew Daggitt">
+                        <h3>Matthew Daggitt</h3>
+                        <p>Lecturer | University of Western Australia</p>
+                    </article>
+                    <article class="team-card">
+                        <img src="assets/img/team/aa.jpg" alt="Allen Anthony">
+                        <h3>Allen Anthony</h3>
+                        <p>Postgraduate Researcher | University of Western Australia</p>
+                    </article>
+                    <article class="team-card">
+                        <img src="assets/img/team/ar.jpg" alt="Ann Roy">
+                        <h3>Ann Roy</h3>
+                        <p>Postgraduate Researcher | University of Western Australia</p>
+                    </article>
+                    <article class="team-card">
+                        <img src="assets/img/team/placeholder.png" alt="Andrea Gimelli">
+                        <h3>Andrea Gimelli</h3>
+                        <p>PhD Student | University of Genoa</p>
+                    </article>
+                    <article class="team-card">
+                        <img src="assets/img/team/at.jpg" alt="Armando Tacchella">
+                        <h3>Armando Tacchella</h3>
+                        <p>Full Professor | University of Genoa</p>
+                    </article>
+                </div>
+                <div class="section-heading team-subheading">
+                    <h2>Past Members</h2>
+                </div>
+                <div class="team-grid team-grid-compact">
+                    <article class="team-card">
+                        <img src="assets/img/team/sd.jpg" alt="Stefano Demarchi">
+                        <h3>Stefano Demarchi</h3>
+                        <p>Postdoctoral Researcher | University of Genoa</p>
+                    </article>
+                    <article class="team-card">
+                        <img src="assets/img/team/lp.jpg" alt="Luca Pulina">
+                        <h3>Luca Pulina</h3>
+                        <p>Full Professor | University of Sassari</p>
+                    </article>
+                    <article class="team-card">
+                        <img src="assets/img/team/dg.jpg" alt="Dario Guidotti">
+                        <h3>Dario Guidotti</h3>
+                        <p>Postdoctoral Researcher | University of Sassari</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="copyright footer py-4 text-center text-white bg-secondary">
+        <div class="container">
+            <small><a target="_blank" rel="noopener" href="https://github.com/VNNLIB">VNN-LIB on GitHub</a> | Solver capability search prototype</small>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
