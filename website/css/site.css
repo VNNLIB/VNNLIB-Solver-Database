@@ -179,6 +179,15 @@ a {
     font-weight: 800;
 }
 
+.lead-copy {
+    color: #4b5563;
+    margin-top: 1rem;
+}
+
+.lead-copy:first-of-type {
+    margin-top: 1.1rem;
+}
+
 .section-muted {
     background: #f0fdfa;
 }
@@ -330,6 +339,10 @@ a {
     border-left-color: var(--brand-plum);
 }
 
+.timeline-item:nth-child(4) {
+    border-left-color: var(--brand-blue);
+}
+
 .timeline-item strong {
     color: var(--brand-navy);
     display: block;
@@ -337,6 +350,21 @@ a {
 
 .timeline-item span {
     color: #4b5563;
+}
+
+.timeline-item a {
+    color: var(--brand-navy);
+    font-weight: 700;
+}
+
+.timeline-item a:hover {
+    text-decoration: underline;
+}
+
+.timeline-more {
+    color: #4b5563;
+    font-size: .92rem;
+    margin-top: 1rem;
 }
 
 .team-grid {
