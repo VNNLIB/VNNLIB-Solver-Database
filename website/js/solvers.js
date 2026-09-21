@@ -18,9 +18,37 @@
 
     var BOOLEAN_FIELDS = ["optimised_disjunction", "serialise_assignments"];
 
+    var COMMON_ONNX_OPERATORS = [
+        "Abs", "Acos", "Add", "ArgMax", "AveragePool", "BatchNormalization", "Cast",
+        "Clip", "Concat", "Constant", "ConstantOfShape", "Conv", "ConvTranspose", "Cos",
+        "Div", "Dropout", "Equal", "Exp", "Expand", "Flatten", "Floor", "Gather",
+        "Gemm", "GlobalAveragePool", "Identity", "LeakyRelu", "Log", "MatMul", "Max",
+        "MaxPool", "Min", "Mul", "Neg", "Pad", "Pow", "ReduceMean", "ReduceSum",
+        "Relu", "Reshape", "Resize", "Shape", "Sigmoid", "Sign", "Sin", "Slice",
+        "Softmax", "Split", "Squeeze", "Sub", "Tanh", "Transpose", "Unsqueeze",
+        "Upsample", "Where"
+    ];
+
+    var FILTER_LABELS = {
+        text: "Search",
+        arithmetic: "Arithmetic",
+        hidden_nodes: "Hidden nodes",
+        multiple_io: "Input/output",
+        multiple_networks: "Networks",
+        node_comparisons: "Node comparisons",
+        operators: "ONNX operators",
+        element_types: "Element types",
+        status: "Status",
+        optimised_disjunction: "Optimised disjunction",
+        serialise_assignments: "Serialise assignments",
+        onnx_opset: "ONNX opset",
+        vnnlib_version: "VNN-LIB version"
+    };
+
     var state = {
         solvers: [],
-        filtered: []
+        filtered: [],
+        query: null
     };
 
     function $(id) {
@@ -105,6 +133,21 @@
         var queryString = params.toString();
         var next = window.location.pathname + (queryString ? "?" + queryString : "");
         window.history.replaceState(null, "", next);
+    }
+
+    function unique(values) {
+        var seen = {};
+        return values.filter(function (value) {
+            if (!value || seen[value]) {
+                return false;
+            }
+            seen[value] = true;
+            return true;
+        });
+    }
+
+    function mergeCommaInput(existing, additions) {
+        return unique(commaValues(existing).concat(additions)).join(", ");
     }
 
     function inRange(pair, wanted) {
@@ -241,6 +284,7 @@
 
     function search() {
         var query = currentQuery();
+        state.query = query;
         updateUrl(query);
         state.filtered = state.solvers.map(function (solver) {
             if (!solverTextMatches(solver, query.text)) {
@@ -314,9 +358,70 @@
         return Object.keys(seen).sort();
     }
 
+    function knownOperators() {
+        return unique(allOperators(state.solvers).concat(COMMON_ONNX_OPERATORS))
+            .sort(function (a, b) { return b.length - a.length; });
+    }
+
+    function extractOperatorsFromText(text) {
+        var found = [];
+        knownOperators().forEach(function (operator) {
+            var escaped = operator.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            var pattern = new RegExp("(^|[^A-Za-z0-9_])" + escaped + "([^A-Za-z0-9_]|$)");
+            if (pattern.test(text)) {
+                found.push(operator);
+            }
+        });
+        return unique(found).sort();
+    }
+
     function populateOperatorSuggestions(solvers) {
         $("operator-suggestions").innerHTML = allOperators(solvers).map(function (operator) {
             return '<option value="' + escapeHtml(operator) + '"></option>';
+        }).join("");
+    }
+
+    function activeFilterItems(query) {
+        var items = [];
+        if (!query) {
+            return items;
+        }
+        if (query.text) {
+            items.push(FILTER_LABELS.text + ": " + query.text);
+        }
+        [
+            "operators",
+            "arithmetic",
+            "element_types",
+            "hidden_nodes",
+            "multiple_io",
+            "multiple_networks",
+            "node_comparisons",
+            "status",
+            "optimised_disjunction",
+            "serialise_assignments"
+        ].forEach(function (field) {
+            (query[field] || []).forEach(function (value) {
+                items.push(FILTER_LABELS[field] + ": " + value);
+            });
+        });
+        RANGE_FIELDS.forEach(function (field) {
+            if (query[field]) {
+                items.push(FILTER_LABELS[field] + ": " + query[field]);
+            }
+        });
+        return items;
+    }
+
+    function renderActiveFilters(query) {
+        var target = $("active-filters");
+        var items = activeFilterItems(query);
+        if (!items.length) {
+            target.innerHTML = '<span class="active-filter-note">No filters selected. Showing every recorded solver release.</span>';
+            return;
+        }
+        target.innerHTML = items.map(function (item) {
+            return '<span class="active-filter-chip">' + escapeHtml(item) + "</span>";
         }).join("");
     }
 
@@ -394,6 +499,7 @@
         var list = $("solver-results");
         var summary = $("solver-summary");
         var releaseCount = matchingVersionCount();
+        renderActiveFilters(state.query);
         summary.textContent = state.filtered.length + " matching solver" + (state.filtered.length === 1 ? "" : "s")
             + ", " + releaseCount + " matching release" + (releaseCount === 1 ? "" : "s");
 
@@ -473,6 +579,28 @@
             $(id).addEventListener("change", search);
         });
 
+        $("filter-model-file").addEventListener("change", function (event) {
+            var file = event.target.files && event.target.files[0];
+            var status = $("model-file-status");
+            if (!file) {
+                status.textContent = "Upload an ONNX model or operator list.";
+                return;
+            }
+            file.arrayBuffer().then(function (buffer) {
+                var text = new TextDecoder("utf-8").decode(buffer);
+                var operators = extractOperatorsFromText(text);
+                if (!operators.length) {
+                    status.textContent = "No known ONNX operators found in " + file.name + ".";
+                    return;
+                }
+                $("filter-operators").value = mergeCommaInput($("filter-operators").value, operators);
+                status.textContent = "Added " + operators.length + " operator" + (operators.length === 1 ? "" : "s") + " from " + file.name + ".";
+                search();
+            }).catch(function () {
+                status.textContent = "Could not read " + file.name + ".";
+            });
+        });
+
         $("clear-filters").addEventListener("click", function () {
             document.querySelectorAll(".solver-filter-panel select").forEach(function (select) {
                 Array.prototype.forEach.call(select.options, function (option) {
@@ -482,6 +610,7 @@
             document.querySelectorAll(".solver-filter-panel input").forEach(function (input) {
                 input.value = "";
             });
+            $("model-file-status").textContent = "Upload an ONNX model or operator list.";
             search();
         });
     }

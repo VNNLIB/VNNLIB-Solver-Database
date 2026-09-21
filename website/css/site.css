@@ -605,6 +605,50 @@ a {
     padding: .24rem .1rem;
 }
 
+.solver-filter-panel .filter-file-control {
+    background: #ffffff;
+    font-size: .9rem;
+    padding: .67rem .75rem;
+}
+
+.filter-help {
+    color: #64748b;
+    font-size: .82rem;
+    line-height: 1.35;
+    margin-top: .42rem;
+}
+
+.active-filters {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin: -.15rem 0 1rem;
+    min-height: 2rem;
+}
+
+.active-filter-note,
+.active-filter-chip {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: .85rem;
+    line-height: 1.25;
+    padding: .42rem .68rem;
+}
+
+.active-filter-note {
+    background: rgba(255,255,255,0.72);
+    border: 1px dashed rgba(100,116,139,0.38);
+    color: #64748b;
+}
+
+.active-filter-chip {
+    background: rgba(15,118,110,0.10);
+    border: 1px solid rgba(15,118,110,0.20);
+    color: #115e59;
+    font-weight: 700;
+}
+
 .solver-actions {
     align-items: center;
     display: flex;
