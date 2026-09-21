@@ -108,8 +108,11 @@
     }
 
     function inRange(pair, wanted) {
-        if (!pair || pair.length !== 2 || !wanted) {
+        if (!wanted) {
             return true;
+        }
+        if (!pair || pair.length !== 2) {
+            return false;
         }
         var low = Number(pair[0]);
         var high = Number(pair[1]);
