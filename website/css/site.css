@@ -39,24 +39,15 @@ a {
 
 .navbar-brand .masthead-heading {
     align-items: center;
-    background: linear-gradient(90deg, #ffffff, #a7f3df 46%, #fbbf24);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #ffffff;
     display: inline-flex;
-    font-size: 1.18rem;
+    font-size: 1.28rem;
     font-weight: 800;
     gap: .6rem;
 }
 
 .navbar-brand .masthead-heading::before {
-    background: conic-gradient(from 160deg, var(--brand-cyan), var(--brand-amber), var(--brand-plum), var(--brand-cyan));
-    border-radius: 8px;
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.12);
-    content: "";
-    display: inline-block;
-    height: 1.7rem;
-    width: 1.7rem;
+    content: none;
 }
 
 #mainNav {
@@ -145,6 +136,7 @@ a {
 
 .hero-copy {
     color: rgba(255,255,255,0.88);
+    font-size: 1.35rem;
     max-width: 42rem;
 }
 
@@ -181,11 +173,22 @@ a {
 
 .lead-copy {
     color: #4b5563;
+    font-size: 1.08rem;
+    line-height: 1.75;
     margin-top: 1rem;
 }
 
 .lead-copy:first-of-type {
     margin-top: 1.1rem;
+}
+
+.intro-list {
+    color: #374151;
+    font-size: 1.08rem;
+    line-height: 1.75;
+    margin-bottom: 1rem;
+    margin-top: -.25rem;
+    padding-left: 1.4rem;
 }
 
 .section-muted {

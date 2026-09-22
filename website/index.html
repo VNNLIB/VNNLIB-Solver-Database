@@ -40,8 +40,7 @@
                     <p class="eyebrow">International standard for neural network verification</p>
                     <h1 class="display-title">VNN-LIB</h1>
                     <p class="lead hero-copy">
-                        A shared language, solver interface, and capability database for checking
-                        satisfiability problems over neural networks.
+                        The International Standard for the Verification of Neural Networks
                     </p>
                     <div class="hero-actions">
                         <a class="btn btn-light btn-lg" href="solvers.html">Find a Solver</a>
@@ -74,22 +73,20 @@
                     <p class="eyebrow">Introduction</p>
                     <h2>What VNN-LIB Provides</h2>
                     <p class="lead-copy">
-                        Verifying a neural network means proving, mathematically, that it always
-                        satisfies a given property &mdash; for example, that no small perturbation
-                        of an input can flip its classification. VNN-LIB is the shared query
-                        language and solver interface the neural network verification community
-                        uses to pose those problems, so that a property written for one solver can
-                        be checked by any other. Before VNN-LIB, every verifier defined its own
-                        input format, which made benchmarks and comparisons across tools slow and
-                        error-prone; the standard and the supporting parser libraries on this site
-                        remove that friction.
+                        VNN-LIB is an open-source standard for automated solvers of
+                        satisfiability problems over neural networks. The goal of the standard is
+                        to foster interoperability in the neural network verification community.
                     </p>
+                    <p class="lead-copy">To this end, the standard defines:</p>
+                    <ol class="intro-list">
+                        <li>A formal syntax for defining satisfiability queries.</li>
+                        <li>A formal semantics for that syntax.</li>
+                        <li>A command-line interface for solvers.</li>
+                    </ol>
                     <p class="lead-copy">
-                        This website is being rebuilt to make that ecosystem easier to use: a
-                        clearer explanation of the standard itself, direct links to the reference
-                        libraries and documents, and &mdash; new in this release &mdash; a searchable
-                        database of solver capabilities, so you can find a compatible solver
-                        without installing and testing each one by hand.
+                        Contributions and suggestions to the standard are welcome. If interested,
+                        please open an issue describing your proposal on the
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/issues">VNN-LIB Standard GitHub repository</a>.
                     </p>
                 </div>
                 <div class="feature-grid">
@@ -163,46 +160,11 @@
             </div>
         </section>
 
-        <section class="page-section">
-            <div class="container">
-                <div class="section-heading">
-                    <p class="eyebrow">Workflow</p>
-                    <h2>From Solver Submission to Search Result</h2>
-                </div>
-                <div class="process-grid">
-                    <div class="process-step">
-                        <span>1</span>
-                        <h3>Submit</h3>
-                        <p>A solver developer opens a pull request with an install script for a specific release.</p>
-                    </div>
-                    <div class="process-step">
-                        <span>2</span>
-                        <h3>Collect</h3>
-                        <p>Automation installs the solver temporarily and queries the VNN-LIB 2.0 supports interface.</p>
-                    </div>
-                    <div class="process-step">
-                        <span>3</span>
-                        <h3>Record</h3>
-                        <p>The solver release capabilities are stored in the database and exposed to the website.</p>
-                    </div>
-                    <div class="process-step">
-                        <span>4</span>
-                        <h3>Search</h3>
-                        <p>Users filter by capabilities, versions, and ONNX operators to find compatible solvers.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <section class="page-section section-muted">
             <div class="container">
                 <div class="section-heading">
                     <p class="eyebrow">Team Members</p>
                     <h2>People Behind VNN-LIB</h2>
-                    <p class="lead-copy">
-                        VNN-LIB is maintained by researchers across three universities who
-                        develop the standard, its reference libraries, and this solver database.
-                    </p>
                 </div>
                 <div class="section-heading team-subheading">
                     <h2>Current Team</h2>
