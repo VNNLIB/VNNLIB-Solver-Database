@@ -273,6 +273,22 @@ a {
     padding: 1.5rem;
 }
 
+.document-intro {
+    margin-bottom: 1.25rem;
+    margin-top: 0;
+}
+
+.document-actions {
+    display: grid;
+    gap: .75rem;
+}
+
+.link-separator {
+    color: #94a3b8;
+    display: inline-block;
+    margin: 0 .4rem;
+}
+
 .process-grid {
     display: grid;
     gap: 1rem;
