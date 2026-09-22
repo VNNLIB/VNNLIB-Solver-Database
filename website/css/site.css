@@ -283,10 +283,44 @@ a {
     gap: .75rem;
 }
 
-.link-separator {
-    color: #94a3b8;
-    display: inline-block;
-    margin: 0 .4rem;
+.documents-heading {
+    margin-top: 2.5rem;
+}
+
+.document-grid {
+    margin-bottom: 1.25rem;
+}
+
+.document-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.document-card h2 {
+    color: var(--brand-navy);
+    font-size: 1.18rem;
+    font-weight: 800;
+}
+
+.document-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    margin-top: auto;
+    padding-top: .75rem;
+}
+
+.document-links a {
+    background: rgba(37,99,235,0.08);
+    border: 1px solid rgba(37,99,235,0.18);
+    border-radius: 999px;
+    font-weight: 700;
+    padding: .42rem .75rem;
+}
+
+.document-source-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .process-grid {
