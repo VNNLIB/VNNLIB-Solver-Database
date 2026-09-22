@@ -16,7 +16,7 @@
 
     var RANGE_FIELDS = ["onnx_opset", "vnnlib_version"];
 
-    var BOOLEAN_FIELDS = ["optimised_disjunction", "serialise_assignments"];
+    var BOOLEAN_FIELDS = ["serialise_assignments"];
 
     var COMMON_ONNX_OPERATORS = [
         "Abs", "Acos", "Add", "ArgMax", "AveragePool", "BatchNormalization", "Cast",
@@ -38,11 +38,26 @@
         node_comparisons: "Node comparisons",
         operators: "ONNX operators",
         element_types: "Element types",
-        status: "Status",
-        optimised_disjunction: "Optimised disjunction",
         serialise_assignments: "Serialise assignments",
-        onnx_opset: "ONNX opset",
-        vnnlib_version: "VNN-LIB version"
+        onnx_opset: "Supported ONNX opset versions",
+        vnnlib_version: "Supported VNN-LIB versions"
+    };
+
+    var VALUE_LABELS = {
+        BND: "BND - variable bound comparisons",
+        OUTC: "OUTC - output comparisons",
+        LIN: "LIN - linear expressions",
+        POLY: "POLY - polynomial expressions",
+        NH: "NH - no hidden node declarations",
+        H: "H - hidden node declarations allowed",
+        SIO: "SIO - single input and output",
+        MIO: "MIO - multiple inputs or outputs",
+        SNET: "SNET - single network",
+        MENET: "MENET - multiple equal networks",
+        MINET: "MINET - multiple isomorphic networks",
+        MNET: "MNET - arbitrary multiple networks",
+        SNC: "SNC - no same-network node comparisons",
+        MNC: "MNC - node comparisons allowed"
     };
 
     var state = {
@@ -94,8 +109,6 @@
         setSelectValues("filter-multiple-networks", valuesFromParams(params, "multiple_networks"));
         setSelectValues("filter-node-comparisons", valuesFromParams(params, "node_comparisons"));
         setSelectValues("filter-element-types", valuesFromParams(params, "element_types"));
-        setSelectValues("filter-status", valuesFromParams(params, "status"));
-        setSelectValues("filter-optimised-disjunction", valuesFromParams(params, "optimised_disjunction"));
         setSelectValues("filter-serialise-assignments", valuesFromParams(params, "serialise_assignments"));
         $("filter-operators").value = valuesFromParams(params, "operators").join(", ");
         $("filter-onnx-opset").value = params.get("onnx_opset") || "";
@@ -114,8 +127,6 @@
             "multiple_networks",
             "node_comparisons",
             "element_types",
-            "status",
-            "optimised_disjunction",
             "serialise_assignments",
             "operators"
         ].forEach(function (field) {
@@ -198,8 +209,7 @@
         }
         var haystack = [
             solver.id,
-            solver.name,
-            solver.repo
+            solver.name
         ].join(" ").toLowerCase();
         return haystack.indexOf(queryText.toLowerCase()) !== -1;
     }
@@ -217,7 +227,7 @@
     function versionMatches(version, query) {
         var capabilities = version.capabilities;
         var satisfies = version.satisfies || {};
-        if (query.status.length && query.status.indexOf(version.status) === -1) {
+        if (version.status !== "ok") {
             return false;
         }
         if (!capabilities) {
@@ -274,12 +284,14 @@
             node_comparisons: valuesFrom($("filter-node-comparisons")),
             operators: commaValues($("filter-operators").value),
             element_types: valuesFrom($("filter-element-types")),
-            status: valuesFrom($("filter-status")),
-            optimised_disjunction: valuesFrom($("filter-optimised-disjunction")),
             serialise_assignments: valuesFrom($("filter-serialise-assignments")),
             onnx_opset: $("filter-onnx-opset").value.trim(),
             vnnlib_version: $("filter-vnnlib-version").value.trim()
         };
+    }
+
+    function latestVersion(versions) {
+        return versions.length ? versions[versions.length - 1] : null;
     }
 
     function search() {
@@ -293,6 +305,10 @@
             var versions = (solver.versions || []).filter(function (version) {
                 return versionMatches(version, query);
             });
+            if (!hasCapabilityFilters(query)) {
+                var latest = latestVersion(versions);
+                versions = latest ? [latest] : [];
+            }
             if (!versions.length) {
                 return null;
             }
@@ -343,6 +359,15 @@
             return fallback || "Unknown";
         }
         return items.map(escapeHtml).join(", ");
+    }
+
+    function labelledList(items, fallback) {
+        if (!items || !items.length) {
+            return fallback || "Unknown";
+        }
+        return items.map(function (item) {
+            return escapeHtml(VALUE_LABELS[item] || item);
+        }).join(", ");
     }
 
     function allOperators(solvers) {
@@ -397,12 +422,10 @@
             "multiple_io",
             "multiple_networks",
             "node_comparisons",
-            "status",
-            "optimised_disjunction",
             "serialise_assignments"
         ].forEach(function (field) {
             (query[field] || []).forEach(function (value) {
-                items.push(FILTER_LABELS[field] + ": " + value);
+                items.push(FILTER_LABELS[field] + ": " + (VALUE_LABELS[value] || value));
             });
         });
         RANGE_FIELDS.forEach(function (field) {
@@ -417,7 +440,7 @@
         var target = $("active-filters");
         var items = activeFilterItems(query);
         if (!items.length) {
-            target.innerHTML = '<span class="active-filter-note">No filters selected. Showing every recorded solver release.</span>';
+            target.innerHTML = '<span class="active-filter-note">No filters selected. Showing the latest working version of each solver.</span>';
             return;
         }
         target.innerHTML = items.map(function (item) {
@@ -438,14 +461,20 @@
 
         return [
             '<div class="solver-detail-panel">',
-            '<div class="solver-section-title">Core capabilities</div>',
+            '<div class="solver-section-title">Supported theories</div>',
             '<div class="solver-badges">',
-            badges((capabilities.arithmetic || []).map(function (item) { return "Arithmetic " + item; }), 6),
+            badges((capabilities.arithmetic || []).map(function (item) { return VALUE_LABELS[item] || item; }), 6),
+            badges((capabilities.hidden_nodes || []).map(function (item) { return VALUE_LABELS[item] || item; }), 4),
+            badges((capabilities.multiple_io || []).map(function (item) { return VALUE_LABELS[item] || item; }), 4),
+            badges((capabilities.multiple_networks || []).map(function (item) { return VALUE_LABELS[item] || item; }), 6),
+            badges((capabilities.node_comparisons || []).map(function (item) { return VALUE_LABELS[item] || item; }), 4),
+            "</div>",
+            '<div class="solver-section-title">Element types and assignments</div>',
+            '<div class="solver-badges">',
             badges((capabilities.element_types || []).map(function (item) { return "Type " + item; }), 6),
-            capabilities.optimised_disjunction === undefined ? "" : badges(["Optimised disjunction " + capabilities.optimised_disjunction], 1),
             capabilities.serialise_assignments === undefined ? "" : badges(["Serialise assignments " + capabilities.serialise_assignments], 1),
             "</div>",
-            '<div class="solver-section-title">Versions and opsets</div>',
+            '<div class="solver-section-title">Supported versions</div>',
             '<div class="solver-badges">',
             capabilities.vnnlib_versions ? '<span class="solver-badge">VNN-LIB ' + rangeText(capabilities.vnnlib_versions) + "</span>" : "",
             capabilities.onnx_opset ? '<span class="solver-badge">ONNX opset ' + rangeText(capabilities.onnx_opset) + "</span>" : "",
@@ -469,7 +498,7 @@
         var operators = Object.keys(capabilities.operators || {});
         var detailId = "solver-detail-" + rowId;
         var repo = solver.repo
-            ? '<a href="' + escapeHtml(solver.repo) + '" target="_blank" rel="noopener">Repository</a>'
+            ? '<a href="' + escapeHtml(solver.repo) + '" target="_blank" rel="noopener">' + escapeHtml(solver.repo) + "</a>"
             : "Unknown";
 
         return [
@@ -478,14 +507,13 @@
             "<td>" + escapeHtml(version.version || "Unknown") + "</td>",
             "<td>" + rangeText(capabilities.vnnlib_versions) + "</td>",
             "<td>" + rangeText(capabilities.onnx_opset) + "</td>",
-            "<td>" + listText(capabilities.arithmetic) + "</td>",
+            "<td>" + labelledList(capabilities.arithmetic) + "</td>",
             "<td>" + listText(capabilities.element_types) + "</td>",
             "<td>" + operators.length + "</td>",
-            '<td><span class="solver-badge ' + statusClass(version.status) + '">' + escapeHtml(version.status || "unknown") + "</span></td>",
             "<td>" + repo + "</td>",
             '<td><button class="btn btn-sm btn-outline-primary" type="button" data-toggle="collapse" data-target="#' + detailId + '" aria-expanded="false" aria-controls="' + detailId + '">Details</button></td>',
             "</tr>",
-            '<tr class="solver-detail-row"><td colspan="10"><div class="collapse" id="' + detailId + '">' + versionDetails(version) + "</div></td></tr>"
+            '<tr class="solver-detail-row"><td colspan="9"><div class="collapse" id="' + detailId + '">' + versionDetails(version) + "</div></td></tr>"
         ].join("");
     }
 
@@ -515,12 +543,11 @@
             "<tr>",
             "<th>Solver</th>",
             "<th>Version</th>",
-            "<th>VNN-LIB</th>",
-            "<th>ONNX opset</th>",
-            "<th>Arithmetic</th>",
+            "<th>Supported VNN-LIB versions</th>",
+            "<th>Supported ONNX opset versions</th>",
+            "<th>Supported arithmetic theories</th>",
             "<th>Element types</th>",
             "<th>Operators</th>",
-            "<th>Status</th>",
             "<th>Link</th>",
             "<th></th>",
             "</tr>",
@@ -568,8 +595,6 @@
             "filter-multiple-networks",
             "filter-node-comparisons",
             "filter-element-types",
-            "filter-status",
-            "filter-optimised-disjunction",
             "filter-serialise-assignments",
             "filter-onnx-opset",
             "filter-vnnlib-version",

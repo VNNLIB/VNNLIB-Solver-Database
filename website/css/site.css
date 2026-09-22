@@ -600,6 +600,15 @@ a {
     box-shadow: 0 0 0 .2rem rgba(15,118,110,0.14);
 }
 
+.solver-filter-panel .solver-name-search {
+    font-size: 1.05rem;
+    min-height: 3.35rem;
+}
+
+#advanced-search {
+    margin-top: 1rem;
+}
+
 .solver-filter-panel .filter-chip-select {
     min-height: 6.3rem;
 }
