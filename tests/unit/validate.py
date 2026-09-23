@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for scripts/validate.py. Pure file inspection — nothing is
+Unit tests for scripts/validate.py. Pure file inspection, and nothing is
 installed, so these run anywhere in milliseconds.
 
     python3 tests/unit/validate.py

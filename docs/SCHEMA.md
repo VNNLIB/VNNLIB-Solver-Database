@@ -1,4 +1,4 @@
-# `data/solvers.json` — field reference
+# `data/solvers.json`: field reference
 
 The collection pipeline writes to the solver database, the `vnnfilter`
 package and the website fetches it. 
@@ -199,7 +199,7 @@ the parser was actually able to tell what the note was about**:
 ]
 ```
 
-**`text` keeps everything that trailed the identifier, delimiter included —
+**`text` keeps everything that trailed the identifier, delimiter included,
 it is not stripped.** The collector does not assume the delimiter looks like
 `* `, only that *something* separates the identifier from the note; stripping
 a specific character would itself be an assumption about vibecheck's own
@@ -208,7 +208,7 @@ vibecheck today, `text` starts with `* `; a solver using a different
 convention would produce whatever it prints trailing its identifier,
 unmodified.
 
-The identifier itself still stays in `capabilities` either way — `notes` only
+The identifier itself still stays in `capabilities` either way, and `notes` only
 ever adds the caveat text, never changes whether a capability is reported.
 
 A capability with a note still matches a search; `field`/`identifier` are what

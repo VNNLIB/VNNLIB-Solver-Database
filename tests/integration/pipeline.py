@@ -16,7 +16,7 @@ milliseconds and whose outcome depends on nothing but this repo. --slow adds
 SLOW, which reaches PyPI and pulls torch, so it can go red for reasons that
 have nothing to do with the code here.
 
-Nothing outside a temporary directory is written — data/solvers.json is never
+Nothing outside a temporary directory is written, and data/solvers.json is never
 touched.
 """
 
@@ -54,7 +54,7 @@ EXPECTED = {
 #
 # vibecheck expects install_failed because it currently IS uninstallable:
 # both releases pin onnxruntime==1.26.0, which is not published. When that is
-# fixed upstream, change this to "ok" — a failure here is then a real signal
+# fixed upstream, change this to "ok", because a failure here is then a real signal
 # rather than noise.
 SLOW = {
     "vibecheck": ("1.1.0", "ok", True),
@@ -69,7 +69,7 @@ MINIMUM_PYTHON = (3, 11)
 
 
 class Skipped(Exception):
-    """Raised by a test that cannot run here — reported, not counted as a pass."""
+    """Raised by a test that cannot run here: reported, not counted as a pass."""
 
 
 def skip_reason():
@@ -240,7 +240,7 @@ def test_build_publishes_only_clean_collections(state):
 
 
 def test_second_build_is_a_no_op(state):
-    """Same input twice must not touch the file — not even generated_at."""
+    """Same input twice must not touch the file, not even generated_at."""
     before = state["database"].read_bytes()
     log = run_build(state["results"], state["database"])
     assert state["database"].read_bytes() == before, "database was rewritten with no changes"
@@ -353,7 +353,7 @@ def test_hand_written_fields_survive(state):
     testsolver = next(s for s in built["solvers"] if s["id"] == "testsolver")
     assert built["house_keeping"] == "unknown top-level field"
     assert testsolver["maintainer_note"] == "unknown solver field"
-    # repo now has a source — solver.toml — so the collected value wins over
+    # repo now has a source, solver.toml, so the collected value wins over
     # a hand edit rather than being overwritten by an empty string.
     assert testsolver["repo"] == "https://github.com/example/testsolver"
 
@@ -367,7 +367,7 @@ def test_no_environments_left_behind(state):
 def real_database():
     """
     The committed database, or None if it isn't there. Absent is a legitimate
-    state — a fresh clone before the first collection — and must not stop the
+    state, a fresh clone before the first collection, and must not stop the
     tests from running.
     """
     path = REPO / "data" / "solvers.json"
@@ -375,7 +375,7 @@ def real_database():
 
 
 def test_real_database_untouched(state):
-    """Nothing in this file may write to data/solvers.json — or create it."""
+    """Nothing in this file may write to data/solvers.json, or create it."""
     assert real_database() == state["real_database"]
 
 

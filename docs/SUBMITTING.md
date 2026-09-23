@@ -46,7 +46,7 @@ That is the whole contract. Anything else is up to you.
 
 **It must install the version the directory names.**
 
-The script has to mention `<version>` somewhere — normally as the pin itself,
+The script has to mention `<version>` somewhere, normally as the pin itself,
 `pip install mysolver==1.2.0`. A script in `1.2.0/` that installs `1.1.0`, or
 that leaves the version unpinned and installs whatever is newest, is rejected
 before anything is installed and you will be asked to push a fix.
@@ -58,7 +58,7 @@ release the record describes, so a script that installs something else would
 record one release's capabilities under another's name.
 
 If your script installs from a git tag or builds from source, name the version
-in it anyway — the tag, the checkout, or a comment.
+in it anyway: the tag, the checkout, or a comment.
 
 **What counts as failure**
 
@@ -209,6 +209,34 @@ A retired release is never installed again, so the usual checks are skipped
 for it: your `install.sh` is not validated and not run, which matters because
 an old script that has stopped working is often the reason for retiring a
 release in the first place.
+
+### Deleting a submission outright
+
+Retiring is what authors do. Deleting is a maintainer action, and it is not the
+normal way to take a solver out of the database. Retiring already does that, and
+it keeps the install script, so the record can be reproduced later. Deletion
+throws that away: the capabilities were measured by installing software that may
+no longer exist anywhere, and once the script is gone, nothing in this
+repository can produce that record again.
+
+Reasons that do justify it are about the submission rather than the solver: a
+licensing or legal complaint, credentials or private data committed by mistake,
+or an entry that should never have been accepted. "This solver is dead" is not
+one of them.
+
+```bash
+git rm -r solvers/<id>              # every release
+git rm -r solvers/<id>/<version>/   # or one of them
+```
+
+No other step is needed. `build.py` compares the database against the
+submissions that exist, so the next collection drops the records and logs
+`submission deleted` rather than `retired`. The two are distinguished in the
+log because they mean different things to whoever reads it later.
+
+Note that `git rm` does not erase anything from the repository's history. If
+the reason for deleting was a committed secret, rotate the secret: the old
+commit still contains it.
 
 ---
 

@@ -14,7 +14,7 @@ validate.py  ──>  register.py  ──imports──>  collect.py  ──> the
 ```
 
 `validate.py`, `register.py`, `build.py` and `report.py` are commands.
-`collect.py` and `schema.py` are libraries — `collect.py` runs on every solver,
+`collect.py` and `schema.py` are libraries. `collect.py` runs on every solver,
 but always through `register.py`, never as its own process.
 
 ## What happens to one submission
@@ -27,14 +27,14 @@ Given `solvers/<id>/<version>/`:
    another release's name half an hour later.
 1. **`register.py`** creates an empty virtualenv and hands its `bin/` to the
    submitted script as `$SOLVER_BIN_DIR`.
-2. **`install.sh`** — the submitter's code, not ours — installs the solver and
+2. **`install.sh`**, the submitter's code and not ours, installs the solver and
    must leave an executable named exactly `<id>` on `PATH`.
 3. **`register.py`** looks for that executable. If the script failed, timed
    out, or left nothing behind, the record is `install_failed` and step 4
    never runs: there is nothing to query.
 4. **`collect.py`** runs the 13 commands (`--name`, `--version`, and the
    eleven `supports` flags) against the binary and builds the version record.
-5. **`register.py`** deletes the temp directory — venv and solver with it.
+5. **`register.py`** deletes the temp directory, venv and solver with it.
 6. **`build.py`** merges the record into `data/solvers.json`.
 
 Only the record survives. The solver is thrown away every time.
@@ -47,7 +47,7 @@ imports `venv` or `tempfile`, and receives the binary as a path it can run.
 
 That split is what makes the parsers testable. Every function in `collect.py`
 below `run_query` is a pure function over a string, so `tests/unit/collect.py`
-exercises all of them with hand-typed solver output — no install, no venv, no
+exercises all of them with hand-typed solver output: no install, no venv, no
 network, milliseconds.
 
 ## The modules
@@ -59,7 +59,7 @@ network, milliseconds.
 | `collect.py` | library | run the 13 queries, parse them into SCHEMA.md's shapes |
 | `build.py` | `build.py <results.jsonl> [--database P] [--solvers-dir D] [--retire-failed] [--dry-run]` | merge clean records into the database, drop retired ones, and optionally retire what failed to install |
 | `report.py` | `report.py <results.jsonl>` | render records as markdown, for a PR comment or job summary |
-| `schema.py` | library | `SCHEMA_VERSION`, `now_iso()` — the things the others must spell identically |
+| `schema.py` | library | `SCHEMA_VERSION`, `now_iso()`, the things the others must spell identically |
 
 ## Things that are easy to get wrong
 
@@ -69,7 +69,7 @@ clones the current Python, so `python3 register.py` on Ubuntu 22.04 builds a
 `schema.MINIMUM_PYTHON` rather than letting that surface minutes later as an
 unresolvable pip pin. Launch it as `python3.12 scripts/register.py ...`.
 
-The project is on **3.12 everywhere** — `.python-version`, both workflows, and
+The project is on **3.12 everywhere**: `.python-version`, both workflows, and
 `schema.PYTHON_VERSION`.
 
 **The directory name is the authority on version.** `--version` is
@@ -123,14 +123,21 @@ often why it was retired.
 collected nothing still has work to do: a push that only retires a release is
 exactly the run that must drop it.
 
+**Deleting a submission is a different thing from retiring it.** `build.py`
+compares the database against the submissions that exist, so `git rm -r
+solvers/<id>` drops the records on the next collection with no other step.
+The log says `submission deleted` rather than `retired`, because the two are
+not recoverable in the same way: retiring keeps the install script, deleting
+does not. `SUBMITTING.md` says when it is justified.
+
 **A missing `solvers/` is not an empty one.** `offered_versions` returns
 `None` rather than an empty set when the directory does not exist, and `None`
 drops nothing. Conflating the two would empty the entire database in a single
 run.
 
 **Exit codes are about the run, not the solver.** `register.py` exits 0 even
-for `install_failed` — a recorded failure is data, and a non-zero exit would
-abort the workflow's loop over the remaining solvers.
+for `install_failed`, because a recorded failure is data and a non-zero exit
+would abort the workflow's loop over the remaining solvers.
 
 ## Known gaps
 

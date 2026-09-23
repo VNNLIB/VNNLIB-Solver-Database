@@ -3,7 +3,7 @@
 Everything here needs Python 3.12 and, apart from the unit tests, bash.
 Nothing writes to `data/solvers.json`.
 
-## Unit tests — `tests/unit/`
+## Unit tests: `tests/unit/`
 
 Pure functions over strings, and the API through Flask's test client. No
 solver, no venv, no network, no port. Milliseconds.
@@ -16,10 +16,10 @@ python3 tests/unit/api.py          # the endpoints and the filters
 ```
 
 Each file is named after the module it tests, so it is loaded by path rather
-than imported — `tests/unit/collect.py` cannot `import collect` without
+than imported, because `tests/unit/collect.py` cannot `import collect` without
 importing itself.
 
-## Integration test — `tests/integration/`
+## Integration test: `tests/integration/`
 
 Real venvs, real `install.sh`, real binaries. Skips itself on Windows, with
 no bash, or with no `ensurepip`.
@@ -32,7 +32,7 @@ python3 tests/integration/pipeline.py --slow   # also the real solvers
 `--slow` reaches PyPI and pulls torch, so it can fail for reasons that have
 nothing to do with this repo. Keep it out of the default run.
 
-## Fixtures — `tests/fixtures/`
+## Fixtures: `tests/fixtures/`
 
 Fake solvers that install in milliseconds, one per outcome the pipeline has
 to handle. Each is a real `solvers/<id>/<version>/` layout, so they work
@@ -59,7 +59,7 @@ python3 scripts/register.py tests/fixtures/testsolver/1.0.0
 ```
 
 One line of JSON on stdout, the status on stderr. Exit code is 0 even for
-`install_failed` — a recorded failure is not a broken run.
+`install_failed`, because a recorded failure is not a broken run.
 
 All of them, then merged into a database, which is what the workflow does:
 
@@ -92,7 +92,7 @@ PATH=/tmp/solverbin:$PATH python3 -c "import collect, json; \
 
 ## Python version
 
-**3.12 everywhere** — the workflows, the machine that collects, and the API
+**3.12 everywhere**: the workflows, the machine that collects, and the API
 host. It is recorded in `.python-version` and in `schema.PYTHON_VERSION`.
 
 `register.py` builds each solver's venv by cloning the interpreter that runs
@@ -116,10 +116,10 @@ sudo apt update
 sudo apt install python3.12 python3.12-venv
 ```
 
-`python3.12-venv` is not optional — without it venv creation fails with an
+`python3.12-venv` is not optional, because without it venv creation fails with an
 `ensurepip is not available` error.
 
-The unit tests and the API run on anything from 3.9 up — only `register.py`
+The unit tests and the API run on anything from 3.9 up, and only `register.py`
 enforces a minimum, because only it installs solvers. Use 3.12 anyway, so
 what you run locally is what CI runs.
 

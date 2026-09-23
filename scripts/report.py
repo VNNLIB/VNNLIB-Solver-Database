@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-report.py — render register.py's records as markdown, for a pull request
+report.py: render register.py's records as markdown, for a pull request
 comment or an Actions job summary.
 
 Presentation only: it reads the same JSON Lines build.py merges and writes
@@ -37,7 +37,7 @@ HIGHLIGHTS = [
 
 def _cell(value):
     if value is None:
-        return "—"
+        return "-"
     if isinstance(value, list):
         return ", ".join(str(v) for v in value) if value else "(none)"
     return str(value)
@@ -48,7 +48,7 @@ def render_solver(solver):
     lines = []
     for record in solver["versions"]:
         status = record["status"]
-        lines.append(f"### `{solver['id']}` {record['version']} — **{status}**")
+        lines.append(f"### `{solver['id']}` {record['version']}: **{status}**")
         lines.append("")
         lines.append(VERDICT.get(status, "Unrecognised status."))
         lines.append("")
@@ -108,7 +108,7 @@ def render(solvers):
 
     lines.append("---")
     lines.append(
-        "A recorded failure is not a rejection — the solver still appears in "
+        "A recorded failure is not a rejection, and the solver still appears in "
         "the database, marked with what went wrong. See "
         "[docs/SUBMITTING.md](docs/SUBMITTING.md)."
     )

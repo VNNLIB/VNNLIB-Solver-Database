@@ -81,14 +81,14 @@ def test_theory_output_rejects_unpermitted():
 
 
 def test_theory_output_empty_is_not_an_error_here():
-    # Empty output is not this function's error to raise — collect() records it.
+    # Empty output is not this function's error to raise: collect() records it.
     assert parse_theory_output("", "arithmetic") == ([], [], [])
 
 
 def test_any_whitespace_separates_identifier_from_note():
     """
     A tab is still whitespace. Splitting on ' ' alone turned 'POLY\ttext' into
-    the identifier 'POLY\t*' — reported as a conformance failure for the theory
+    the identifier 'POLY\t*', reported as a conformance failure for the theory
     fields, and silently stored as a bogus type name for element_types.
     """
     assert split_note("POLY\t* note") == ("POLY", "* note")
@@ -144,7 +144,7 @@ def test_operators():
     }
     # A bare name is stored as an empty list, exactly as printed. It MEANS
     # every type in element_types, but expanding it here would put derived
-    # data in capabilities — consumers do that reading.
+    # data in capabilities, because consumers do that reading.
     assert parse_operators("Conv float64\nRelu\nGemm\n") == {
         "Conv": ["float64"],
         "Relu": [],

@@ -7,7 +7,7 @@ it?*
 ```bash
 pip install -r api/requirements.txt
 
-python3 api/app.py                    # data/solvers.json — the real database
+python3 api/app.py                    # data/solvers.json, the real database
 python3 api/app.py --dev              # tests/fixtures/solvers.demo.json
 python3 api/app.py --database PATH    # anything else
 python3 api/app.py --port 8080
@@ -16,7 +16,7 @@ python3 api/app.py --port 8080
 It prints which file it is serving at startup, because serving the demo
 fixture while believing it is the real database is the one mistake `--dev`
 makes easy. A WSGI host imports this module rather than running it, so there
-is no command line there — `SOLVERS_JSON` does the same job.
+is no command line there, so `SOLVERS_JSON` does the same job.
 
 ## Endpoints
 
@@ -29,7 +29,7 @@ is no command line there — `SOLVERS_JSON` does the same job.
 | `GET /search?...` | filter; returns solvers with only their matching releases |
 
 Every response carries `Access-Control-Allow-Origin: *`, so a page on another
-origin — the Stage 3 search page, or anyone's script — can read it. The data
+origin, the Stage 3 search page or anyone's script, can read it. The data
 is public and read-only, and there is no session or credential involved.
 
 `/` and `/health` report `"source"`: `collected` for the real database,
@@ -61,7 +61,7 @@ matches a solver that only ever reported `POLY`.
 ```
 
 An operator listed with **no** types supports *every* type in that solver's
-`element_types`, not none — Section 5.4.1 says so, and reading the empty list
+`element_types`, not none. Section 5.4.1 says so, and reading the empty list
 backwards would silently exclude the solvers that support the most. So
 `Relu:float64` matches a solver that printed a bare `Relu` and lists `float64`
 among its element types.
@@ -81,7 +81,7 @@ as inclusive `[min, max]` pairs, so `?onnx_opset=16` asks "does 16 fall in
 your range".
 
 **Releases that never installed never match**, not even an empty query. Search
-answers "what can do this", and nothing was measured about them — they are
+answers "what can do this", and nothing was measured about them: they are
 still visible through `/solvers`.
 
 ## Hosting it on PythonAnywhere
@@ -98,7 +98,7 @@ pip install flask
 ```
 
 3.12, like the rest of the project. The API itself would run on anything from
-3.9 up — it only imports `json`, `pathlib`, `argparse` and Flask — but keeping
+3.9 up, since it only imports `json`, `pathlib`, `argparse` and Flask, but keeping
 one version everywhere means one thing to remember. The stricter requirement
 elsewhere belongs to `register.py`, which installs solvers; nothing is
 installed here.
@@ -121,7 +121,7 @@ from api.app import app as application
 Note it imports `app`; it never calls `app.run()`. That call lives under
 `if __name__ == "__main__"` and would crash the site if it ran on import.
 
-**4. Reload.** Done — `https://<you>.pythonanywhere.com/health`.
+**4. Reload.** Done: `https://<you>.pythonanywhere.com/health`.
 
 ### Serving the demo data while the real database is still empty
 
@@ -166,7 +166,7 @@ Add a repository *variable* `PA_HOST` = `eu.pythonanywhere.com` if your
 account is on their EU system. Without the secrets the step prints
 `no PythonAnywhere secrets set, skipping publish` and the workflow carries on.
 
-It uploads to `/home/<you>/solvers.json` — **outside** the git clone on
+It uploads to `/home/<you>/solvers.json`, **outside** the git clone on
 purpose, so the checkout stays clean and `git pull` there never conflicts with
 a file the API overwrote. Point the web app at it in the WSGI file:
 
@@ -181,11 +181,11 @@ the next request re-reads it.
 
 This lives inside `collect.yml` rather than in a workflow watching `data/**`,
 because a push made with `GITHUB_TOKEN` deliberately does not trigger further
-workflows — a separate one would simply never run.
+workflows, and a separate one would simply never run.
 
 Two things about the free tier: the web app expires every three months until
 you click the button on the Web tab, and outbound HTTP from your code is
-restricted to their whitelist — irrelevant here, since this API makes no
+restricted to their whitelist, which is irrelevant here, since this API makes no
 outbound requests.
 
 ## Anywhere else
@@ -206,4 +206,4 @@ This API exists for the filtering, not for the file.
 python3 tests/unit/api.py
 ```
 
-26 checks against Flask's test client — no server, no port, no network.
+26 checks against Flask's test client: no server, no port, no network.

@@ -3,7 +3,7 @@ name: collect (main)
 # The second collection SUBMITTING.md describes: after a maintainer merges,
 # install the solver again on main, record what it reports, and commit it.
 #
-# The pull request run is advisory — it shows the author what will be recorded.
+# The pull request run is advisory: it shows the author what will be recorded.
 # This run is the one whose result actually enters the database.
 
 on:

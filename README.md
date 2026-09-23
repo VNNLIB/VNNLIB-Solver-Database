@@ -46,7 +46,7 @@ Each directory has its own README: [scripts](scripts/README.md) for the
 pipeline, [tests](tests/README.md) for how to run everything, [api](api/README.md)
 for the HTTP endpoints and hosting.
 
-**Python 3.12**, everywhere — the workflows, the machine that collects, and
+**Python 3.12**, everywhere: the workflows, the machine that collects, and
 the API host. `register.py` builds each solver's virtualenv by cloning the
 interpreter that runs it, so the version you launch it with is the version
 solvers get installed under.

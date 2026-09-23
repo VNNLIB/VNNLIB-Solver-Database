@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-register.py — install one submitted solver in an isolated environment, hand it
+register.py: install one submitted solver in an isolated environment, hand it
 to collect.py, and tear the environment down again.
 
 This module owns everything about HOW a solver gets onto the machine.
@@ -157,7 +157,7 @@ def _install_failed(version, message):
 def _reported_name(binary, fallback):
     """
     What `<solver> --name` says. collect calls it too, but only to check the
-    solver answers — the Version table has no name field, so it never returns
+    solver answers, because the Version table has no name field, so it never returns
     the value. run_query is reused to keep one timeout policy for every
     subprocess here.
     """
@@ -189,8 +189,8 @@ def register(solver_dir, timeout_seconds=DEFAULT_TIMEOUT_SECONDS):
     version = solver_dir.name
 
     # SUBMITTING.md: name defaults to what --name reports, so solver.toml wins
-    # where it has one. repo has no other source at all — the standard has no
-    # --repo — so it is whatever the submission declared.
+    # where it has one. repo has no other source at all, since the standard
+    # has no --repo, so it is whatever the submission declared.
     declared_name, repo = _declared(solver_dir)
     name = declared_name or solver_id
 

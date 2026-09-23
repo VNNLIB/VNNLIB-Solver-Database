@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-build.py — fold the records register.py produced into data/solvers.json.
+build.py: fold the records register.py produced into data/solvers.json.
 
 register.py writes one Solver entry per line to results.jsonl; this merges
 those into the database on disk. It never installs or queries anything.
@@ -132,7 +132,7 @@ def merge_solver(existing, incoming):
     """
     Fold a collected entry into the one on file: same version replaced, new
     version added. Sorted ascending, which SCHEMA.md makes part of the
-    contract — consumers compute ranges from the ordering alone.
+    contract, because consumers compute ranges from the ordering alone.
     """
     by_version = {v["version"]: v for v in existing.get("versions", [])}
     for version_record in incoming.get("versions", []):
@@ -447,7 +447,13 @@ def main():
     for solver_id, version in updated:
         print(f"~ {solver_id} {version} (re-collected)", file=sys.stderr)
     for solver_id, version in removed:
-        print(f"- {solver_id} {version} (retired)", file=sys.stderr)
+        # Two different things end a record, and a maintainer reading the log
+        # needs to tell them apart: someone set `withdrawn = true`, or the
+        # submission directory is not there any more. The second is rare and
+        # deliberate, so it should not look like the routine case.
+        gone = args.solvers_dir and not (Path(args.solvers_dir) / solver_id / version).is_dir()
+        why = "submission deleted" if gone else "retired"
+        print(f"- {solver_id} {version} ({why})", file=sys.stderr)
 
     # Nothing new: leave the file exactly as it is, rather than rewriting it
     # so the only diff is a fresh generated_at.

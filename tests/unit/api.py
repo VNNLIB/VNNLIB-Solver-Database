@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for api/app.py, using Flask's test client — no server, no port,
+Unit tests for api/app.py, using Flask's test client: no server, no port,
 no network.
 
     python3 tests/unit/api.py

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-validate.py — check a submission before anything is installed.
+validate.py: check a submission before anything is installed.
 
 Everything here is a static check on the files in solvers/<id>/<version>/.
 A failure means the pull request cannot be collected as submitted and the
@@ -93,7 +93,7 @@ def check_install_script(path, version):
     if not os.access(path, os.X_OK):
         # Authoring on Windows is the usual cause: git records the bit itself,
         # and a Windows filesystem mounted under WSL reports everything as
-        # executable, so `ls -l` cannot be trusted here — only `git ls-files`.
+        # executable, so `ls -l` cannot be trusted here, only `git ls-files`.
         problems.append(
             f"install.sh is not executable. Fix with: "
             f"git update-index --chmod=+x {path}"

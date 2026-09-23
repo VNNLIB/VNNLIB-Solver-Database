@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-collect.py — ask an already-running solver binary what it supports, and turn
+collect.py: ask an already-running solver binary what it supports, and turn
 its answers into the shapes defined in docs/SCHEMA.md.
 
 This module never touches installation, venvs, or subprocesses that install
-anything — it only ever calls an executable that already exists on PATH and
+anything. It only ever calls an executable that already exists on PATH and
 parses what it prints. register.py is the only caller that needs to know
 anything about how that binary got there.
 
 HOW TO TEST
 -----------
-1. Unit tests. No solver, no venv, no network — run_query is stubbed out.
+1. Unit tests. No solver, no venv, no network, because run_query is stubbed out.
 
        python3 tests/unit/collect.py
 
@@ -113,7 +113,7 @@ def run_query(binary, *args):
     Run `binary *args` with a short timeout, capturing stdout/stderr.
 
     Return (returncode, stdout_text, stderr_text). Must NOT raise on a
-    non-zero exit or a timeout — the caller decides what that means. A
+    non-zero exit or a timeout, and the caller decides what that means. A
     timeout looks like a failed returncode, with the timeout noted in
     stderr_text.
     """
@@ -153,7 +153,7 @@ def split_note(line):
     'POLY'              -> ('POLY', None)
 
     Identifier is the first token; note is everything after it, unstripped of
-    its delimiter — per docs/SCHEMA.md, text keeps whatever trailed the
+    its delimiter. Per docs/SCHEMA.md, text keeps whatever trailed the
     identifier, since the collector doesn't assume the delimiter looks like
     '* ', only that something separates the two.
 
@@ -174,7 +174,7 @@ def parse_theory_output(raw_text, field_name):
     Turn the raw stdout of one theory-set flag into (identifiers, notes,
     errors): recognised values in PERMITTED_VALUES order, one note dict per
     line carrying a note, and one error per line that is not a recognised
-    identifier at all. Never raises — bad output is data to record.
+    identifier at all. Never raises: bad output is data to record.
     """
     permitted = PERMITTED_VALUES[field_name]
     seen = set()
@@ -243,8 +243,8 @@ def parse_vnnlib_versions(raw_text):
 def parse_element_types(raw_text):
     """
     One type name per line (ONNX Set 1 names, plus 'real'), with any ' * note'
-    suffix split off. No ordering between them — float64 does not imply
-    float32 — so input order is kept. Returns (types, notes).
+    suffix split off. No ordering between them, since float64 does not
+    imply float32, so input order is kept. Returns (types, notes).
     """
     types = []
     notes = []
@@ -272,7 +272,7 @@ def parse_operators(raw_text):
         'Relu'                  ->  {'Relu': []}
 
     The empty list is stored as printed, NOT expanded. Section 5.4.1 says an
-    empty type list means every type in element_types, not none — but that is
+    empty type list means every type in element_types, not none, but that is
     a reading, and SCHEMA.md's rule is that capabilities holds exactly what
     the solver printed. Expanding here would also freeze today's element_types
     into a record whose solver actually said "all of them".
@@ -294,7 +294,7 @@ def parse_boolean(raw_text):
     Returns True, False, or None if it is neither.
 
     Exactly 'true' or 'false', case-sensitive. A solver printing 'Yes' is not
-    conforming, and the caller records that as an error rather than guessing —
+    conforming, and the caller records that as an error rather than guessing,
     the same treatment a theory field gets for an identifier outside its
     permitted set. Guessing would silently record False for any spelling not
     anticipated, which is a wrong answer dressed as a real one.
@@ -337,7 +337,7 @@ def collect(binary, solver_id, version):
     permitted value. Any single failure downgrades the record to "incomplete"
     without aborting collection of the rest.
 
-    Never returns "install_failed" — that is register.py's call to make.
+    Never returns "install_failed": that is register.py's call to make.
     """
     errors = []
     notes = []
