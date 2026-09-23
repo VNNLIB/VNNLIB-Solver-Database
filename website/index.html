@@ -37,7 +37,7 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-7">
-                    <p class="eyebrow">International standard for neural network verification</p>
+                    <p class="eyebrow hero-standard">International standard for neural network verification</p>
                     <h1 class="display-title">VNN-LIB</h1>
                     <p class="lead hero-copy">
                         The International Standard for the Verification of Neural Networks
@@ -49,17 +49,22 @@
                 </div>
                 <div class="col-lg-5">
                     <div class="code-panel" aria-label="VNN-LIB example">
-                        <div class="code-panel-header"><span></span><span></span><span></span></div>
                         <pre>(vnnlib-version &lt;2.0&gt;)
 
+; Network declaration
 (declare-network f
-  (declare-input X float32 [2,2])
-  (declare-output Y float32 [1]))
+    (declare-input  X float32 [2,2])
+    (declare-output Y float32 [1])
+)
 
-(assert (and (&gt;= X[0,0] 0.0)
-             (&lt;= X[0,0] 1.0)))
-(assert (or (&lt;= Y[0] -3.0)
-            (&gt;= Y[0] 0.0)))</pre>
+; Input constraints
+(assert (and (&gt;= X[0,0] 0.0) (&lt;= X[0,0] 1.0)))
+(assert (and (&gt;= X[0,1] 0.0) (&lt;= X[0,1] 1.0)))
+(assert (and (&gt;= X[1,0] 0.0) (&lt;= X[1,0] 1.0)))
+(assert (and (&gt;= X[1,1] 0.0) (&lt;= X[1,1] 1.0)))
+
+; Output constraints
+(assert (or (&lt;= Y[0] -3.0) (&gt;= Y[0] 0.0)))</pre>
                     </div>
                 </div>
             </div>
@@ -88,23 +93,6 @@
                         please open an issue describing your proposal on the
                         <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/issues">VNN-LIB Standard GitHub repository</a>.
                     </p>
-                </div>
-                <div class="feature-grid">
-                    <article class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-code"></i></div>
-                        <h3>Standard Query Language</h3>
-                        <p>VNN-LIB defines the syntax and semantics for expressing satisfiability queries over neural networks.</p>
-                    </article>
-                    <article class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-terminal"></i></div>
-                        <h3>Solver Interface</h3>
-                        <p>VNN-LIB 2.0 specifies a supports command so solvers can report their capabilities consistently.</p>
-                    </article>
-                    <article class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-search"></i></div>
-                        <h3>Capability Search</h3>
-                        <p>The solver database records reported capabilities and lets users search for compatible solver releases.</p>
-                    </article>
                 </div>
             </div>
         </section>
@@ -222,7 +210,12 @@
 
     <footer class="copyright footer py-4 text-center text-white bg-secondary">
         <div class="container">
-            <small><a target="_blank" rel="noopener" href="https://github.com/VNNLIB">VNN-LIB on GitHub</a> | Solver capability search prototype</small>
+            <p>Powered by AIMS-Lab
+                <a target="_blank" rel="noopener" href="https://aims-lab.github.io/">
+                    <img class="img-footer" src="assets/svg/unige.svg" alt="UniGE">
+                </a>
+            </p>
+            <small class="pre-wrap"><a target="_blank" rel="noopener" href="https://github.com/NeVerTools/NeVerTools.github.io/blob/master/LICENSE">MIT Licensed</a> | vnnlib.org 2023 | Hosted by <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></small>
         </div>
     </footer>
 
