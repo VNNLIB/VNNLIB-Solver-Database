@@ -2,8 +2,8 @@
     "use strict";
 
     var DATA_SOURCES = [
-        "../data/solvers.json",
-        "https://raw.githubusercontent.com/VNNLIB/VNNLIB-Solver-Database/main/data/solvers.json"
+        "https://12er90.pythonanywhere.com/solvers",
+        "../data/solvers.json"
     ];
 
     var THEORY_FIELDS = [
@@ -495,7 +495,6 @@
 
     function solverRow(solver, version, rowId) {
         var capabilities = version.capabilities || {};
-        var operators = Object.keys(capabilities.operators || {});
         var detailId = "solver-detail-" + rowId;
         var repo = solver.repo
             ? '<a href="' + escapeHtml(solver.repo) + '" target="_blank" rel="noopener">' + escapeHtml(solver.repo) + "</a>"
@@ -506,14 +505,10 @@
             '<td><strong>' + escapeHtml(solver.name || solver.id) + '</strong><div class="solver-meta">' + escapeHtml(solver.id) + "</div></td>",
             "<td>" + escapeHtml(version.version || "Unknown") + "</td>",
             "<td>" + rangeText(capabilities.vnnlib_versions) + "</td>",
-            "<td>" + rangeText(capabilities.onnx_opset) + "</td>",
-            "<td>" + labelledList(capabilities.arithmetic) + "</td>",
-            "<td>" + listText(capabilities.element_types) + "</td>",
-            "<td>" + operators.length + "</td>",
             "<td>" + repo + "</td>",
             '<td><button class="btn btn-sm btn-outline-primary" type="button" data-toggle="collapse" data-target="#' + detailId + '" aria-expanded="false" aria-controls="' + detailId + '">Details</button></td>',
             "</tr>",
-            '<tr class="solver-detail-row"><td colspan="9"><div class="collapse" id="' + detailId + '">' + versionDetails(version) + "</div></td></tr>"
+            '<tr class="solver-detail-row"><td colspan="5"><div class="collapse" id="' + detailId + '">' + versionDetails(version) + "</div></td></tr>"
         ].join("");
     }
 
@@ -544,10 +539,6 @@
             "<th>Solver</th>",
             "<th>Version</th>",
             "<th>Supported VNN-LIB versions</th>",
-            "<th>Supported ONNX opset versions</th>",
-            "<th>Supported arithmetic theories</th>",
-            "<th>Element types</th>",
-            "<th>Operators</th>",
             "<th>Link</th>",
             "<th></th>",
             "</tr>",
@@ -576,6 +567,9 @@
         };
 
         attempt(0).then(function (data) {
+            if (Array.isArray(data)) {
+                data = { solvers: data };
+            }
             state.solvers = data.solvers || [];
             populateOperatorSuggestions(state.solvers);
             applyQueryFromUrl();
