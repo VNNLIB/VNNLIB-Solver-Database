@@ -33,51 +33,69 @@
 
     <header class="page-hero bg-gradient text-white">
         <div class="container">
-            <p class="eyebrow">Tooling</p>
+            <p class="eyebrow">Libraries</p>
             <h1>Libraries</h1>
-            <p class="lead">Parser libraries and tools that help projects read, write, and validate VNN-LIB queries.</p>
+            <p class="lead">The following official libraries are available for interacting with the VNN-LIB standard in a variety of languages.</p>
         </div>
     </header>
 
     <main class="page-section">
         <div class="container">
-            <div class="feature-grid">
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fab fa-python"></i></div>
-                    <h3>VNNLIB-Python</h3>
-                    <p>Python parser for VNN-LIB, for research and tooling workflows.</p>
-                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Python">GitHub</a>
+            <div class="feature-grid library-grid">
+                <article class="feature-card library-card">
+                    <div class="language-mark language-cpp">C++</div>
+                    <h3><a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-CPP">C++</a></h3>
+                    <p class="library-tags">
+                        <span class="library-tag">Parser</span>
+                        <span class="library-tag">Type-checker</span>
+                    </p>
                 </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-code"></i></div>
-                    <h3>VNNLIB-CPP</h3>
-                    <p>C++ parser for VNN-LIB, for projects that need native integration.</p>
-                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-CPP">GitHub</a>
+                <article class="feature-card library-card">
+                    <div class="language-mark language-python"><i class="fab fa-python"></i></div>
+                    <h3><a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Python">Python</a></h3>
+                    <p class="library-tags">
+                        <span class="library-tag">Parser</span>
+                        <span class="library-tag">Type-checker</span>
+                    </p>
                 </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-superscript"></i></div>
-                    <h3>VNNLIB.jl</h3>
-                    <p>Julia parser for VNN-LIB.</p>
-                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB.jl">GitHub</a>
+                <article class="feature-card library-card">
+                    <div class="language-mark language-julia">Jl</div>
+                    <h3><a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB.jl">Julia</a></h3>
+                    <p class="library-tags">
+                        <span class="library-tag">Parser</span>
+                        <span class="library-tag">Type-checker</span>
+                    </p>
                 </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-cube"></i></div>
-                    <h3>OCaml</h3>
-                    <p>OCaml parser for VNN-LIB, maintained alongside the Frama-C project.</p>
-                    <a target="_blank" rel="noopener" href="https://git.frama-c.com/pub/vnnlib">Repository</a>
+                <article class="feature-card library-card">
+                    <div class="language-mark language-ocaml">OCaml</div>
+                    <h3><a target="_blank" rel="noopener" href="https://git.frama-c.com/pub/vnnlib">OCaml</a></h3>
+                    <p class="library-tags">
+                        <span class="library-tag">Parser</span>
+                    </p>
                 </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-check-circle"></i></div>
-                    <h3>VNNLIB-Agda</h3>
-                    <p>Formal, mechanised support for reasoning about the language and its semantics.</p>
-                    <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Agda">GitHub</a>
+                <article class="feature-card library-card">
+                    <div class="language-mark language-agda">Agda</div>
+                    <h3><a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Agda">Agda</a></h3>
+                    <p class="library-tags">
+                        <span class="library-tag">Parser</span>
+                        <span class="library-tag">Type-checker</span>
+                        <span class="library-tag">Semantics</span>
+                    </p>
                 </article>
             </div>
+            <p class="library-note text-center">We welcome PRs to these libraries and ports to further languages!</p>
         </div>
     </main>
 
     <footer class="copyright footer py-4 text-center text-white bg-secondary">
-        <div class="container"><small><a target="_blank" rel="noopener" href="https://github.com/VNNLIB">VNN-LIB on GitHub</a> | Solver capability search prototype</small></div>
+        <div class="container">
+            <p>Powered by AIMS-Lab
+                <a target="_blank" rel="noopener" href="https://aims-lab.github.io/">
+                    <img class="img-footer" src="assets/svg/unige.svg" alt="UniGE">
+                </a>
+            </p>
+            <small class="pre-wrap"><a target="_blank" rel="noopener" href="https://github.com/NeVerTools/NeVerTools.github.io/blob/master/LICENSE">MIT Licensed</a> | vnnlib.org 2023 | Hosted by <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></small>
+        </div>
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
