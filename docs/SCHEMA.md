@@ -39,6 +39,44 @@ There is no `latest_version`. It is the last element of `versions`.
 | `satisfies` | unless install failed | Downward closure of the reported theories |
 | `notes` | when the solver attached any | Free-text caveats, linked to a specific capability where that was possible to tell, otherwise general |
 
+### What gets published
+
+Only releases that collected cleanly. A release that could not be installed,
+or that answered some queries with unusable output, is not written to this
+file: it has nothing to advertise, and publishing a partial measurement
+invites a reader to draw conclusions from it.
+
+The author is still told what happened, in the comment on their pull request.
+That is where a failure is useful, as feedback rather than as a catalogue
+entry.
+
+One consequence worth knowing: `status` is therefore always `ok` in this file.
+The other values below describe outcomes a collection can have, and are what
+the pull request comment reports; they are not states a published record can
+be in.
+
+### Retirement
+
+Submissions are never deleted from this repository, but a retired release is
+removed from this file. A release is retired by setting `withdrawn = true` in
+its `solver.toml`, or every release of a solver at once by setting it in
+`solvers/<id>/solver.toml`. The database then describes only what can be used
+today.
+
+This is the one place the database is not append-only. It is safe because the
+submission survives: `solvers/<id>/<version>/` still holds the install script,
+so setting the flag back to `false` and re-collecting reproduces the record
+exactly. Nothing measured becomes unrecoverable, it only stops being
+published.
+
+A release whose directory has gone is dropped the same way, so the file can
+never describe a submission that no longer exists.
+
+The flag is usually set by a person, but the main-branch workflow also sets it
+on any release that did not collect cleanly there, so a submission merged in
+error stops being reinstalled on every later push. That is a commit like any
+other, and undone by setting the flag back to `false`.
+
 ### Status values
 
 | Value | Meaning | `capabilities` |

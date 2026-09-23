@@ -62,15 +62,25 @@ in it anyway — the tag, the checkout, or a comment.
 
 **What counts as failure**
 
-- the script exits non-zero
-- it runs longer than 30 minutes
-- it finishes but leaves no executable named `<id>`
+| | What happened |
+|---|---|
+| The install failed | the script exited non-zero, ran longer than 30 minutes, or left no executable named `<id>` |
+| The collection failed | it installed, but one of the eleven queries answered with something unusable |
 
-Any of those is recorded as `install_failed`, with the error, and the solver
-appears in the database marked as such rather than being silently dropped.
+Both are reported with the error in the comment on your pull request, and
+**neither enters the database.** The database advertises what a solver can do,
+and a release nobody can install or measure has nothing to advertise.
 
-Failing the checks above is different: nothing is installed, nothing is
-recorded, and the pull request cannot be merged until it is fixed.
+On the main branch, failing also retires the release: the workflow sets
+`withdrawn = true` in its `solver.toml` and commits that, so the pipeline stops
+spending half an hour per push to reach a conclusion it already has. Fix the
+problem, **set `withdrawn` back to `false` yourself**, and the next collection
+picks the release up. It does not resume on its own, because a retired release
+is skipped before anything is installed: a fixed `install.sh` alone changes
+nothing.
+
+Failing the static checks is different. Nothing is installed at all, and the
+pull request cannot be merged until it is fixed.
 
 **Line endings must be LF.** A script saved with Windows line endings fails on
 the runner with a confusing `bad interpreter` error. The `.gitattributes` in
@@ -94,10 +104,11 @@ automatically on every commit.
 ## solver.toml
 
 ```toml
-name    = "MySolver"
-repo    = "https://github.com/example/mysolver"
-license = "MIT"
-contact = "you@example.edu"
+name      = "MySolver"
+repo      = "https://github.com/example/mysolver"
+license   = "MIT"
+contact   = "you@example.edu"
+withdrawn = false
 ```
 
 | Field | Required | Notes |
@@ -106,6 +117,7 @@ contact = "you@example.edu"
 | `repo` | yes | Canonical source URL. Used to detect the same solver submitted twice |
 | `license` | no | SPDX identifier |
 | `contact` | no | Who to ask when collection fails |
+| `withdrawn` | yes | `false` on a live release, so that [retiring](#retiring-a-solver) one is a change to a line already there rather than a new key |
 
 ---
 
@@ -150,9 +162,53 @@ the standard makes mandatory:
 
 `verify` is never called. Your solver is never asked to solve anything.
 
-If a query fails or returns a value outside the permitted set, that one field is
-recorded as unknown and the rest of your record still works. You are not
-excluded from the database for one bad flag.
+If a query fails or returns a value outside the permitted set, the comment on
+your pull request names the flag and what it printed. All eleven have to work
+before the release is published, so one bad flag is worth fixing rather than
+ignoring.
+
+---
+
+## Retiring a solver
+
+Submissions are never deleted from this repository. To retire a release, flip
+the `withdrawn` line in its `solver.toml` and open a pull request:
+
+```toml
+withdrawn = true
+```
+
+Lowercase `true`. TOML booleans are not capitalised, so `True` is a syntax
+error rather than a value, and the submission is rejected with that message.
+
+Change the line that is already there rather than adding a second one. That is
+why the field is required in the first place: a key twice in one TOML file is
+an error, not a later value winning, so the file stops being readable and the
+retirement does not take effect.
+
+To retire **every** release at once, when the project itself is no longer
+maintained rather than one release being superseded, put the same line in a
+`solver.toml` one level up, beside the version directories:
+
+```
+solvers/<id>/
+    solver.toml          <- withdrawn = true retires all of them
+    1.0.0/
+    1.1.0/
+```
+
+Either file saying so is enough; they are two ways to answer the same
+question, not two conditions to satisfy.
+
+Your record is then **removed from the database**, so what is published
+describes only what can be used today. Your submission stays in the repository,
+which is what makes this reversible: setting the flag back to `false` and
+letting the next collection run reproduces the record exactly.
+
+A retired release is never installed again, so the usual checks are skipped
+for it: your `install.sh` is not validated and not run, which matters because
+an old script that has stopped working is often the reason for retiring a
+release in the first place.
 
 ---
 
@@ -160,6 +216,7 @@ excluded from the database for one bad flag.
 
 Add a new directory for the new version. Do not edit the old one. Every version
 is kept.
+
 To correct a mistake in a release already recorded, edit that version's
 `install.sh`. Re-collection overwrites the existing record rather than creating
 a duplicate.

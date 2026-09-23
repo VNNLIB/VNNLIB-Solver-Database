@@ -1,4 +1,5 @@
-name    = "vibecheck"
-repo    = "https://github.com/stanleybak/vibecheck-nn"
-license = "GPL-3.0-or-later"
-contact = "https://stanleybak.com"
+name      = "vibecheck"
+repo      = "https://github.com/stanleybak/vibecheck-nn"
+license   = "GPL-3.0-or-later"
+contact   = "https://stanleybak.com"
+withdrawn = false

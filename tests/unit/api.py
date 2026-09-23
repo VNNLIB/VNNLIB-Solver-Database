@@ -204,6 +204,8 @@ def main():
 
         module.DATABASE = path
 
+        module.DATABASE = path
+
         # The file changing on disk is picked up without a restart.
         changed = json.loads(json.dumps(DATABASE))
         changed["solvers"] = changed["solvers"][:1]

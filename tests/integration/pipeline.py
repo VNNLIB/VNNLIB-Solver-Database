@@ -105,9 +105,15 @@ def run_register(fixture_dir, workdir, timeout=TIMEOUT):
     return json.loads(lines[0])
 
 
-def run_build(results_path, database_path, *extra):
+def run_build(results_path, database_path, *extra, solvers_dir=FIXTURES):
+    # --solvers-dir points at the fixtures, because in this test they are the
+    # submissions. Without it build.py drops nothing, which is the safe
+    # default; with the repository's own solvers/ it would drop every fixture
+    # that is not registered there. A test that invents a release has to pass
+    # its own submissions tree, or the release is dropped for having none.
     completed = subprocess.run(
-        [sys.executable, str(BUILD), str(results_path), "--database", str(database_path), *extra],
+        [sys.executable, str(BUILD), str(results_path), "--database", str(database_path),
+         "--solvers-dir", str(solvers_dir), *extra],
         cwd=str(REPO),
         capture_output=True,
         text=True,
@@ -196,8 +202,17 @@ def test_install_failed_names_the_cause(state):
     assert "no executable" in errors["ghostsolver"], errors["ghostsolver"]
 
 
-def test_build_merges_results(state):
-    """register's JSON Lines feed straight into build with nothing in between."""
+# The fixtures cover every outcome, but only a clean collection is published.
+PUBLISHED = sorted(i for i, (_, status, _) in EXPECTED.items() if status == "ok")
+
+
+def test_build_publishes_only_clean_collections(state):
+    """
+    register's JSON Lines feed straight into build with nothing in between,
+    and only releases that collected cleanly come out the other side: the
+    database advertises what a solver can do, and the other three fixtures
+    have nothing to advertise.
+    """
     results = state["workdir"] / "results.jsonl"
     with results.open("w", encoding="utf-8", newline="\n") as handle:
         for solver in state["solvers"]:
@@ -208,7 +223,18 @@ def test_build_merges_results(state):
 
     built = json.loads(database.read_text(encoding="utf-8"))
     assert built["schema_version"] == "1.0"
-    assert [s["id"] for s in built["solvers"]] == sorted(EXPECTED)
+    assert [s["id"] for s in built["solvers"]] == PUBLISHED, (
+        "incomplete and install_failed fixtures must not be published"
+    )
+    # The author still learns what happened: report.py renders every record,
+    # including the ones that never reach the database.
+    rendered = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "report.py"), str(results)],
+        cwd=str(REPO), capture_output=True, text=True, timeout=TIMEOUT,
+    ).stdout
+    for solver_id in EXPECTED:
+        assert solver_id in rendered, f"{solver_id} missing from the pull request report"
+
     state["database"] = database
     state["results"] = results
 
@@ -222,30 +248,89 @@ def test_second_build_is_a_no_op(state):
 
 
 def test_recollecting_replaces_and_new_version_appends(state):
-    """SUBMITTING.md's "Updating": overwrite the version, keep the old ones."""
-    solver = json.loads(json.dumps(next(s for s in state["solvers"] if s["id"] == "testsolver")))
+    """
+    SUBMITTING.md's "Updating": overwrite the version, keep the old ones.
 
-    # Same version, collected again with a different outcome.
-    solver["versions"][0]["status"] = "incomplete"
-    solver["versions"][0]["errors"] = ["--name: produced no output"]
+    Against its own copy of the submissions, with a second version directory
+    added, because a release with no submission is dropped rather than kept.
+    """
+    submissions = state["workdir"] / "updating"
+    shutil.copytree(FIXTURES / "testsolver", submissions / "testsolver")
+    shutil.copytree(submissions / "testsolver" / "1.0.0", submissions / "testsolver" / "1.2.0")
+
+    solver = json.loads(json.dumps(next(s for s in state["solvers"] if s["id"] == "testsolver")))
+    database = state["workdir"] / "updating.json"
+
+    first = state["workdir"] / "first.jsonl"
+    first.write_text(json.dumps(solver) + "\n", encoding="utf-8")
+    run_build(first, database, solvers_dir=submissions)
+
+    # Same version, collected again: the record is replaced, not duplicated.
+    solver["versions"][0]["capabilities"]["element_types"] = ["real"]
     recollect = state["workdir"] / "recollect.jsonl"
     recollect.write_text(json.dumps(solver) + "\n", encoding="utf-8")
-    run_build(recollect, state["database"])
+    run_build(recollect, database, solvers_dir=submissions)
 
     # A later release of the same solver.
     solver = json.loads(json.dumps(solver))
     solver["versions"][0]["version"] = "1.2.0"
-    solver["versions"][0]["status"] = "ok"
     newer = state["workdir"] / "newer.jsonl"
     newer.write_text(json.dumps(solver) + "\n", encoding="utf-8")
-    run_build(newer, state["database"])
+    run_build(newer, database, solvers_dir=submissions)
 
-    built = json.loads(state["database"].read_text(encoding="utf-8"))
+    built = json.loads(database.read_text(encoding="utf-8"))
     testsolver = next(s for s in built["solvers"] if s["id"] == "testsolver")
-    versions = [(v["version"], v["status"]) for v in testsolver["versions"]]
-    assert versions == [("1.0.0", "incomplete"), ("1.2.0", "ok")], versions
-    # Everyone else is untouched by a run that never mentioned them.
-    assert [s["id"] for s in built["solvers"]] == sorted(EXPECTED)
+    assert [v["version"] for v in testsolver["versions"]] == ["1.0.0", "1.2.0"]
+    assert testsolver["versions"][0]["capabilities"]["element_types"] == ["real"], (
+        "re-collecting replaces the record rather than duplicating it"
+    )
+
+
+def test_a_failed_release_is_retired_in_place(state):
+    """
+    A release that fails on main is merged in error. --retire-failed writes the
+    flag into its own solver.toml so the pipeline stops reinstalling something
+    already known to be broken, half an hour at a time.
+
+    Run against a copy of the fixtures, because it edits a submission.
+    """
+    submissions = state["workdir"] / "solvers"
+    shutil.copytree(FIXTURES / "deadsolver", submissions / "deadsolver")
+    toml = submissions / "deadsolver" / "1.0.0" / "solver.toml"
+    assert "withdrawn = false" in toml.read_text(encoding="utf-8"), (
+        "the fixture starts as a live submission, with the field every "
+        "submission is required to carry"
+    )
+
+    failed = next(s for s in state["solvers"] if s["id"] == "deadsolver")
+    results = state["workdir"] / "failed.jsonl"
+    results.write_text(json.dumps(failed) + "\n", encoding="utf-8")
+
+    database = state["workdir"] / "retire.json"
+    subprocess.run(
+        [sys.executable, str(BUILD), str(results), "--database", str(database),
+         "--solvers-dir", str(submissions), "--retire-failed"],
+        cwd=str(REPO), capture_output=True, text=True, timeout=TIMEOUT, check=True,
+    )
+
+    retired = toml.read_text(encoding="utf-8")
+    assert "withdrawn = true" in retired
+    # Replaced, not appended. A second key would be invalid TOML, tomllib would
+    # refuse the file, and the release just retired would read as live again.
+    assert retired.count("withdrawn") == 1, retired
+
+    spec = importlib.util.spec_from_file_location(
+        "retire_check_validate", REPO / "scripts" / "validate.py"
+    )
+    checker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checker)
+    assert checker.is_withdrawn(toml.parent) is True, (
+        "the file the pipeline wrote must still read back as retired"
+    )
+    # Nothing was published, so there was nothing to write: build.py leaves the
+    # file alone rather than committing an empty database. A run that collects
+    # only failures therefore produces no commit at all.
+    assert not database.exists(), "a run with nothing to publish must write nothing"
 
 
 def test_hand_written_fields_survive(state):
@@ -316,9 +401,10 @@ def main():
             test_fixtures_are_valid_submissions,
             test_register_every_fixture,
             test_install_failed_names_the_cause,
-            test_build_merges_results,
+            test_build_publishes_only_clean_collections,
             test_second_build_is_a_no_op,
             test_recollecting_replaces_and_new_version_appends,
+            test_a_failed_release_is_retired_in_place,
             test_hand_written_fields_survive,
             test_no_environments_left_behind,
             test_real_database_untouched,

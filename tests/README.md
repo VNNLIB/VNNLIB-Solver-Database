@@ -11,6 +11,7 @@ solver, no venv, no network, no port. Milliseconds.
 ```bash
 python3 tests/unit/collect.py      # the parsers and the closure
 python3 tests/unit/validate.py     # the submission checks
+python3 tests/unit/build.py        # merging, publishing, and retiring
 python3 tests/unit/api.py          # the endpoints and the filters
 ```
 
@@ -37,13 +38,17 @@ Fake solvers that install in milliseconds, one per outcome the pipeline has
 to handle. Each is a real `solvers/<id>/<version>/` layout, so they work
 with `register.py` unchanged.
 
-| Fixture | Status it produces | Why |
-|---|---|---|
-| `testsolver/1.0.0` | `ok` | answers all 13 commands, with `* note` suffixes |
-| `brokensolver/0.9.0` | `incomplete` | five flags broken five different ways |
-| `deadsolver/1.0.0` | `install_failed` | script exits non-zero |
-| `ghostsolver/1.0.0` | `install_failed` | exits 0, leaves no matching executable |
-| `vibecheck/1.1.0` | (real solver) | `--slow` only; pulls torch |
+| Fixture | Status it produces | Published? | Why |
+|---|---|---|---|
+| `testsolver/1.0.0` | `ok` | yes | answers all 13 commands, with `* note` suffixes |
+| `brokensolver/0.9.0` | `incomplete` | no | five flags broken five different ways |
+| `deadsolver/1.0.0` | `install_failed` | no | script exits non-zero |
+| `ghostsolver/1.0.0` | `install_failed` | no | exits 0, leaves no matching executable |
+| `vibecheck/1.1.0` | (real solver) | if `ok` | `--slow` only; pulls torch |
+
+Only a clean collection reaches `data/solvers.json`, so three of these fixtures
+exist to prove they are *not* published, and that the author is told why in the
+pull request comment instead.
 
 ## Driving the pipeline by hand
 
@@ -62,6 +67,10 @@ All of them, then merged into a database, which is what the workflow does:
 for d in tests/fixtures/*/*/; do python3 scripts/register.py "$d"; done > /tmp/results.jsonl
 python3 scripts/build.py /tmp/results.jsonl --database /tmp/db.json
 ```
+
+Only `testsolver` comes out: the other fixtures did not collect cleanly, so
+they are reported but not published. Add `--solvers-dir tests/fixtures` to also
+drop anything retired, which is what `collect.yml` does with `solvers/`.
 
 Run `build.py` twice with the same input: the second run must report
 `no changes` and leave the file untouched. That is the property proving

@@ -44,6 +44,10 @@ jobs:
           dirs=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
                  | grep '^solvers/[^/]\+/[^/]\+/' \
                  | cut -d/ -f1-3 | sort -u)
+          # Keep only what is still on offer. A pull request that retires a
+          # submission, or deletes one, needs no validation or installation:
+          # there is nothing to collect from a release nobody is offering.
+          [ -z "$dirs" ] || dirs=$(python3 scripts/validate.py --list-offered $dirs)
           echo "dirs<<EOF" >> "$GITHUB_OUTPUT"
           echo "$dirs" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"

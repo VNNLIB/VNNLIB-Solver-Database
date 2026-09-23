@@ -1,4 +1,5 @@
-name    = "GhostSolver"
-repo    = "https://github.com/example/ghostsolver"
-license = "MIT"
-contact = "nobody@example.invalid"
+name      = "GhostSolver"
+repo      = "https://github.com/example/ghostsolver"
+license   = "MIT"
+contact   = "nobody@example.invalid"
+withdrawn = false
