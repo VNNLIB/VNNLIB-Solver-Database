@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Copy the canonical database into the vnnfilter package before a release.
 
-``data/solvers.json`` at the repo root is the source of truth — it's what
+``data/solvers.json`` at the repo root is the source of truth, and it's what
 the collection pipeline writes. ``src/vnnfilter/_data/solvers.json`` is a
 bundled copy so ``pip install vnnfilter`` works without a network call.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for api/app.py, using Flask's test client — no server, no port,
+Unit tests for api/app.py, using Flask's test client: no server, no port,
 no network.
 
     python3 tests/unit/api.py
@@ -201,6 +201,8 @@ def main():
         status, body = run(client, "/search")
         check("solver entry with no versions does not crash search",
               status == 200 and body["count"] == 0, status)
+
+        module.DATABASE = path
 
         module.DATABASE = path
 

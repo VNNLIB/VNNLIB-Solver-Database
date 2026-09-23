@@ -3,7 +3,7 @@
 Everything here needs Python 3.12 and, apart from the unit tests, bash.
 Nothing writes to `data/solvers.json`.
 
-## Unit tests — `tests/unit/`
+## Unit tests: `tests/unit/`
 
 Pure functions over strings, and the API through Flask's test client. No
 solver, no venv, no network, no port. Milliseconds.
@@ -11,14 +11,15 @@ solver, no venv, no network, no port. Milliseconds.
 ```bash
 python3 tests/unit/collect.py      # the parsers and the closure
 python3 tests/unit/validate.py     # the submission checks
+python3 tests/unit/build.py        # merging, publishing, and retiring
 python3 tests/unit/api.py          # the endpoints and the filters
 ```
 
 Each file is named after the module it tests, so it is loaded by path rather
-than imported — `tests/unit/collect.py` cannot `import collect` without
+than imported, because `tests/unit/collect.py` cannot `import collect` without
 importing itself.
 
-## Integration test — `tests/integration/`
+## Integration test: `tests/integration/`
 
 Real venvs, real `install.sh`, real binaries. Skips itself on Windows, with
 no bash, or with no `ensurepip`.
@@ -31,19 +32,23 @@ python3 tests/integration/pipeline.py --slow   # also the real solvers
 `--slow` reaches PyPI and pulls torch, so it can fail for reasons that have
 nothing to do with this repo. Keep it out of the default run.
 
-## Fixtures — `tests/fixtures/`
+## Fixtures: `tests/fixtures/`
 
 Fake solvers that install in milliseconds, one per outcome the pipeline has
 to handle. Each is a real `solvers/<id>/<version>/` layout, so they work
 with `register.py` unchanged.
 
-| Fixture | Status it produces | Why |
-|---|---|---|
-| `testsolver/1.0.0` | `ok` | answers all 13 commands, with `* note` suffixes |
-| `brokensolver/0.9.0` | `incomplete` | five flags broken five different ways |
-| `deadsolver/1.0.0` | `install_failed` | script exits non-zero |
-| `ghostsolver/1.0.0` | `install_failed` | exits 0, leaves no matching executable |
-| `vibecheck/1.1.0` | (real solver) | `--slow` only; pulls torch |
+| Fixture | Status it produces | Published? | Why |
+|---|---|---|---|
+| `testsolver/1.0.0` | `ok` | yes | answers all 13 commands, with `* note` suffixes |
+| `brokensolver/0.9.0` | `incomplete` | no | five flags broken five different ways |
+| `deadsolver/1.0.0` | `install_failed` | no | script exits non-zero |
+| `ghostsolver/1.0.0` | `install_failed` | no | exits 0, leaves no matching executable |
+| `vibecheck/1.1.0` | (real solver) | if `ok` | `--slow` only; pulls torch |
+
+Only a clean collection reaches `data/solvers.json`, so three of these fixtures
+exist to prove they are *not* published, and that the author is told why in the
+pull request comment instead.
 
 ## Driving the pipeline by hand
 
@@ -54,7 +59,7 @@ python3 scripts/register.py tests/fixtures/testsolver/1.0.0
 ```
 
 One line of JSON on stdout, the status on stderr. Exit code is 0 even for
-`install_failed` — a recorded failure is not a broken run.
+`install_failed`, because a recorded failure is not a broken run.
 
 All of them, then merged into a database, which is what the workflow does:
 
@@ -62,6 +67,10 @@ All of them, then merged into a database, which is what the workflow does:
 for d in tests/fixtures/*/*/; do python3 scripts/register.py "$d"; done > /tmp/results.jsonl
 python3 scripts/build.py /tmp/results.jsonl --database /tmp/db.json
 ```
+
+Only `testsolver` comes out: the other fixtures did not collect cleanly, so
+they are reported but not published. Add `--solvers-dir tests/fixtures` to also
+drop anything retired, which is what `collect.yml` does with `solvers/`.
 
 Run `build.py` twice with the same input: the second run must report
 `no changes` and leave the file untouched. That is the property proving
@@ -83,7 +92,7 @@ PATH=/tmp/solverbin:$PATH python3 -c "import collect, json; \
 
 ## Python version
 
-**3.12 everywhere** — the workflows, the machine that collects, and the API
+**3.12 everywhere**: the workflows, the machine that collects, and the API
 host. It is recorded in `.python-version` and in `schema.PYTHON_VERSION`.
 
 `register.py` builds each solver's venv by cloning the interpreter that runs
@@ -107,10 +116,10 @@ sudo apt update
 sudo apt install python3.12 python3.12-venv
 ```
 
-`python3.12-venv` is not optional — without it venv creation fails with an
+`python3.12-venv` is not optional, because without it venv creation fails with an
 `ensurepip is not available` error.
 
-The unit tests and the API run on anything from 3.9 up — only `register.py`
+The unit tests and the API run on anything from 3.9 up, and only `register.py`
 enforces a minimum, because only it installs solvers. Use 3.12 anyway, so
 what you run locally is what CI runs.
 

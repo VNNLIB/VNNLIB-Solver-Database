@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-build.py — fold the records register.py produced into data/solvers.json.
+build.py: fold the records register.py produced into data/solvers.json.
 
 register.py writes one Solver entry per line to results.jsonl; this merges
 those into the database on disk. It never installs or queries anything.
@@ -10,21 +10,34 @@ a run only adds to it or replaces the exact versions it collected, per
 SUBMITTING.md's "Updating":
 
   - re-collecting a version OVERWRITES it, it does not duplicate
-  - versions are never removed
   - a solver absent from results.jsonl is left exactly as it was
   - unrecognised top-level fields are carried through
   - if nothing changed, the file is not rewritten, so a no-op leaves no diff
+
+Only releases that collected cleanly are published. A release that could not
+be installed, or answered only some of the eleven queries, has nothing to
+advertise, so its record is dropped; the author still sees exactly what
+happened in the pull request comment.
+
+Submissions are never deleted from this repository. A release is retired by
+setting `withdrawn = true` in its solver.toml, or every release of a solver at
+once by setting it in `solvers/<id>/solver.toml`. Its record is then removed
+too, so what is published describes only what can be used today. The
+submission itself stays, so clearing the line and re-collecting brings the
+record back.
 
 Testing: see tests/README.md.
 """
 
 import argparse
+import copy
 import json
 import re
 import sys
 from pathlib import Path
 
 import schema
+import validate
 
 
 def empty_database():
@@ -119,7 +132,7 @@ def merge_solver(existing, incoming):
     """
     Fold a collected entry into the one on file: same version replaced, new
     version added. Sorted ascending, which SCHEMA.md makes part of the
-    contract — consumers compute ranges from the ordering alone.
+    contract, because consumers compute ranges from the ordering alone.
     """
     by_version = {v["version"]: v for v in existing.get("versions", [])}
     for version_record in incoming.get("versions", []):
@@ -139,13 +152,143 @@ def merge_solver(existing, incoming):
     return merged
 
 
-def build(database, results):
+def offered_versions(solvers_dir):
+    """
+    {(id, version)} for every release still on offer, or None if solvers/ is
+    not there at all.
+
+    A release is on offer when its directory exists and neither its own
+    solver.toml nor the one beside it at `solvers/<id>/solver.toml` says
+    `withdrawn = true`. Submissions are never deleted from this repository, so
+    the flag in the file is the mechanism; a directory that has gone anyway is
+    treated as withdrawn too, which costs nothing and stops a record claiming a
+    solver is available when its submission has vanished.
+
+    The solver-level file retires every release at once, for a project that has
+    been abandoned rather than a single release being superseded. Either file
+    saying so is enough: they are two ways to answer the same question, not two
+    conditions to satisfy.
+
+    None and "empty" are kept apart on purpose: a missing solvers/ means the
+    caller cannot tell us what is registered, and emptying the entire database
+    on that basis would be a disaster dressed as a feature.
+    """
+    solvers_dir = Path(solvers_dir)
+    if not solvers_dir.is_dir():
+        return None
+
+    offered = set()
+    for solver in sorted(solvers_dir.iterdir()):
+        if not solver.is_dir():
+            continue
+        # A solver.toml beside the version directories retires every release
+        # at once, for a project that has been abandoned rather than one
+        # release being superseded.
+        if validate.is_withdrawn(solver):
+            continue
+        for version in sorted(solver.iterdir()):
+            if version.is_dir() and not validate.is_withdrawn(version):
+                offered.add((solver.name, version.name))
+    return offered
+
+
+def retire_failures(results, solvers_dir):
+    """
+    Mark every release in `results` that did not collect cleanly as withdrawn,
+    by writing the flag into its own solver.toml.
+
+    A release that fails to install on main was merged in error, and without
+    this the pipeline reinstalls it on every push that touches it, half an hour
+    at a time, to reach the same conclusion. Writing the flag into the
+    repository also makes the state reviewable: it shows up as a commit and can
+    be undone by deleting the line.
+
+    Returns the directories it changed.
+    """
+    retired = []
+    for entry in results:
+        for record in entry.get("versions", []):
+            if record.get("status") == "ok":
+                continue
+            directory = Path(solvers_dir) / entry["id"] / record["version"]
+            if validate.retire(directory):
+                retired.append(directory)
+    return retired
+
+
+def drop_incomplete(by_id):
+    """
+    Remove every release that did not collect cleanly, and any solver left
+    with none.
+
+    The database advertises what a solver can do, so a release that could not
+    be installed, or answered only some of the eleven queries, has nothing to
+    advertise. Publishing it would invite a reader to draw conclusions from a
+    partial measurement.
+
+    The author still finds out: the pull request comment reports exactly what
+    happened, errors and all, which is where that information is useful. It is
+    feedback, not a catalogue entry.
+    """
+    kept = {}
+    for solver_id, solver in by_id.items():
+        versions = [
+            record for record in solver.get("versions", [])
+            if record.get("status") == "ok"
+        ]
+        if versions:
+            kept[solver_id] = {**solver, "versions": versions}
+    return kept
+
+
+def drop_withdrawn(by_id, offered):
+    """
+    Remove every release that is no longer on offer, and any solver left with
+    no releases at all.
+
+    The client wants a retired release gone from the database rather than
+    flagged, so what is published describes only what can be used today.
+
+    This is the one place the database is not append-only, and it is safe
+    because the submission itself is not deleted: `solvers/<id>/<version>/`
+    still holds the install script, so clearing the `withdrawn` line and
+    re-collecting reproduces the record. Nothing that took half an hour to
+    measure becomes unrecoverable, it only stops being published.
+
+    Pass None for `offered` to leave the database alone.
+    """
+    if offered is None:
+        return by_id
+
+    kept = {}
+    for solver_id, solver in by_id.items():
+        versions = [
+            record
+            for record in solver.get("versions", [])
+            if (solver_id, record.get("version")) in offered
+        ]
+        if versions:
+            kept[solver_id] = {**solver, "versions": versions}
+    return kept
+
+
+def build(database, results, offered=None):
     """
     A new database with every entry in results merged in, keyed by id (the
     directory name, which never changes). repo is SCHEMA.md's key for
     detecting the same solver submitted twice, which is warned about below.
+
+    `offered` is the set of (id, version) pairs still on offer. Anything in the
+    database and not in that set is dropped. Pass None to leave the database
+    alone.
     """
-    by_id = {solver["id"]: solver for solver in database.get("solvers", [])}
+    # Deep-copied, because this function must not touch what it was given.
+    # Marking withdrawal edits records in place, and without the copy those
+    # edits would land on the caller's `before` as well, leaving main() to
+    # compare a structure against itself and conclude nothing had changed.
+    by_id = {
+        solver["id"]: copy.deepcopy(solver) for solver in database.get("solvers", [])
+    }
 
     for incoming in results:
         solver_id = incoming["id"]
@@ -158,6 +301,11 @@ def build(database, results):
                 key=lambda v: version_sort_key(v["version"]),
             )
             by_id[solver_id] = incoming
+
+    # After the merge, so a release collected in this very run is never dropped
+    # on the strength of a stale directory listing.
+    by_id = drop_withdrawn(by_id, offered)
+    by_id = drop_incomplete(by_id)
 
     # Two ids sharing one repo is the duplicate-submission case SCHEMA.md
     # wants caught. A warning, not a failure: it needs a human to decide which
@@ -189,8 +337,9 @@ def _version_map(database):
 
 def describe_changes(before, after):
     """
-    (added, updated, removed) lists of (id, version). removed should always
-    be empty — versions are never dropped — so anything in it is a bug.
+    (added, updated, removed) lists of (id, version). `removed` is how a
+    retirement shows up: the release is no longer on offer, so its record has
+    been dropped.
     """
     old, new = _version_map(before), _version_map(after)
     added = sorted(key for key in new if key not in old)
@@ -252,14 +401,44 @@ def main():
         help="where to write (default: same as --database, i.e. in place)",
     )
     parser.add_argument(
+        "--solvers-dir",
+        default=None,
+        help="submissions directory. Given, a release is dropped from the "
+        "database when its solver.toml retires it or its directory is gone. "
+        "Omitted, nothing is ever dropped: removing records is destructive, so "
+        "it has to be asked for rather than happen because of where you "
+        "were standing",
+    )
+    parser.add_argument(
+        "--retire-failed",
+        action="store_true",
+        help="write `withdrawn = true` into the solver.toml of any release in "
+        "this run that did not collect cleanly, so it is not reinstalled on "
+        "every later push. Requires --solvers-dir",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="report what would change without writing anything",
     )
     args = parser.parse_args()
 
+    offered = None
+    if args.solvers_dir:
+        offered = offered_versions(args.solvers_dir)
+        if offered is None:
+            print(f"note: {args.solvers_dir} not found, dropping nothing", file=sys.stderr)
+
+    results = load_results(args.results)
+
+    if args.retire_failed:
+        if not args.solvers_dir:
+            raise SystemExit("--retire-failed needs --solvers-dir to know what to write to")
+        for directory in retire_failures(results, args.solvers_dir):
+            print(f"retired {directory}: it did not collect cleanly", file=sys.stderr)
+
     before = load_database(args.database)
-    after = build(before, load_results(args.results))
+    after = build(before, results, offered)
     output = args.output or args.database
 
     added, updated, removed = describe_changes(before, after)
@@ -268,7 +447,13 @@ def main():
     for solver_id, version in updated:
         print(f"~ {solver_id} {version} (re-collected)", file=sys.stderr)
     for solver_id, version in removed:
-        print(f"! {solver_id} {version} disappeared — this should not happen", file=sys.stderr)
+        # Two different things end a record, and a maintainer reading the log
+        # needs to tell them apart: someone set `withdrawn = true`, or the
+        # submission directory is not there any more. The second is rare and
+        # deliberate, so it should not look like the routine case.
+        gone = args.solvers_dir and not (Path(args.solvers_dir) / solver_id / version).is_dir()
+        why = "submission deleted" if gone else "retired"
+        print(f"- {solver_id} {version} ({why})", file=sys.stderr)
 
     # Nothing new: leave the file exactly as it is, rather than rewriting it
     # so the only diff is a fresh generated_at.

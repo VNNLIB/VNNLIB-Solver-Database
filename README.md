@@ -9,12 +9,17 @@ each registered solver once, asks it, records the answer, and throws the solver
 away. Everything downstream reads the recorded answers and never touches a
 solver again.
 
+What is published is only what can be used today: a release enters the
+database when it installs and answers all eleven capability queries, and leaves
+it when its author retires it. Nothing is ever deleted from the repository, so
+a retired release can be brought back.
+
 ## Repository layout
 
 ```
 solvers/<id>/<version>/       one directory per solver release
     install.sh                  how to install it
-    solver.toml                 who wrote it, where it lives
+    solver.toml                 who wrote it, and whether it is still offered
 
 data/solvers.json             the collected solvers
 
@@ -41,7 +46,7 @@ Each directory has its own README: [scripts](scripts/README.md) for the
 pipeline, [tests](tests/README.md) for how to run everything, [api](api/README.md)
 for the HTTP endpoints and hosting.
 
-**Python 3.12**, everywhere — the workflows, the machine that collects, and
+**Python 3.12**, everywhere: the workflows, the machine that collects, and
 the API host. `register.py` builds each solver's virtualenv by cloning the
 interpreter that runs it, so the version you launch it with is the version
 solvers get installed under.

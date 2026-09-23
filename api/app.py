@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-app.py — read-only HTTP API over data/solvers.json.
+app.py: read-only HTTP API over data/solvers.json.
 
 Where a solver's `supports` command reports what it can do, this answers the
 opposite question: given what you need, which solvers can do it. Same idea as
@@ -16,7 +16,7 @@ by a workflow; this process only reads the file back.
     python3 api/app.py --database PATH  # anything else
 
 A WSGI host imports this module instead of running it, so there is no command
-line there — SOLVERS_JSON does the same job.
+line there, so SOLVERS_JSON does the same job.
 """
 
 import argparse
@@ -157,8 +157,8 @@ def version_matches(record, query):
     Whether one release satisfies every criterion given.
 
     A criterion left out is ignored rather than assumed, so an empty query
-    matches every release that was measured. A release with no capabilities —
-    install_failed — never matches, not even an empty query: search answers
+    matches every release that was measured. A release with no capabilities,
+    meaning install_failed, never matches, not even an empty query: search answers
     "what can do this", and nothing is known about what it can do. Use
     /solvers to see those.
     """
@@ -222,8 +222,8 @@ def allow_cross_origin(response):
     """
     Let a page on another origin read this.
 
-    Without it a browser blocks the response, so the Stage 3 search page — and
-    anyone else's script — would see an empty result and no explanation. Safe
+    Without it a browser blocks the response, so the Stage 3 search page, and
+    anyone else's script, would see an empty result and no explanation. Safe
     to open to everyone: the data is public, read-only, and there is no
     session or credential to steal.
     """
