@@ -17,7 +17,7 @@
 body.solver-page {
     background: var(--brand-bg);
     color: var(--brand-ink);
-    padding-top: 88px;
+    padding-top: 83px;
 }
 
 a {
@@ -924,14 +924,16 @@ a {
 }
 
 .img-footer {
-    height: 2.1rem;
+    filter: brightness(0) invert(1);
+    height: 2.6rem;
     margin-left: .35rem;
+    opacity: .92;
     vertical-align: middle;
 }
 
 @media (max-width: 768px) {
     body.solver-page {
-        padding-top: 72px;
+        padding-top: 67px;
     }
 
     #mainNav {
