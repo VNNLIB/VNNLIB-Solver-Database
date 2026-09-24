@@ -1,0 +1,5 @@
+name      = "TestSolver Two"
+repo      = "https://github.com/vnnlib-test/testsolver2"
+license   = "Apache-2.0"
+contact   = "nobody@example.invalid"
+withdrawn = false

@@ -1,0 +1,5 @@
+name      = "TestSolver Nine"
+repo      = "https://github.com/vnnlib-test/testsolver9"
+license   = "BSD-2-Clause"
+contact   = "nobody@example.invalid"
+withdrawn = false
