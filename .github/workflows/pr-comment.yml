@@ -4,7 +4,7 @@ name: comment (pull request)
 #
 # Split from pr-collect.yml on purpose. That job runs a contributor's
 # install.sh and therefore must not hold a write token. This one holds the
-# write token but only ever reads a JSON artifact — it never checks out the
+# write token but only ever reads a JSON artifact, and never checks out the
 # branch and never executes anything from it.
 
 on:

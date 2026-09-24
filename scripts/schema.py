@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-schema.py — the handful of constants docs/SCHEMA.md defines as a contract,
+schema.py: the handful of constants docs/SCHEMA.md defines as a contract,
 in one place so the other scripts cannot disagree about them.
 
 Nothing here parses or produces records; it is only the things they all have

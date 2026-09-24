@@ -4,7 +4,7 @@ name: collect (pull request)
 #
 # So this uses `pull_request`, NOT `pull_request_target`: the job gets a
 # read-only token, no secrets, and cannot write to the repository. It cannot
-# comment on the pull request either — that is what pr-comment.yml is for,
+# comment on the pull request either, because that is what pr-comment.yml is for,
 # which reads this job's artifact and never executes anything from the branch.
 
 on:
@@ -44,6 +44,10 @@ jobs:
           dirs=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
                  | grep '^solvers/[^/]\+/[^/]\+/' \
                  | cut -d/ -f1-3 | sort -u)
+          # Keep only what is still on offer. A pull request that retires a
+          # submission, or deletes one, needs no validation or installation:
+          # there is nothing to collect from a release nobody is offering.
+          [ -z "$dirs" ] || dirs=$(python3 scripts/validate.py --list-offered $dirs)
           echo "dirs<<EOF" >> "$GITHUB_OUTPUT"
           echo "$dirs" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"

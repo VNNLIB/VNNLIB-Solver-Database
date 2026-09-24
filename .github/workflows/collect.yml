@@ -3,7 +3,7 @@ name: collect (main)
 # The second collection SUBMITTING.md describes: after a maintainer merges,
 # install the solver again on main, record what it reports, and commit it.
 #
-# The pull request run is advisory — it shows the author what will be recorded.
+# The pull request run is advisory: it shows the author what will be recorded.
 # This run is the one whose result actually enters the database.
 
 on:
@@ -53,6 +53,13 @@ jobs:
                    | grep '^solvers/[^/]\+/[^/]\+/' \
                    | cut -d/ -f1-3 | sort -u)
           fi
+          # Keep only what is still on offer. A retired submission (its
+          # solver.toml says withdrawn = true) and a deleted one both drop out
+          # here, so neither is validated nor installed: a retired release is
+          # never installed again, and its install script may well have stopped
+          # working, which is often why it was retired. build.py flags the
+          # record afterwards.
+          [ -z "$dirs" ] || dirs=$(python3 scripts/validate.py --list-offered $dirs)
           echo "dirs<<EOF" >> "$GITHUB_OUTPUT"
           echo "$dirs" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -79,8 +86,17 @@ jobs:
 
       - name: Merge into the database
         run: |
-          [ -s results.jsonl ] || exit 0
-          python3 scripts/build.py results.jsonl --database data/solvers.json
+          # Always run, even with nothing collected. A push that only deletes a
+          # submission produces no records, and that run is exactly the one
+          # that has to mark the release withdrawn.
+          touch results.jsonl
+          # --retire-failed writes `withdrawn = true` into the solver.toml of
+          # anything that did not collect cleanly, failed install and incomplete
+          # alike, so the next push does not spend half an hour reaching the
+          # same conclusion. Only here, never on a pull request: a pull request
+          # gets a comment, main gets a commit.
+          python3 scripts/build.py results.jsonl \
+            --database data/solvers.json --solvers-dir solvers --retire-failed
 
       - name: Commit
         env:
@@ -88,14 +104,15 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           # build.py leaves the file untouched when nothing changed, so this
-          # is the whole no-op check: no diff, no commit.
-          if git diff --quiet -- data/solvers.json; then
-            echo "no change to data/solvers.json"
+          # is the whole no-op check: no diff, no commit. solvers/ is included
+          # because --retire-failed may have written a flag into a solver.toml.
+          if git diff --quiet -- data/solvers.json solvers/; then
+            echo "nothing to commit"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/solvers.json
+          git add data/solvers.json solvers/
           # Built as a variable so the body is not indented by the YAML block.
           message="Record collected capabilities
 

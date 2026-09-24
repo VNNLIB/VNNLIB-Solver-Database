@@ -1,63 +1,7 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-20T04:07:36Z",
+  "generated_at": "2026-09-23T13:55:37Z",
   "solvers": [
-    {
-      "id": "brokensolver",
-      "name": "BrokenSolver",
-      "repo": "https://github.com/example/brokensolver",
-      "versions": [
-        {
-          "version": "0.9.0",
-          "collected_at": "2026-08-20T04:05:55Z",
-          "status": "incomplete",
-          "errors": [
-            "--version: reported '0.9.0-dev', submission directory says '0.9.0'",
-            "--onnx-opset-versions: exited 1: error: opset table not built",
-            "--vnnlib-versions: expected two version lines, got '2.0'",
-            "--multiple-node-comparison-theories: produced no output",
-            "--arithmetic-complexity-theories: returned ['LINEAR'], expected a subset of ['BND', 'LIN', 'OUTC', 'POLY']"
-          ],
-          "capabilities": {
-            "onnx_opset": null,
-            "element_types": [
-              "float32"
-            ],
-            "operators": {
-              "Relu": [],
-              "Gemm": []
-            },
-            "vnnlib_versions": null,
-            "hidden_nodes": [
-              "NH"
-            ],
-            "multiple_io": [
-              "SIO"
-            ],
-            "multiple_networks": [
-              "SNET"
-            ],
-            "node_comparisons": null,
-            "arithmetic": null,
-            "optimised_disjunction": false,
-            "serialise_assignments": false
-          },
-          "satisfies": {
-            "hidden_nodes": [
-              "NH"
-            ],
-            "multiple_io": [
-              "SIO"
-            ],
-            "multiple_networks": [
-              "SNET"
-            ],
-            "node_comparisons": [],
-            "arithmetic": []
-          }
-        }
-      ]
-    },
     {
       "id": "testsolver",
       "name": "TestSolver",
@@ -65,7 +9,7 @@
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-08-20T04:05:56Z",
+          "collected_at": "2026-09-23T13:53:53Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -172,7 +116,7 @@
       "versions": [
         {
           "version": "1.1.0",
-          "collected_at": "2026-08-20T04:07:35Z",
+          "collected_at": "2026-09-23T13:55:36Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [

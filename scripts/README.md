@@ -14,7 +14,7 @@ validate.py  ──>  register.py  ──imports──>  collect.py  ──> the
 ```
 
 `validate.py`, `register.py`, `build.py` and `report.py` are commands.
-`collect.py` and `schema.py` are libraries — `collect.py` runs on every solver,
+`collect.py` and `schema.py` are libraries. `collect.py` runs on every solver,
 but always through `register.py`, never as its own process.
 
 ## What happens to one submission
@@ -27,14 +27,14 @@ Given `solvers/<id>/<version>/`:
    another release's name half an hour later.
 1. **`register.py`** creates an empty virtualenv and hands its `bin/` to the
    submitted script as `$SOLVER_BIN_DIR`.
-2. **`install.sh`** — the submitter's code, not ours — installs the solver and
+2. **`install.sh`**, the submitter's code and not ours, installs the solver and
    must leave an executable named exactly `<id>` on `PATH`.
 3. **`register.py`** looks for that executable. If the script failed, timed
    out, or left nothing behind, the record is `install_failed` and step 4
    never runs: there is nothing to query.
 4. **`collect.py`** runs the 13 commands (`--name`, `--version`, and the
    eleven `supports` flags) against the binary and builds the version record.
-5. **`register.py`** deletes the temp directory — venv and solver with it.
+5. **`register.py`** deletes the temp directory, venv and solver with it.
 6. **`build.py`** merges the record into `data/solvers.json`.
 
 Only the record survives. The solver is thrown away every time.
@@ -47,19 +47,19 @@ imports `venv` or `tempfile`, and receives the binary as a path it can run.
 
 That split is what makes the parsers testable. Every function in `collect.py`
 below `run_query` is a pure function over a string, so `tests/unit/collect.py`
-exercises all of them with hand-typed solver output — no install, no venv, no
+exercises all of them with hand-typed solver output: no install, no venv, no
 network, milliseconds.
 
 ## The modules
 
 | File | Entry point | Does |
 |---|---|---|
-| `validate.py` | `validate.py <dir>...` | static checks on a submission, before anything is installed. Non-zero exit blocks the PR. Also owns reading `solver.toml` |
+| `validate.py` | `validate.py <dir>... [--list-offered]` | static checks on a submission, before anything is installed. Non-zero exit blocks the PR. Also owns reading `solver.toml` and deciding what is still on offer |
 | `register.py` | `register.py <dir> [--timeout N]` | install, collect, tear down. One line of JSON on stdout, status on stderr |
 | `collect.py` | library | run the 13 queries, parse them into SCHEMA.md's shapes |
-| `build.py` | `build.py <results.jsonl> [--database P] [--dry-run]` | merge records into the database |
+| `build.py` | `build.py <results.jsonl> [--database P] [--solvers-dir D] [--retire-failed] [--dry-run]` | merge clean records into the database, drop retired ones, and optionally retire what failed to install |
 | `report.py` | `report.py <results.jsonl>` | render records as markdown, for a PR comment or job summary |
-| `schema.py` | library | `SCHEMA_VERSION`, `now_iso()` — the things the others must spell identically |
+| `schema.py` | library | `SCHEMA_VERSION`, `now_iso()`, the things the others must spell identically |
 
 ## Things that are easy to get wrong
 
@@ -69,7 +69,7 @@ clones the current Python, so `python3 register.py` on Ubuntu 22.04 builds a
 `schema.MINIMUM_PYTHON` rather than letting that surface minutes later as an
 unresolvable pip pin. Launch it as `python3.12 scripts/register.py ...`.
 
-The project is on **3.12 everywhere** — `.python-version`, both workflows, and
+The project is on **3.12 everywhere**: `.python-version`, both workflows, and
 `schema.PYTHON_VERSION`.
 
 **The directory name is the authority on version.** `--version` is
@@ -77,22 +77,72 @@ cross-checked against it, never substituted for it. A solver reporting
 something else gets an error in the record and keeps the directory's version.
 
 **`build.py` merges, it does not regenerate.** A solver absent from
-`results.jsonl` is left alone; re-collecting a version replaces that version
-only; versions are never removed. If nothing changed, the file is not
-rewritten at all.
+`results.jsonl` is left alone, and re-collecting a version replaces that
+version only. If nothing changed, the file is not rewritten at all. The one
+exception is retirement, below.
+
+**Dropping only happens when `--solvers-dir` is given.** Removing records is
+destructive, so it is asked for rather than implied: `collect.yml` passes the
+path explicitly, and anything else merging into a database leaves it alone.
+A default would have meant running the command from the wrong directory could
+quietly empty a database.
+
+**Only clean collections are published.** `incomplete` and `install_failed`
+records are dropped by `build.py`, so `status` in the database is always `ok`.
+The author still gets the detail in the pull request comment, which is where a
+failure is useful. `collect.yml` also passes `--retire-failed`, so any release
+on main that did not collect cleanly, `install_failed` and `incomplete` alike,
+has `withdrawn = true` written into its `solver.toml` and committed: without
+that the pipeline reinstalls a known-broken submission on every later push,
+half an hour at a time.
+
+The cost is that recovery is manual. A retired release is filtered out before
+installation, so an author who fixes their solver must also set `withdrawn`
+back to `false`, which `SUBMITTING.md` tells them. That is deliberate: the flag
+records a conclusion the pipeline reached, and only a human can say the
+conclusion no longer holds.
+
+`--retire-failed` is passed on main and never on a pull request, so a failing
+pull request is commented on and nothing more.
+
+**Retiring drops the record, but never the submission.** A release is retired
+by setting `withdrawn = true` in its `solver.toml`, or every release of a
+solver at once by setting it in `solvers/<id>/solver.toml`. `build.py` removes
+the matching records, and a solver left with no releases goes too. This is the
+one place the database is not append-only, and it is safe because the install
+script stays: setting the flag back to `false` and re-collecting reproduces
+the record.
+
+**A retired release skips the checks entirely.** Both workflows filter their
+target list through `validate.py --list-offered` before validating or
+installing anything, so a pull request that only retires a submission runs no
+checks against it. Its install script may well have stopped working, which is
+often why it was retired.
+
+`build.py` compares the database against the submissions, so a run that
+collected nothing still has work to do: a push that only retires a release is
+exactly the run that must drop it.
+
+**Deleting a submission is a different thing from retiring it.** `build.py`
+compares the database against the submissions that exist, so `git rm -r
+solvers/<id>` drops the records on the next collection with no other step.
+The log says `submission deleted` rather than `retired`, because the two are
+not recoverable in the same way: retiring keeps the install script, deleting
+does not. `SUBMITTING.md` says when it is justified.
+
+**A missing `solvers/` is not an empty one.** `offered_versions` returns
+`None` rather than an empty set when the directory does not exist, and `None`
+drops nothing. Conflating the two would empty the entire database in a single
+run.
 
 **Exit codes are about the run, not the solver.** `register.py` exits 0 even
-for `install_failed` — a recorded failure is data, and a non-zero exit would
-abort the workflow's loop over the remaining solvers.
+for `install_failed`, because a recorded failure is data and a non-zero exit
+would abort the workflow's loop over the remaining solvers.
 
 ## Known gaps
 
 - **Version ordering is natural sort, not semver.** `1.0.0-rc1` sorts after
   `1.0.0`. Nothing says these strings are semver, so it is not assumed.
-- **`schema_version` is still `1.0`** although `operators` changed from raw
-  lines to an object and the two booleans from strings to real booleans. The
-  argument for not bumping it: SCHEMA.md described both shapes all along, so
-  the code was wrong rather than the contract. Worth raising with the client.
 - **A duplicate `repo` is a warning, not a failure.** `build.py` prints when
   two ids claim the same repository, because deciding which one is real needs
   a human.
