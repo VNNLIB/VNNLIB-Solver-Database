@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-09-23T13:55:37Z",
+  "generated_at": "2026-09-24T13:14:38Z",
   "solvers": [
     {
       "id": "testsolver",
@@ -104,6 +104,1994 @@
               "field": "arithmetic",
               "identifier": "POLY",
               "text": "* polynomial constraints transpiled via nonlinear-augment"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testsolver1",
+      "name": "TestSolver One",
+      "repo": "https://github.com/vnnlib-test/testsolver1",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "collected_at": "2026-09-24T13:13:42Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              7,
+              13
+            ],
+            "element_types": [
+              "real"
+            ],
+            "operators": {
+              "Relu": [],
+              "Gemm": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "1.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver10",
+      "name": "TestSolver Ten",
+      "repo": "https://github.com/vnnlib-test/testsolver10",
+      "versions": [
+        {
+          "version": "0.5.0",
+          "collected_at": "2026-09-24T13:13:44Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              7,
+              11
+            ],
+            "element_types": [
+              "real"
+            ],
+            "operators": {
+              "Gemm": [],
+              "Relu": [],
+              "Add": [],
+              "Mul": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "1.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver11",
+      "name": "TestSolver Eleven",
+      "repo": "https://github.com/vnnlib-test/testsolver11",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "collected_at": "2026-09-24T13:13:47Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              9,
+              13
+            ],
+            "element_types": [
+              "float32"
+            ],
+            "operators": {
+              "Relu": [],
+              "Gemm": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "1.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ]
+          }
+        },
+        {
+          "version": "1.1.0",
+          "collected_at": "2026-09-24T13:13:49Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              9,
+              17
+            ],
+            "element_types": [
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Relu": [],
+              "Gemm": [],
+              "Conv": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ]
+          }
+        },
+        {
+          "version": "2.0.0",
+          "collected_at": "2026-09-24T13:13:51Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              11,
+              20
+            ],
+            "element_types": [
+              "real",
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Relu": [],
+              "Gemm": [],
+              "Conv": [],
+              "MaxPool": [],
+              "Concat": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver12",
+      "name": "TestSolver Twelve",
+      "repo": "https://github.com/vnnlib-test/testsolver12",
+      "versions": [
+        {
+          "version": "0.8.0",
+          "collected_at": "2026-09-24T13:13:54Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              10,
+              14
+            ],
+            "element_types": [
+              "real"
+            ],
+            "operators": {
+              "Relu": [],
+              "Add": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "1.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ]
+          }
+        },
+        {
+          "version": "0.9.0",
+          "collected_at": "2026-09-24T13:13:56Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              10,
+              18
+            ],
+            "element_types": [
+              "real",
+              "float32"
+            ],
+            "operators": {
+              "Relu": [],
+              "Add": [],
+              "Sub": [],
+              "MatMul": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver13",
+      "name": "TestSolver Thirteen",
+      "repo": "https://github.com/vnnlib-test/testsolver13",
+      "versions": [
+        {
+          "version": "2.1.0",
+          "collected_at": "2026-09-24T13:13:58Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              13,
+              19
+            ],
+            "element_types": [
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Conv": [],
+              "Relu": [],
+              "MaxPool": [],
+              "Gemm": []
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET"
+            ],
+            "node_comparisons": [
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        },
+        {
+          "version": "2.2.0",
+          "collected_at": "2026-09-24T13:14:00Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              13,
+              21
+            ],
+            "element_types": [
+              "float32",
+              "float64",
+              "bfloat16"
+            ],
+            "operators": {
+              "Conv": [],
+              "Relu": [],
+              "MaxPool": [],
+              "Gemm": [],
+              "BatchNormalization": []
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          },
+          "notes": [
+            {
+              "field": "element_types",
+              "identifier": "bfloat16",
+              "text": "* bfloat16 inputs are widened to float32 before analysis"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testsolver14",
+      "name": "TestSolver Fourteen",
+      "repo": "https://github.com/vnnlib-test/testsolver14",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "collected_at": "2026-09-24T13:14:02Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              7,
+              12
+            ],
+            "element_types": [
+              "real"
+            ],
+            "operators": {
+              "Gemm": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "1.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ]
+          }
+        },
+        {
+          "version": "1.5.0",
+          "collected_at": "2026-09-24T13:14:04Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              7,
+              16
+            ],
+            "element_types": [
+              "real",
+              "float32"
+            ],
+            "operators": {
+              "Gemm": [],
+              "Relu": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ]
+          }
+        },
+        {
+          "version": "2.0.0",
+          "collected_at": "2026-09-24T13:14:06Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              9,
+              21
+            ],
+            "element_types": [
+              "real",
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Gemm": [],
+              "Relu": [],
+              "Conv": [],
+              "Sigmoid": [],
+              "Tanh": []
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET",
+              "MNET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET",
+              "MNET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver15",
+      "name": "TestSolver Fifteen",
+      "repo": "https://github.com/vnnlib-test/testsolver15",
+      "versions": [
+        {
+          "version": "3.2.0",
+          "collected_at": "2026-09-24T13:14:08Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              14,
+              18
+            ],
+            "element_types": [
+              "float32"
+            ],
+            "operators": {
+              "Conv": [],
+              "Relu": [],
+              "Flatten": []
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        },
+        {
+          "version": "3.3.0",
+          "collected_at": "2026-09-24T13:14:11Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              14,
+              20
+            ],
+            "element_types": [
+              "float32",
+              "float16"
+            ],
+            "operators": {
+              "Conv": [],
+              "Relu": [],
+              "Flatten": [],
+              "Transpose": [],
+              "Reshape": []
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver16",
+      "name": "TestSolver Sixteen",
+      "repo": "https://github.com/vnnlib-test/testsolver16",
+      "versions": [
+        {
+          "version": "0.3.1",
+          "collected_at": "2026-09-24T13:14:13Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              7,
+              21
+            ],
+            "element_types": [
+              "float16",
+              "float32"
+            ],
+            "operators": {
+              "Conv": [
+                "float16"
+              ],
+              "Relu": [],
+              "AveragePool": [
+                "float32"
+              ]
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver17",
+      "name": "TestSolver Seventeen",
+      "repo": "https://github.com/vnnlib-test/testsolver17",
+      "versions": [
+        {
+          "version": "4.0.0",
+          "collected_at": "2026-09-24T13:14:15Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              11,
+              19
+            ],
+            "element_types": [
+              "real",
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Conv": [],
+              "Gemm": [],
+              "Relu": [],
+              "MatMul": [],
+              "Add": []
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MNET"
+            ],
+            "node_comparisons": [
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET",
+              "MNET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver18",
+      "name": "TestSolver Eighteen",
+      "repo": "https://github.com/vnnlib-test/testsolver18",
+      "versions": [
+        {
+          "version": "1.7.3",
+          "collected_at": "2026-09-24T13:14:17Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              9,
+              15
+            ],
+            "element_types": [
+              "float64"
+            ],
+            "operators": {
+              "Gemm": [
+                "float64"
+              ],
+              "Relu": [
+                "float64"
+              ],
+              "Sub": [
+                "float64"
+              ]
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "1.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver19",
+      "name": "TestSolver Nineteen",
+      "repo": "https://github.com/vnnlib-test/testsolver19",
+      "versions": [
+        {
+          "version": "2.5.0",
+          "collected_at": "2026-09-24T13:14:19Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              12,
+              20
+            ],
+            "element_types": [
+              "real",
+              "float32"
+            ],
+            "operators": {
+              "Conv": [
+                "float32"
+              ],
+              "Relu": [],
+              "MaxPool": [],
+              "Softmax": [],
+              "Sigmoid": [],
+              "Tanh": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          },
+          "notes": [
+            {
+              "field": "multiple_networks",
+              "identifier": "MENET",
+              "text": "* second network must be frozen"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testsolver2",
+      "name": "TestSolver Two",
+      "repo": "https://github.com/vnnlib-test/testsolver2",
+      "versions": [
+        {
+          "version": "2.3.1",
+          "collected_at": "2026-09-24T13:14:21Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              7,
+              21
+            ],
+            "element_types": [
+              "real",
+              "float16",
+              "float32",
+              "float64",
+              "bfloat16"
+            ],
+            "operators": {
+              "Conv": [],
+              "Relu": [],
+              "MaxPool": [],
+              "AveragePool": [],
+              "Gemm": [],
+              "MatMul": [],
+              "Add": [],
+              "Sub": [],
+              "Mul": [],
+              "Sigmoid": [],
+              "Tanh": [],
+              "Softmax": [],
+              "BatchNormalization": [],
+              "Reshape": [],
+              "Flatten": [],
+              "Concat": [],
+              "Transpose": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET",
+              "MNET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET",
+              "MNET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver20",
+      "name": "TestSolver Twenty",
+      "repo": "https://github.com/vnnlib-test/testsolver20",
+      "versions": [
+        {
+          "version": "0.9.9",
+          "collected_at": "2026-09-24T13:14:23Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              7,
+              10
+            ],
+            "element_types": [
+              "real",
+              "float32"
+            ],
+            "operators": {
+              "Conv": [],
+              "Relu": [],
+              "MaxPool": [],
+              "AveragePool": [],
+              "Gemm": [],
+              "MatMul": [],
+              "Add": [],
+              "Mul": [],
+              "Concat": [],
+              "Reshape": [],
+              "Flatten": [],
+              "Transpose": [],
+              "Sigmoid": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "1.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver3",
+      "name": "TestSolver Three",
+      "repo": "https://github.com/vnnlib-test/testsolver3",
+      "versions": [
+        {
+          "version": "0.9.0",
+          "collected_at": "2026-09-24T13:14:25Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              11,
+              18
+            ],
+            "element_types": [
+              "float32"
+            ],
+            "operators": {
+              "Conv": [
+                "float32"
+              ],
+              "Relu": [
+                "float32"
+              ],
+              "Gemm": [
+                "float32"
+              ]
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MNET"
+            ],
+            "node_comparisons": [
+              "MNC"
+            ],
+            "arithmetic": [
+              "POLY"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "SNET",
+              "MENET",
+              "MINET",
+              "MNET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver4",
+      "name": "TestSolver Four",
+      "repo": "https://github.com/vnnlib-test/testsolver4",
+      "versions": [
+        {
+          "version": "1.2.0",
+          "collected_at": "2026-09-24T13:14:28Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              13,
+              13
+            ],
+            "element_types": [
+              "real",
+              "float64"
+            ],
+            "operators": {
+              "Gemm": [
+                "float64"
+              ],
+              "Relu": []
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver5",
+      "name": "TestSolver Five",
+      "repo": "https://github.com/vnnlib-test/testsolver5",
+      "versions": [
+        {
+          "version": "3.0.0",
+          "collected_at": "2026-09-24T13:14:30Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              9,
+              17
+            ],
+            "element_types": [
+              "real",
+              "float32"
+            ],
+            "operators": {
+              "Conv": [],
+              "MaxPool": [],
+              "Relu": [],
+              "Concat": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO",
+              "MIO"
+            ],
+            "multiple_networks": [
+              "MENET",
+              "MINET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          },
+          "notes": [
+            {
+              "field": "element_types",
+              "identifier": "float32",
+              "text": "* interval arithmetic, not IEEE-754-faithful"
+            },
+            {
+              "field": "multiple_networks",
+              "identifier": "MINET",
+              "text": "* isomorphic-to checked structurally, not by weight"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "testsolver6",
+      "name": "TestSolver Six",
+      "repo": "https://github.com/vnnlib-test/testsolver6",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "collected_at": "2026-09-24T13:14:32Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              20,
+              20
+            ],
+            "element_types": [
+              "float32"
+            ],
+            "operators": {
+              "Relu": [
+                "float32"
+              ]
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver7",
+      "name": "TestSolver Seven",
+      "repo": "https://github.com/vnnlib-test/testsolver7",
+      "versions": [
+        {
+          "version": "1.4.2",
+          "collected_at": "2026-09-24T13:14:34Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              10,
+              16
+            ],
+            "element_types": [
+              "int8",
+              "int32",
+              "int64"
+            ],
+            "operators": {
+              "MatMul": [
+                "int8"
+              ],
+              "Add": [
+                "int32",
+                "int64"
+              ],
+              "Relu": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": true
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver8",
+      "name": "TestSolver Eight",
+      "repo": "https://github.com/vnnlib-test/testsolver8",
+      "versions": [
+        {
+          "version": "2.0.0",
+          "collected_at": "2026-09-24T13:14:36Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              12,
+              19
+            ],
+            "element_types": [
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Conv": [
+                "float32",
+                "float64"
+              ],
+              "Gemm": [
+                "float32",
+                "float64"
+              ],
+              "Relu": [
+                "float32"
+              ],
+              "Sigmoid": [
+                "float64"
+              ],
+              "MaxPool": [
+                "float32"
+              ]
+            },
+            "vnnlib_versions": [
+              "2.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ],
+            "optimised_disjunction": true,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC",
+              "MNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "testsolver9",
+      "name": "TestSolver Nine",
+      "repo": "https://github.com/vnnlib-test/testsolver9",
+      "versions": [
+        {
+          "version": "1.1.0",
+          "collected_at": "2026-09-24T13:14:38Z",
+          "status": "ok",
+          "capabilities": {
+            "onnx_opset": [
+              8,
+              15
+            ],
+            "element_types": [
+              "real",
+              "float32",
+              "float64"
+            ],
+            "operators": {
+              "Conv": [
+                "float32"
+              ],
+              "Relu": [],
+              "Softmax": []
+            },
+            "vnnlib_versions": [
+              "1.0",
+              "2.0"
+            ],
+            "hidden_nodes": [
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ],
+            "optimised_disjunction": false,
+            "serialise_assignments": false
+          },
+          "satisfies": {
+            "hidden_nodes": [
+              "NH",
+              "H"
+            ],
+            "multiple_io": [
+              "SIO"
+            ],
+            "multiple_networks": [
+              "SNET"
+            ],
+            "node_comparisons": [
+              "SNC"
+            ],
+            "arithmetic": [
+              "BND",
+              "OUTC",
+              "LIN",
+              "POLY"
+            ]
+          },
+          "notes": [
+            {
+              "field": "element_types",
+              "identifier": "float32",
+              "text": "* rounded outward at every layer boundary"
+            },
+            {
+              "field": "element_types",
+              "identifier": "float64",
+              "text": "* rounded outward at every layer boundary"
+            },
+            {
+              "field": "hidden_nodes",
+              "identifier": "H",
+              "text": "* hidden declarations are inlined before solving"
+            },
+            {
+              "field": "arithmetic",
+              "identifier": "POLY",
+              "text": "* degree 2 only"
             }
           ]
         }
