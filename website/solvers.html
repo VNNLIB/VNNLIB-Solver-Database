@@ -147,8 +147,7 @@
                         <div class="row">
                             <div class="col-lg-4 col-md-6 mb-3">
                                 <label for="filter-arithmetic">Arithmetic theories</label>
-                                <select id="filter-arithmetic" class="form-control filter-control">
-                                    <option value="">Any</option>
+                                <select id="filter-arithmetic" class="form-control filter-control theory-select" multiple>
                                     <option value="BND">BND - variable bound comparisons</option>
                                     <option value="OUTC">OUTC - output comparisons</option>
                                     <option value="LIN">LIN - linear expressions</option>
@@ -157,24 +156,21 @@
                             </div>
                             <div class="col-lg-4 col-md-6 mb-3">
                                 <label for="filter-hidden-nodes">Hidden nodes</label>
-                                <select id="filter-hidden-nodes" class="form-control filter-control">
-                                    <option value="">Any</option>
+                                <select id="filter-hidden-nodes" class="form-control filter-control theory-select" multiple>
                                     <option value="NH">NH - no hidden node declarations</option>
                                     <option value="H">H - hidden node declarations allowed</option>
                                 </select>
                             </div>
                             <div class="col-lg-4 col-md-6 mb-3">
                                 <label for="filter-multiple-io">Input/output</label>
-                                <select id="filter-multiple-io" class="form-control filter-control">
-                                    <option value="">Any</option>
+                                <select id="filter-multiple-io" class="form-control filter-control theory-select" multiple>
                                     <option value="SIO">SIO - single input and output</option>
                                     <option value="MIO">MIO - multiple inputs or outputs</option>
                                 </select>
                             </div>
                             <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
                                 <label for="filter-multiple-networks">Networks</label>
-                                <select id="filter-multiple-networks" class="form-control filter-control">
-                                    <option value="">Any</option>
+                                <select id="filter-multiple-networks" class="form-control filter-control theory-select" multiple>
                                     <option value="SNET">SNET - single network</option>
                                     <option value="MENET">MENET - multiple equal networks</option>
                                     <option value="MINET">MINET - multiple isomorphic networks</option>
@@ -183,16 +179,14 @@
                             </div>
                             <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
                                 <label for="filter-node-comparisons">Node comparisons</label>
-                                <select id="filter-node-comparisons" class="form-control filter-control">
-                                    <option value="">Any</option>
+                                <select id="filter-node-comparisons" class="form-control filter-control theory-select" multiple>
                                     <option value="SNC">SNC - no same-network node comparisons</option>
                                     <option value="MNC">MNC - node comparisons allowed</option>
                                 </select>
                             </div>
                             <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
                                 <label for="filter-element-types">Element types</label>
-                                <select id="filter-element-types" class="form-control filter-control">
-                                    <option value="">Any</option>
+                                <select id="filter-element-types" class="form-control filter-control theory-select" multiple>
                                     <option value="real">real</option>
                                     <option value="float32">float32</option>
                                     <option value="float64">float64</option>

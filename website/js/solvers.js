@@ -60,6 +60,15 @@
         MNC: "MNC - node comparisons allowed"
     };
 
+    var PILL_FIELDS = {
+        arithmetic: "filter-arithmetic",
+        hidden_nodes: "filter-hidden-nodes",
+        multiple_io: "filter-multiple-io",
+        multiple_networks: "filter-multiple-networks",
+        node_comparisons: "filter-node-comparisons",
+        element_types: "filter-element-types"
+    };
+
     var state = {
         solvers: [],
         filtered: [],
@@ -74,6 +83,52 @@
         return Array.prototype.slice.call(select.selectedOptions)
             .map(function (option) { return option.value; })
             .filter(Boolean);
+    }
+
+    function buildPillGroup(selectId) {
+        var select = $(selectId);
+        var group = document.createElement("div");
+        group.className = "pill-group";
+        group.setAttribute("role", "group");
+
+        Array.prototype.forEach.call(select.options, function (option) {
+            var pill = document.createElement("button");
+            pill.type = "button";
+            pill.className = "pill";
+            pill.textContent = option.textContent;
+            pill.dataset.value = option.value;
+            pill.setAttribute("aria-pressed", option.selected ? "true" : "false");
+            pill.addEventListener("click", function () {
+                option.selected = !option.selected;
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+            group.appendChild(pill);
+        });
+
+        select.insertAdjacentElement("afterend", group);
+        select._pillGroup = group;
+    }
+
+    function syncPillGroup(selectId) {
+        var select = $(selectId);
+        if (!select || !select._pillGroup) {
+            return;
+        }
+        var selected = {};
+        Array.prototype.forEach.call(select.selectedOptions, function (option) {
+            selected[option.value] = true;
+        });
+        Array.prototype.forEach.call(select._pillGroup.children, function (pill) {
+            var isActive = !!selected[pill.dataset.value];
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    }
+
+    function syncAllPillGroups() {
+        Object.keys(PILL_FIELDS).forEach(function (field) {
+            syncPillGroup(PILL_FIELDS[field]);
+        });
     }
 
     function commaValues(value) {
@@ -295,6 +350,7 @@
     }
 
     function search() {
+        syncAllPillGroups();
         var query = currentQuery();
         state.query = query;
         updateUrl(query);
@@ -412,7 +468,7 @@
             return items;
         }
         if (query.text) {
-            items.push(FILTER_LABELS.text + ": " + query.text);
+            items.push({ field: "text", value: null, label: FILTER_LABELS.text + ": " + query.text });
         }
         [
             "operators",
@@ -425,15 +481,51 @@
             "serialise_assignments"
         ].forEach(function (field) {
             (query[field] || []).forEach(function (value) {
-                items.push(FILTER_LABELS[field] + ": " + (VALUE_LABELS[value] || value));
+                items.push({
+                    field: field,
+                    value: value,
+                    label: FILTER_LABELS[field] + ": " + (VALUE_LABELS[value] || value)
+                });
             });
         });
         RANGE_FIELDS.forEach(function (field) {
             if (query[field]) {
-                items.push(FILTER_LABELS[field] + ": " + query[field]);
+                items.push({ field: field, value: null, label: FILTER_LABELS[field] + ": " + query[field] });
             }
         });
         return items;
+    }
+
+    function removeFilterValue(field, value) {
+        if (field === "text") {
+            $("filter-text").value = "";
+            $("filter-text").dispatchEvent(new Event("input", { bubbles: true }));
+            return;
+        }
+        if (field === "onnx_opset" || field === "vnnlib_version") {
+            $("filter-" + field.replace(/_/g, "-")).value = "";
+            $("filter-" + field.replace(/_/g, "-")).dispatchEvent(new Event("input", { bubbles: true }));
+            return;
+        }
+        if (field === "operators") {
+            var remaining = commaValues($("filter-operators").value).filter(function (item) {
+                return item !== value;
+            });
+            $("filter-operators").value = remaining.join(", ");
+            $("filter-operators").dispatchEvent(new Event("input", { bubbles: true }));
+            return;
+        }
+        var selectId = PILL_FIELDS[field] || "filter-" + field.replace(/_/g, "-");
+        var select = $(selectId);
+        if (!select) {
+            return;
+        }
+        Array.prototype.forEach.call(select.options, function (option) {
+            if (option.value === value) {
+                option.selected = false;
+            }
+        });
+        select.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
     function renderActiveFilters(query) {
@@ -444,7 +536,8 @@
             return;
         }
         target.innerHTML = items.map(function (item) {
-            return '<span class="active-filter-chip">' + escapeHtml(item) + "</span>";
+            return '<button type="button" class="active-filter-chip" data-field="' + escapeHtml(item.field) + '" data-value="' + escapeHtml(item.value === null ? "" : item.value) + '">'
+                + escapeHtml(item.label) + ' <span class="chip-remove" aria-hidden="true">&times;</span></button>';
         }).join("");
     }
 
@@ -581,6 +674,18 @@
     }
 
     function bindEvents() {
+        Object.keys(PILL_FIELDS).forEach(function (field) {
+            buildPillGroup(PILL_FIELDS[field]);
+        });
+
+        $("active-filters").addEventListener("click", function (event) {
+            var chip = event.target.closest(".active-filter-chip");
+            if (!chip) {
+                return;
+            }
+            removeFilterValue(chip.dataset.field, chip.dataset.value || null);
+        });
+
         [
             "filter-text",
             "filter-arithmetic",

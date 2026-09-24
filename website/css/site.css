@@ -736,6 +736,54 @@ a {
     padding: .24rem .1rem;
 }
 
+.theory-select {
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+.pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .1rem;
+}
+
+.pill {
+    background: #ffffff;
+    border: 1px solid rgba(100,116,139,0.34);
+    border-radius: 999px;
+    color: #334155;
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 600;
+    padding: .4rem .72rem;
+    text-align: left;
+    transition: background-color .14s ease, border-color .14s ease, color .14s ease, transform .1s ease;
+}
+
+.pill:hover {
+    border-color: var(--brand-cyan);
+    transform: translateY(-1px);
+}
+
+.pill:focus-visible {
+    box-shadow: 0 0 0 .2rem rgba(15,118,110,0.18);
+    outline: none;
+}
+
+.pill.is-active {
+    background: var(--brand-cyan);
+    border-color: var(--brand-cyan);
+    color: #ffffff;
+}
+
 .solver-filter-panel .filter-file-control {
     background: #ffffff;
     font-size: .9rem;
@@ -760,9 +808,11 @@ a {
 
 .active-filter-note,
 .active-filter-chip {
+    align-items: center;
     border-radius: 999px;
     display: inline-flex;
     font-size: .85rem;
+    gap: .35rem;
     line-height: 1.25;
     padding: .42rem .68rem;
 }
@@ -777,7 +827,24 @@ a {
     background: rgba(15,118,110,0.10);
     border: 1px solid rgba(15,118,110,0.20);
     color: #115e59;
+    cursor: pointer;
     font-weight: 700;
+    transition: background-color .14s ease, transform .1s ease;
+}
+
+.active-filter-chip:hover {
+    background: rgba(15,118,110,0.18);
+    transform: translateY(-1px);
+}
+
+.active-filter-chip:focus-visible {
+    box-shadow: 0 0 0 .2rem rgba(15,118,110,0.22);
+    outline: none;
+}
+
+.active-filter-chip .chip-remove {
+    font-weight: 800;
+    opacity: .75;
 }
 
 .solver-actions {
