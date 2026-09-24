@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="msvalidate.01" content="8A044F6B24E3A19810D766CAE2ACA17A" />
+    <meta name="description" content="VNN-LIB is an international standard for the verification of Neural Networks.">
+    <meta name="author" content="Stefano Demarchi">
+    <meta name="keywords" content="VNNLIB, VNNCOMP, NeVer, NeVer 2, NeVerTools, CoCoNet, Neural Networks Verification">
+    <meta name="theme-color" content="#020024">
+    <title>VNN-LIB</title>
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/img/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/img/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/img/favicons/favicon-16x16.png">
+    <link rel="manifest" href="./assets/img/favicons/site.webmanifest">
+    <link rel="shortcut icon" href="./assets/img/favicons/favicon.ico">
+
+    <!--
+      Marks the document as scriptable before anything paints, so the
+      scroll-reveal rules in css/site.css only hide content that JavaScript will
+      actually reveal. Inline and first, or there is a frame where the content
+      shows and then vanishes.
+    -->
+    <script>document.documentElement.classList.add("js");</script>
+
+    <!--
+      Tailwind, loaded from the Play CDN so the site stays a set of static files
+      with no build step. tailwind.config.js must come second: the CDN reads the
+      global config after its own script has run.
+
+      To ship a compiled stylesheet instead, see README.md. Only these two lines
+      change; no markup does.
+    -->
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="tailwind.config.js"></script>
+
+    <!-- The Montserrat and Lato subsets the site already shipped. -->
+    <link rel="stylesheet" href="css/heading.css">
+    <link rel="stylesheet" href="css/body.css">
+
+    <!-- Only what Tailwind cannot express: the code box, the timeline, scrolling. -->
+    <link rel="stylesheet" href="css/site.css">
+</head>
+
+<body id="page-top" class="bg-white font-body text-ink">
+
+    <!-- Skip link, so keyboard users are not walked through the whole nav. -->
+    <a href="#main"
+        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:font-semibold focus:text-ink focus:shadow-card">
+        Skip to content
+    </a>
+
+    <!-- ===================================================== navigation ==== -->
+    <!--
+      The navigation is a rail, not a bar.
+      Each section is a dot on a vertical progress line: the filled part shows
+      how far down the page you are, the dot for the section you are reading is
+      lit, and hovering or focusing a dot names it.
+
+      On a touch screen there is no hover, so the label for the current section
+      is shown permanently instead. That is the one adaptation; the rail itself
+      is small enough that it does not need a different layout.
+    -->
+    <a class="rail-brand wordmark" href="#page-top">VNN-LIB</a>
+
+    <nav id="railNav" class="rail" aria-label="Sections">
+        <div class="rail-inner">
+            <span class="rail-track" aria-hidden="true"><span id="rail-fill" class="rail-fill"></span></span>
+            <ul class="rail-list">
+                <li>
+                    <a class="rail-item" href="#about">
+                        <span class="rail-dot" aria-hidden="true"></span>
+                        <span class="rail-label">Intro</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="rail-item" href="#solvers">
+                        <span class="rail-dot" aria-hidden="true"></span>
+                        <span class="rail-label">Solvers</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="rail-item" href="#standard">
+                        <span class="rail-dot" aria-hidden="true"></span>
+                        <span class="rail-label">Standard</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="rail-item" href="#libraries">
+                        <span class="rail-dot" aria-hidden="true"></span>
+                        <span class="rail-label">Libraries</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="rail-item" href="#related">
+                        <span class="rail-dot" aria-hidden="true"></span>
+                        <span class="rail-label">Related</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="rail-item" href="#team">
+                        <span class="rail-dot" aria-hidden="true"></span>
+                        <span class="rail-label">Team</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ======================================================= masthead ==== -->
+    <!--
+      data-neurons puts the drifting node field behind the heading. js/neurons.js
+      inserts a canvas as the first child; the heading is marked relative so it
+      stays above it, and the canvas takes no pointer events so the text is still
+      selectable. Removing the attribute removes the effect, nothing else.
+    -->
+    <header class="relative overflow-hidden bg-masthead" data-neurons>
+        <div class="relative z-10 mx-auto max-w-4xl px-6 py-20 text-center sm:py-28">
+            <h1 class="font-heading text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
+                The International Standard for the Verification of Neural Networks
+            </h1>
+        </div>
+    </header>
+
+    <main id="main">
+
+        <!-- =================================================== about ======= -->
+        <section id="about" class="py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-6">
+                <div class="grid items-start gap-12 lg:grid-cols-2">
+                    <div>
+                        <h2 class="section-title">Introduction</h2>
+                        <div class="section-rule"></div>
+                        <div class="mt-6 space-y-4 text-lg leading-relaxed text-ink-muted">
+                            <p>
+                                VNN-LIB is an open-source standard for automated solvers of satisfiability
+                                problems over neural networks. The goal of the standard is to foster
+                                interoperability in the neural network verification community. To this end,
+                                the standard defines:
+                            </p>
+                            <ol class="ml-5 list-decimal space-y-2">
+                                <li>A formal syntax for defining satisfiability queries.</li>
+                                <li>A formal semantics for that syntax.</li>
+                                <li>A command-line interface for solvers.</li>
+                            </ol>
+                            <p>
+                                Contributions and suggestions to the standard are welcome!
+                                If interested, please open an Issue describing your proposal on the
+                                <a class="link" target="_blank" rel="noopener"
+                                    href="https://github.com/VNNLIB/VNNLIB-Standard/issues">GitHub repo</a>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- The code box, unchanged. -->
+                    <div class="code-box lg:mt-14"><pre data-typewriter>
+(vnnlib-version &lt;2.0&gt;)
+
+; Network declaration
+(declare-network f
+    (declare-input  X float32 [2,2])
+    (declare-output Y float32 [1])
+)
+
+; Input constraints
+(assert (and (&gt;= X[0,0] 0.0) (&lt;= X[0,0] 1.0)))
+(assert (and (&gt;= X[0,1] 0.0) (&lt;= X[0,1] 1.0)))
+(assert (and (&gt;= X[1,0] 0.0) (&lt;= X[1,0] 1.0)))
+(assert (and (&gt;= X[1,1] 0.0) (&lt;= X[1,1] 1.0)))
+
+; Output constraints
+(assert (or (&lt;= Y[0] -3.0) (&gt;= Y[0] 0.0)))</pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================================================== news ======= -->
+        <section id="news" class="bg-brand-tint py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-6">
+                <div class="grid gap-12 lg:grid-cols-2">
+                    <div>
+                        <h2 class="section-title">Latest News</h2>
+                        <div class="section-rule"></div>
+                        <ul class="timeline mt-8 space-y-6">
+                            <li data-reveal>
+                                <p class="font-heading text-sm font-semibold uppercase tracking-wide text-brand-dark">
+                                    December 15th 2025</p>
+                                <p class="text-lg text-ink">VNN-LIB 2.0 released</p>
+                            </li>
+                            <li data-reveal>
+                                <p class="font-heading text-sm font-semibold uppercase tracking-wide text-brand-dark">
+                                    December 15th 2025</p>
+                                <p class="text-lg text-ink">VNNLIB-Python 1.0.0 released</p>
+                            </li>
+                            <li data-reveal>
+                                <p class="font-heading text-sm font-semibold uppercase tracking-wide text-brand-dark">
+                                    December 15th 2025</p>
+                                <p class="text-lg text-ink">VNNLIB-CPP 1.0.0 released</p>
+                            </li>
+                            <li data-reveal>
+                                <p class="font-heading text-sm font-semibold uppercase tracking-wide text-brand-dark">
+                                    December 15th 2025</p>
+                                <p class="text-lg text-ink">VNNLIB-Agda 1.0.0 released</p>
+                            </li>
+                            <li data-reveal>
+                                <p class="font-heading text-sm font-semibold uppercase tracking-wide text-brand-dark">
+                                    November 11th 2022</p>
+                                <p class="text-lg text-ink">VNN-LIB 1.0 released</p>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!--
+                      The hand-maintained list. Deliberately separate from the
+                      searchable database below: these solvers predate the 2.0
+                      command-line interface, so nothing here was measured, it
+                      was reported in a pull request.
+
+                      It carries its own id because the rail points here rather
+                      than at the section. The section holds two columns, Latest
+                      News and this, and the dot names the one worth arriving
+                      at. `anchor-target` is what gives a non-section element
+                      the same scroll offset sections get.
+                    -->
+                    <div id="solvers" class="anchor-target">
+                        <h2 class="section-title">Solvers</h2>
+                        <div class="section-rule"></div>
+                        <p class="mt-6 text-lg leading-relaxed text-ink-muted">
+                            Solvers that are known to support VNN-LIB.
+                        </p>
+                        <div class="mt-6 overflow-hidden rounded-xl border border-ink/10 bg-white shadow-card">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-ink/10 bg-brand-tint">
+                                        <th class="table-th">Name</th>
+                                        <th class="table-th">VNN-LIB Version</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-ink/5">
+                                    <tr>
+                                        <td class="table-td"><a class="link" target="_blank" rel="noopener"
+                                                href="https://github.com/NeuralNetworkVerification/Marabou">Marabou</a>
+                                        </td>
+                                        <td class="table-td">1.0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="table-td"><a class="link" target="_blank" rel="noopener"
+                                                href="https://github.com/verivital/nnv">NNV</a></td>
+                                        <td class="table-td">1.0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="table-td"><a class="link" target="_blank" rel="noopener"
+                                                href="https://pyrat-analyzer.com/">Pyrat</a></td>
+                                        <td class="table-td">1.0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="mt-4 text-base text-ink-muted">
+                            To add a solver to this list, please open a
+                            <a class="link" target="_blank" rel="noopener"
+                                href="https://github.com/VNNLIB/vnnlib.github.io">pull request</a>.
+                        </p>
+
+                        <!--
+                          The way to the solver page, here rather than on the
+                          rail. The rail is a map of this page, and a link to a
+                          different page sitting among its sections read as one
+                          of them. It belongs next to the list it continues: the
+                          table above is what was reported by hand, and the page
+                          below is what the pipeline measured.
+                        -->
+                        <a href="solvers.html"
+                            class="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-3 font-heading text-sm font-semibold text-white shadow-card transition hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-ink">
+                            Find a solver
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5-5 5M6 12h12" />
+                            </svg>
+                        </a>
+                        <p class="mt-3 max-w-prose text-base leading-relaxed text-ink-muted">
+                            Search every VNN-LIB 2.0 solver by what it supports: theories, ONNX operators,
+                            element types and opset versions, collected automatically from the solvers
+                            themselves.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================ documents ====== -->
+        <section id="standard" class="py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-6">
+                <header class="max-w-prose">
+                    <h2 class="section-title">Documents</h2>
+                    <div class="section-rule"></div>
+                    <p class="mt-6 text-lg leading-relaxed text-ink-muted">
+                        Released versions of the VNN-LIB standard.
+                    </p>
+                </header>
+
+                <div class="mt-8 overflow-hidden rounded-xl border border-ink/10 bg-white shadow-card">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b border-ink/10 bg-brand-tint">
+                                <th class="table-th">Document</th>
+                                <th class="table-th">Release date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-ink/5">
+                            <tr>
+                                <td class="table-td"><a class="link" target="_blank" rel="noopener"
+                                        href="https://github.com/VNNLIB/VNNLIB-Standard/releases/download/v2.0.0/standard.pdf">VNN-LIB
+                                        2.0</a></td>
+                                <td class="table-td">December 15th 2025</td>
+                            </tr>
+                            <tr>
+                                <td class="table-td"><a class="link" target="_blank" rel="noopener"
+                                        href="https://github.com/VNNLIB/VNNLIB-Standard/releases/download/v1.0/standard.pdf">VNN-LIB
+                                        1.0</a></td>
+                                <td class="table-td">November 11th 2022</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-10">
+                    <p class="text-lg text-ink">Citing the standard:</p>
+                    <ul class="mt-4 space-y-4 text-lg leading-relaxed text-ink-muted">
+                        <li class="border-l-2 border-brand/40 pl-4">
+                            Version 2.0 - <i>VNN-LIB 2.0: Rigorous Foundations for Neural Network
+                                Verification</i> A. Roy, A. Antony, A. Gimelli, and M.L. Daggitt, CAV 2026:
+                        </li>
+                        <li class="border-l-2 border-brand/40 pl-4">
+                            Version 1.0 - <i>Supporting Standardization of Neural Networks Verification with
+                                VNN-LIB and CoCoNet</i> S. Demarchi, D. Guidotti, L. Pulina and A. Tacchella,
+                            FoMLAS 2023
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================ libraries ====== -->
+        <section id="libraries" class="bg-brand-tint py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-6">
+                <header class="max-w-prose">
+                    <h2 class="section-title">Libraries</h2>
+                    <div class="section-rule"></div>
+                    <p class="mt-6 text-lg leading-relaxed text-ink-muted">
+                        The following official libraries are available for interacting with the VNN-LIB
+                        standard in a variety of languages.
+                    </p>
+                </header>
+
+                <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://github.com/VNNLIB/VNNLIB-CPP">C++</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="badge">Parser</span>
+                            <span class="badge">Type-checker</span>
+                        </div>
+                    </article>
+
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://github.com/VNNLIB/VNNLIB-Python">Python</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="badge">Parser</span>
+                            <span class="badge">Type-checker</span>
+                        </div>
+                    </article>
+
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://github.com/VNNLIB/VNNLIB.jl">Julia</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="badge">Parser</span>
+                            <span class="badge">Type-checker</span>
+                        </div>
+                    </article>
+
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://git.frama-c.com/pub/vnnlib">OCaml</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="badge">Parser</span>
+                        </div>
+                    </article>
+
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://github.com/VNNLIB/VNNLIB-Agda">Agda</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="badge">Parser</span>
+                            <span class="badge">Type-checker</span>
+                            <span class="badge">Semantics</span>
+                        </div>
+                    </article>
+                </div>
+
+                <p class="mt-8 text-lg text-ink-muted">
+                    We welcome PRs to these libraries and ports to further languages!
+                </p>
+            </div>
+        </section>
+
+        <!-- ================================================== related ====== -->
+        <section id="related" class="py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-6">
+                <header class="max-w-prose">
+                    <h2 class="section-title">Related</h2>
+                    <div class="section-rule"></div>
+                    <p class="mt-6 text-lg leading-relaxed text-ink-muted">
+                        Projects that are referenced to in both historically and currently in the
+                        development of the VNN-LIB standard.
+                    </p>
+                </header>
+
+                <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://vnn-comp.github.io/">VNN-COMP</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2"><span class="badge">Competiton</span></div>
+                        <p class="mt-4 text-base leading-relaxed text-ink-muted">
+                            The annual neural network verification competition.
+                        </p>
+                    </article>
+
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://onnx.ai">ONNX</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2"><span class="badge">Network models</span></div>
+                        <p class="mt-4 text-base leading-relaxed text-ink-muted">
+                            The standard format for representing machine learning models that VNN-LIB relies
+                            on.
+                        </p>
+                    </article>
+
+                    <article class="card" data-reveal>
+                        <h3 class="card-title"><a class="link" target="_blank" rel="noopener"
+                                href="https://github.com/vnnlib/benchmarks">Benchmarks</a></h3>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="badge">Benchmarks</span>
+                            <span class="badge">version 1.0</span>
+                        </div>
+                        <p class="mt-4 text-base leading-relaxed text-ink-muted">
+                            Our benchmarks repository from current research case studies.
+                        </p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================== team ====== -->
+        <section id="team" class="bg-brand-tint py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-6">
+                <header class="text-center">
+                    <h2 class="section-title">Team</h2>
+                    <div class="section-rule mx-auto"></div>
+                    <div class="mt-6 flex items-center justify-center gap-4">
+                        <a class="icon-link" target="_blank" rel="noopener" href="https://github.com/VNNLIB"
+                            aria-label="VNN-LIB on GitHub">
+                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path
+                                    d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.55v-1.95c-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .96-.3 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.18-1.48 3.14-1.18 3.14-1.18.63 1.59.24 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .3.2.66.8.55A11.5 11.5 0 0 0 23.5 12A11.5 11.5 0 0 0 12 .5z" />
+                            </svg>
+                        </a>
+                        <a class="icon-link" href="mailto:matthew.daggitt@uwa.edu.au" aria-label="Email the team">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 8l9 6 9-6M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                            </svg>
+                        </a>
+                    </div>
+                </header>
+
+                <h3 class="mt-12 text-center font-heading text-xl font-bold text-ink">Current Members</h3>
+                <ul class="mt-8 grid gap-8 sm:grid-cols-3 lg:grid-cols-5">
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/md.jpg" alt="Matthew Daggitt">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Matthew Daggitt</p>
+                        <p class="text-base text-ink-muted">Lecturer | University of Western Australia</p>
+                    </li>
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/aa.jpg" alt="Allen Anthony">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Allen Anthony</p>
+                        <p class="text-base text-ink-muted">Post-Grad | University of Western Australia</p>
+                    </li>
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/ar.jpg" alt="Ann Roy">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Ann Roy</p>
+                        <p class="text-base text-ink-muted">Post-Grad | University of Western Australia</p>
+                    </li>
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/placeholder.png" alt="Andrea Gimelli">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Andrea Gimelli</p>
+                        <p class="text-base text-ink-muted">PhD Student | UniGE</p>
+                    </li>
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/at.jpg" alt="Armando Tacchella">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Armando<br>Tacchella</p>
+                        <p class="text-base text-ink-muted">Full Professor | UniGE</p>
+                    </li>
+                </ul>
+
+                <h3 class="mt-16 text-center font-heading text-xl font-bold text-ink">Past Members</h3>
+                <ul class="mt-8 grid gap-8 sm:grid-cols-3">
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/sd.jpg" alt="Stefano Demarchi">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Stefano Demarchi</p>
+                        <p class="text-base text-ink-muted">Post-Doc Researcher | UniGE</p>
+                    </li>
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/lp.jpg" alt="Luca Pulina">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Luca Pulina</p>
+                        <p class="text-base text-ink-muted">Full Professor | UniSS</p>
+                    </li>
+                    <li class="text-center" data-reveal>
+                        <img class="mx-auto h-32 w-32 rounded-full object-cover shadow-card"
+                            src="assets/img/team/dg.jpg" alt="Dario Guidotti">
+                        <p class="mt-4 font-heading text-lg font-bold text-ink">Dario Guidotti</p>
+                        <p class="text-base text-ink-muted">Post-Doc Researcher | UniSS</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <!--
+      Copyright. Centred on a navy band: the credit line with the UniGE crest
+      beside it, then the small print.
+    -->
+    <footer class="bg-ink py-4 text-center text-white">
+        <div class="mx-auto max-w-6xl px-6">
+            <p class="footer-credit">Powered by AIMS-Lab
+                <a target="_blank">
+                    <img class="img-footer" src="assets/svg/unige.svg" alt="UniGE">
+                </a>
+            </p>
+            <small class="whitespace-pre-wrap"><a class="underline hover:text-brand-light" target="_blank" rel="noopener" href="https://github.com/NeVerTools/NeVerTools.github.io/blob/master/LICENSE">MIT Licensed</a> | vnnlib.org 2023 | Hosted with &#10084; by <a class="underline hover:text-brand-light" href="https://github.com/" target="_blank" rel="noopener">GitHub</a></small>
+        </div>
+    </footer>
+
+    <!-- Back to top, revealed once you have scrolled. -->
+    <a id="to-top" href="#page-top"
+        class="pointer-events-none fixed bottom-6 right-6 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full bg-ink text-white opacity-0 shadow-card transition hover:bg-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        aria-label="Back to top">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+            aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+        </svg>
+    </a>
+
+    <!--
+      Repeated utility patterns, declared once. Written as Tailwind @apply so
+      the values still come from tailwind.config.js rather than being spelled
+      out again here, and so a change to the palette reaches every use.
+    -->
+    <style type="text/tailwindcss">
+        @layer components {
+            .section-title {
+                @apply font-heading text-3xl font-bold tracking-tight text-ink sm:text-4xl;
+            }
+            .section-rule {
+                @apply mt-4 h-1 w-16 rounded-full bg-brand;
+            }
+            .link {
+                @apply font-semibold text-brand-dark underline decoration-brand/30 decoration-2 underline-offset-2 transition hover:decoration-brand;
+            }
+            .icon-link {
+                @apply inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/10 text-ink transition hover:border-brand hover:bg-brand hover:text-white;
+            }
+            .card {
+                @apply rounded-xl border border-ink/10 bg-white p-6 shadow-card transition hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-lg;
+            }
+            .card-title {
+                @apply font-heading text-xl font-bold text-ink;
+            }
+            .badge {
+                @apply inline-flex items-center rounded-full bg-brand-light px-3 py-1 font-heading text-xs font-semibold uppercase tracking-wide text-brand-dark;
+            }
+            .table-th {
+                @apply px-4 py-3 font-heading text-sm font-bold uppercase tracking-wide text-ink-muted;
+            }
+            .table-td {
+                @apply px-4 py-3 text-lg text-ink;
+            }
+            .field-label {
+                @apply mb-1.5 block font-heading text-sm font-semibold text-ink;
+            }
+            .field {
+                @apply w-full rounded-lg border border-ink/15 bg-white px-3 py-2.5 text-base text-ink shadow-sm transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30;
+            }
+            .field-hint {
+                @apply mt-1.5 text-sm leading-snug text-ink-muted;
+            }
+        }
+    </style>
+
+    <script src="js/site.js"></script>
+    <script src="js/neurons.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+name      = "TestSolver Six"
+repo      = "https://github.com/vnnlib-test/testsolver6"
+license   = "MIT"
+contact   = "nobody@example.invalid"
+withdrawn = false

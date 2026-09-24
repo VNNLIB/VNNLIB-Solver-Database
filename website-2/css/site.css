@@ -1,0 +1,777 @@
+/*
+ * What Tailwind cannot express as a utility class, and nothing else.
+ */
+
+/* ---------------------------------------------------------------- scrolling */
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
+section[id],
+[id^="page-"],
+/*
+ * Anything else a rail dot points at. The Solvers block is a column inside the
+ * News section, not a section of its own, so without this it would scroll to
+ * sit flush against the top of the viewport.
+ */
+.anchor-target {
+    /* Enough to clear the fixed wordmark in the corner. The rail is at the
+     * side and covers nothing. */
+    scroll-margin-top: 1.5rem;
+}
+
+/* ------------------------------------------------------------- the code box */
+
+/* Used as `<div class="code-box"><pre>...</pre></div>`. */
+.code-box {
+    background-color: #020024;
+    color: #e6f4ea;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow: auto;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+    font-size: 0.95rem;
+}
+
+.code-box pre {
+    color: #ffffff;
+    background: transparent;
+    display: block;
+    margin: 0;
+    word-wrap: normal;
+}
+
+/* Inline code, in prose rather than in a box. */
+:not(pre) > code {
+    color: #009900;
+    background: rgba(2, 0, 36, 0.05);
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.25rem;
+    font-size: 0.95em;
+}
+
+/* ------------------------------------------------------------ the nav --- */
+
+/*
+ * The rail.
+ *
+ * A fixed column of dots at the right edge, one per section, on a vertical
+ * progress line.
+ *
+ * Two things it must survive, which is why it carries its own background:
+ * it floats over a near-black masthead at the top of the page and over white
+ * sections below, so neither a light nor a dark treatment alone would work. The
+ * pill is opaque enough to be legible on both.
+ */
+.rail {
+    position: fixed;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 40;
+}
+
+.rail-inner {
+    position: relative;
+    padding: 0.75rem 0.5rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 2px rgba(2, 0, 36, 0.08), 0 10px 30px -12px rgba(2, 0, 36, 0.35);
+}
+
+/* The line the dots sit on, and the part of it already read. */
+.rail-track {
+    position: absolute;
+    left: 50%;
+    top: 1.1rem;
+    bottom: 1.1rem;
+    width: 2px;
+    transform: translateX(-50%);
+    background: rgba(2, 0, 36, 0.12);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.rail-fill {
+    display: block;
+    width: 100%;
+    height: 0;
+    background: #008ae6;
+    border-radius: 2px;
+    /*
+     * Eased, because the height is written on every scroll event. Without it
+     * the fill judders on a trackpad, which reports many small deltas.
+     */
+    transition: height 120ms linear;
+}
+
+.rail-list {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.rail-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /*
+     * The hit area is deliberately larger than the dot. A 10px target is a
+     * miss waiting to happen, on a mouse and more so on a thumb.
+     */
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+}
+
+.rail-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 9999px;
+    background: rgba(2, 0, 36, 0.22);
+    transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.rail-item:hover .rail-dot,
+.rail-item:focus-visible .rail-dot {
+    background: #008ae6;
+    transform: scale(1.25);
+}
+
+/* The section being read, and the current page on solvers.html. */
+.rail-item.is-current .rail-dot,
+.rail-item[aria-current="page"] .rail-dot {
+    background: #008ae6;
+    transform: scale(1.45);
+    box-shadow: 0 0 0 4px rgba(0, 138, 230, 0.18);
+}
+
+.rail-item:focus-visible {
+    outline: 2px solid #008ae6;
+    outline-offset: 2px;
+}
+
+/* The name, revealed on hover or focus, to the left of its dot. */
+.rail-label {
+    position: absolute;
+    right: calc(100% + 0.65rem);
+    white-space: nowrap;
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.5rem;
+    background: #020024;
+    color: #ffffff;
+    font-family: "SB Heading", Montserrat, system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateX(0.35rem);
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.rail-item:hover .rail-label,
+.rail-item:focus-visible .rail-label {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/*
+ * Touch screens have no hover, so the dots would be six unlabelled circles.
+ * The current one names itself instead, which is the piece of information a
+ * reader actually wants from a progress rail.
+ */
+@media (hover: none) {
+    .rail-item.is-current .rail-label,
+    .rail-item[aria-current="page"] .rail-label {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .rail {
+        right: 0.5rem;
+    }
+
+    .rail-item {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rail-dot,
+    .rail-label,
+    .rail-fill {
+        transition: none;
+    }
+}
+
+/*
+ * The wordmark. Fixed in the corner rather than in the rail: it is the way back
+ * to the top and to the home page, not a section, and putting it on the rail
+ * would imply it was one.
+ */
+.rail-brand {
+    position: fixed;
+    top: 1.25rem;
+    /*
+     * Centred on the viewport, not on the content column. `left: 50%` with a
+     * translate rather than `margin: auto`, because the element is fixed and
+     * has no containing block to be centred within.
+     */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    padding: 0.35rem 0.85rem;
+    border-radius: 0.6rem;
+    background: rgba(2, 0, 36, 0.55);
+    font-family: "SB Heading", Montserrat, system-ui, sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+/*
+ * The wordmark's colour, stated here rather than as a utility class so that the
+ * scrollspy cannot take it away when the reader scrolls past the masthead.
+ */
+.wordmark {
+    color: #ffffff;
+}
+
+.wordmark:hover,
+.wordmark:focus-visible {
+    color: #4db8ff;
+}
+
+/* ------------------------------------------------------- the node field --- */
+
+/*
+ * The canvas js/neurons.js inserts into the masthead.
+ *
+ * Positioned and sized here rather than in JavaScript so it is correct on the
+ * first frame, before any script has measured anything, and so the masthead
+ * never flashes a mis-sized canvas.
+ *
+ * `pointer-events: none` is the important line: the field is decoration behind
+ * the heading, and it must not intercept a selection or a click. The pointer
+ * position it reacts to is read from the header, which still receives events.
+ */
+.neurons {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    /* Under the heading, above the gradient. */
+    z-index: 0;
+}
+
+/* ------------------------------------------------- the command terminal --- */
+
+/*
+ * The caret, shown only while the command is being edited.
+ *
+ * It hangs off the span holding the part that is changing, not off the whole
+ * line, so it sits at the point of the edit. Changing a flag in the middle of a
+ * long command puts the caret there, with the untouched tail still to its right,
+ * which is what makes the edit read as an edit rather than as a rewrite.
+ *
+ * A pseudo-element rather than a character in the text, so it is never picked up
+ * by Copy, by a text selection, or by a screen reader reading the command.
+ */
+.cmd-edit.is-typing::after {
+    content: "";
+    display: inline-block;
+    width: 0.5em;
+    height: 1.1em;
+    margin-left: 0.1em;
+    vertical-align: text-bottom;
+    background: #008ae6;
+    animation: command-caret 900ms steps(1, end) infinite;
+}
+
+@keyframes command-caret {
+    0%,
+    50% {
+        opacity: 1;
+    }
+    50.01%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /*
+     * With reduced motion the command is set outright and never enters the
+     * typing state, so this only guards against the class being left behind.
+     */
+    .cmd-edit.is-typing::after {
+        display: none;
+    }
+}
+
+/* --------------------------------------------------- the details dialog --- */
+
+/*
+ * The scrolling region inside the dialog.
+ *
+ * `contain: paint` tells the browser that nothing inside this box can paint
+ * outside it, so scrolling it repaints that box alone instead of testing the
+ * whole page. Without it, every frame of a scroll here invalidates the dialog,
+ * its shadow and the backdrop behind it.
+ *
+ * `overscroll-behavior: contain` stops the scroll chaining to the page once this
+ * list hits its end, which is both smoother and what a modal should do.
+ */
+.dialog-scroll {
+    max-height: 70vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    contain: paint;
+}
+
+/*
+ * Opening and closing.
+ *
+ * A <dialog> goes from `display: none` to shown in one step, so there is
+ * nothing to transition from unless something else holds the visual state.
+ * js/solver-search.js adds `is-open` a frame after showModal() and removes it
+ * before close(), which gives the two ends of a transition.
+ *
+ * `@starting-style` with `allow-discrete` would do this in CSS alone, but it
+ * needs a recent browser in every engine and gains nothing here: the script is
+ * already managing focus and the Escape key.
+ */
+#details-dialog {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.98);
+    transition: opacity 220ms ease, transform 220ms ease;
+}
+
+#details-dialog.is-open {
+    opacity: 1;
+    transform: none;
+}
+
+#details-dialog::backdrop {
+    opacity: 0;
+    transition: opacity 220ms ease;
+}
+
+#details-dialog.is-open::backdrop {
+    opacity: 1;
+}
+
+/*
+ * The backdrop is flat colour, not a blur.
+ *
+ * `backdrop-filter: blur()` on a modal backdrop is one of the most expensive
+ * things a page can ask for: the blur is computed over a snapshot of everything
+ * behind the dialog, and it is recomputed whenever anything composited above it
+ * changes, which includes every frame of scrolling inside the dialog. On a long
+ * capability list that is a dropped-frames-per-scroll problem, for an effect
+ * nobody is looking at because the dialog is covering it.
+ *
+ * A darker opaque backdrop separates the layers just as well and costs nothing.
+ */
+#details-dialog::backdrop {
+    background: rgba(2, 0, 36, 0.7);
+}
+
+/* ------------------------------------------------------ the dropdowns --- */
+
+/*
+ * The advanced filter panel.
+ *
+ * Animating to a height nobody measured is the whole difficulty. `height: auto`
+ * cannot be transitioned, and a fixed `max-height` either clips the panel or
+ * eases toward a number much larger than the content, which shows up as a pause
+ * before anything appears to move.
+ *
+ * A grid row of `0fr` to `1fr` transitions cleanly and needs no measurement:
+ * the row resolves to the content's own height at each step. The inner element
+ * must hide its overflow, or the content spills out while the row is still
+ * smaller than it.
+ */
+.filters-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.filters-panel.is-open {
+    grid-template-rows: 1fr;
+}
+
+.filters-panel__inner {
+    overflow: hidden;
+}
+
+/*
+ * The replacement for a native select's popup. See js/select.js for why there
+ * is one at all: the native list is drawn by the operating system and no CSS
+ * reaches inside it.
+ */
+.select {
+    position: relative;
+}
+
+/*
+ * The real <select>, still in the form and still what gets submitted. Hidden
+ * without `display: none`, which would take it out of the form's element list
+ * in some browsers, and without `visibility: hidden`, which would do the same
+ * to its label association.
+ */
+.select__native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    clip-path: inset(50%);
+}
+
+.select__button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* The placeholder row reads lighter, as a native empty select does. */
+.select__button.is-empty .select__text {
+    color: rgba(63, 63, 107, 0.75);
+}
+
+.select__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.select__chevron {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: #3f3f6b;
+    transition: transform 200ms ease;
+}
+
+.select__button[aria-expanded="true"] .select__chevron {
+    transform: rotate(180deg);
+}
+
+.select__panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.35rem);
+    z-index: 30;
+    max-height: 15rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0.25rem 0;
+    list-style: none;
+    border: 1px solid rgba(2, 0, 36, 0.15);
+    border-radius: 0.75rem;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(2, 0, 36, 0.06), 0 8px 24px -12px rgba(2, 0, 36, 0.18);
+    /* Same treatment as the operator suggestions, for the same reasons. */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.35rem);
+    transition: opacity 200ms ease, transform 200ms ease, visibility 200ms;
+}
+
+.select__panel.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+}
+
+.select__option {
+    padding: 0.4rem 0.85rem;
+    font-size: 1rem;
+    color: #020024;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+
+.select__option:hover,
+.select__option.is-active {
+    background: #f2f9ff;
+}
+
+.select__option[aria-selected="true"] {
+    font-weight: 700;
+    color: #0071bd;
+}
+
+/*
+ * The operator suggestion list.
+ *
+ * `visibility` rather than `display: none`, because display is not animatable
+ * and would cut the fade off at both ends. It still takes the list out of the
+ * tab order and away from a screen reader while closed.
+ */
+.suggestions {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.35rem);
+    transition: opacity 200ms ease, transform 200ms ease, visibility 200ms;
+}
+
+.suggestions.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #details-dialog,
+    #details-dialog::backdrop,
+    .filters-panel,
+    .suggestions,
+    .select__panel,
+    .select__chevron {
+        transition: none;
+    }
+}
+
+/* ------------------------------------------------- the page transition --- */
+
+/*
+ * Shown while moving between pages. Injected by js/site.js rather than written
+ * into every page, and styled here rather than with utilities so it is correct
+ * before Tailwind has finished compiling: under the Play CDN that happens after
+ * this element may already be on screen, and an unstyled overlay is a white
+ * rectangle over the content.
+ */
+.page-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 0, 36, 0.92);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.page-transition[data-visible="true"] {
+    opacity: 1;
+    visibility: visible;
+}
+
+.page-transition__spinner {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #008ae6;
+    border-radius: 9999px;
+    animation: page-transition-spin 700ms linear infinite;
+}
+
+@keyframes page-transition-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/*
+ * With reduced motion requested, the spinner stops turning. The overlay still
+ * appears, because it is the acknowledgement that the click registered, and that
+ * is not decoration.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .page-transition {
+        transition: none;
+    }
+
+    .page-transition__spinner {
+        animation: none;
+        border-top-color: rgba(255, 255, 255, 0.2);
+        border-right-color: #008ae6;
+    }
+}
+
+/* -------------------------------------------------------- scroll reveal --- */
+
+/*
+ * The state an element waits in before it scrolls into view, and the state it
+ * settles into afterwards.
+ *
+ * Only opacity and transform, because the compositor can animate both without
+ * laying the page out again. The delay that staggers a list is set inline by
+ * js/site.js, since the number of items is not known here.
+ *
+ * `will-change` is deliberately absent: it would promote every one of these to
+ * its own layer for the whole life of the page, to save one frame each, once.
+ */
+[data-reveal] {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition: opacity 520ms ease-out, transform 520ms ease-out;
+}
+
+[data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+}
+
+/*
+ * Without JavaScript nothing ever adds `is-revealed`, so the content would be
+ * permanently invisible. The inline script in each page's <head> adds `js` to
+ * <html> before anything paints, so this only hides what will actually be
+ * revealed.
+ */
+html:not(.js) [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-reveal] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+
+/*
+ * The caret on the code example while it types itself out. Same reasoning as
+ * the command terminal: a pseudo-element, so Copy and screen readers never see
+ * it.
+ */
+.code-box pre.is-typing::after {
+    content: "";
+    display: inline-block;
+    width: 0.55em;
+    height: 1.05em;
+    vertical-align: text-bottom;
+    background: #008ae6;
+    animation: command-caret 900ms steps(1, end) infinite;
+}
+
+/* --------------------------------------------------------- the news stepper */
+
+/*
+ * The vertical timeline down the left of the news list. A Tailwind equivalent
+ * would need a plugin or an arbitrary-variant pseudo-element per item, so it
+ * stays as CSS: one rule for the line, one for the dot.
+ */
+.timeline {
+    position: relative;
+    padding-left: 1.75rem;
+}
+
+.timeline::before {
+    content: "";
+    position: absolute;
+    left: 0.3125rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 2px;
+    background: rgba(0, 138, 230, 0.25);
+}
+
+.timeline > li {
+    position: relative;
+}
+
+.timeline > li::before {
+    content: "";
+    position: absolute;
+    left: -1.75rem;
+    top: 0.5rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 2px solid #008ae6;
+}
+
+/* The most recent entry is filled in, so the eye lands on it first. */
+.timeline > li:first-child::before {
+    background: #008ae6;
+}
+
+/* ------------------------------------------------------------------- footer */
+
+/*
+ * The footer credit line, and the UniGE logo beside it.
+ *
+ * The logo sits on the same line as the text and to its right, as it does on
+ * the original site, at a size that reads as a mark rather than an afterthought.
+ *
+ * It is sized by height, not width. The artwork is a square 652x652 viewBox, so
+ * the original `width: 12rem` rendered it 192px tall and then hid the overflow
+ * behind `margin-top: -3.5rem` and `margin-bottom: -3rem`. That arrangement
+ * depended on the exact line height around it and broke whenever anything near
+ * it changed. Constraining the height and letting the width follow gets the
+ * same look without the negative margins.
+ */
+.footer-credit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+/*
+ * The crest is drawn in black and dark grey inside the file, which on the navy
+ * footer reads as a hole. It is an <img>, so `fill` does not reach inside it;
+ * `brightness(0)` flattens every colour to black and `invert(1)` turns that
+ * white, which keeps the artwork's shape and transparency intact.
+ */
+.img-footer {
+    height: 7.5rem;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
+
+@media (max-width: 640px) {
+    .img-footer {
+        height: 6rem;
+    }
+}
+
+/* ------------------------------------------------------------ print tidying */
+
+@media print {
+    .rail,
+    .rail-brand,
+    #to-top,
+    #solver-search-form {
+        display: none !important;
+    }
+}
