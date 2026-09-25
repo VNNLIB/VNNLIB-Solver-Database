@@ -292,6 +292,80 @@ you click the button on the Web tab, and outbound HTTP from your code is
 restricted to their whitelist, which is irrelevant here, since this API makes no
 outbound requests.
 
+### Updating the code
+
+This is the part that catches people out. **Merging to main deploys nothing.**
+There are three copies of the code and merging only touches the first:
+
+| | Updated by |
+|---|---|
+| GitHub `main` | merging |
+| The clone on PythonAnywhere's disk | `git pull` there, or an upload |
+| The running web app | Reload, which restarts the process |
+
+A running app holds `app.py` in memory from whenever it last started, so a pull
+on its own changes nothing a visitor sees. That is why the data can look
+current, since `collect.yml` uploads it, while a route added last week is still
+missing: the data is deployed automatically and the code never was.
+
+By hand:
+
+```bash
+cd ~/VNNLIB-Solver-Database && git pull
+grep -c vocabulary api/app.py      # must be more than 0, or you pulled elsewhere
+```
+
+then **Web tab → Reload**, and check what is actually serving:
+
+```bash
+curl -s https://<you>.pythonanywhere.com/ | grep -c vocabulary
+```
+
+If the `grep` on the server printed `0`, the checkout you pulled is not the one
+the web app imports from. The WSGI file link at the top of the Web tab gives the
+real path.
+
+#### Automatically, on push
+
+`deploy-api.yml` uploads everything in `api/` and calls the reload endpoint,
+using the same `PA_USERNAME` and `PA_API_TOKEN` secrets as above. It runs on
+pushes to `main` that touch `api/**`, and can be run by hand from the Actions
+tab. Afterwards it fetches `/` and fails the job if the new routes are absent,
+so a deploy that silently landed in the wrong directory is a red build rather
+than a mystery.
+
+Two optional repository variables:
+
+| Variable | Default | When to set it |
+|---|---|---|
+| `PA_DOMAIN` | `<user>.pythonanywhere.com` | a custom domain |
+| `PA_APP_DIR` | `VNNLIB-Solver-Database` | the clone is somewhere else |
+
+`PA_APP_DIR` has to match the path the WSGI file imports from, since that is
+where the files are uploaded.
+
+It uploads files rather than pulling, which leaves two cases for a console:
+
+- **A new dependency.** The API cannot `pip install` into its own virtualenv,
+  so anything added to `requirements.txt` needs one `pip install -r` there.
+- **Code the API imports from outside `api/`.** Only `api/` is shipped.
+
+#### Automatically, daily
+
+The free tier includes one scheduled task, which deploys the whole repository
+rather than a few files. Schedule tab, once a day:
+
+```bash
+cd ~/VNNLIB-Solver-Database && git pull && touch /var/www/<you>_pythonanywhere_com_wsgi.py
+```
+
+Touching the WSGI file is what Reload does. Take the exact filename from the Web
+tab, since it is derived from the domain.
+
+The two automations are worth having together: the scheduled pull keeps the
+server honestly in step with `main`, including changes this file's uploads miss,
+and the workflow makes a change live now rather than tomorrow.
+
 ## Anywhere else
 
 Any WSGI host imports `api.app:app` the same way PythonAnywhere does; the
