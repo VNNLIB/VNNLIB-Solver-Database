@@ -1,0 +1,116 @@
+# Ship api/ to PythonAnywhere and restart the web app.
+#
+# Why this exists: merging to main deploys nothing. PythonAnywhere serves from
+# its own clone on its own disk, and a running web app holds app.py in memory
+# from whenever it last started, so new code needs both a file update and a
+# restart. Without this workflow both are done by hand in a Bash console, which
+# is how the API ends up several commits behind the site that calls it.
+#
+# What it does NOT cover, and when to open a console anyway:
+#
+#   A new dependency. This uploads files; it cannot pip install into the
+#   virtualenv. Adding anything to api/requirements.txt means one
+#   `pip install -r` in a console, once.
+#
+#   A change outside api/. The API only imports app.py, so that is all this
+#   ships. If it ever imports from scripts/ or elsewhere, this needs to upload
+#   that too, or be replaced by a `git pull` on the server.
+#
+# The alternative, which deploys the whole repository rather than a few files,
+# is a daily scheduled task on PythonAnywhere. See api/README.md. The two work
+# well together: the task keeps the server honest, this makes a change live now
+# instead of tomorrow.
+
+name: Deploy the API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+  # So a deploy can be forced after a console change, or to confirm the
+  # credentials still work without pushing anything.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload api/ and reload
+        env:
+          PA_USERNAME: ${{ secrets.PA_USERNAME }}
+          PA_TOKEN: ${{ secrets.PA_API_TOKEN }}
+          # eu.pythonanywhere.com for EU-registered accounts. Same variable
+          # collect.yml uses, so one setting covers both workflows.
+          PA_HOST: ${{ vars.PA_HOST || 'www.pythonanywhere.com' }}
+          # The web app to restart, which is the domain as it appears on the Web
+          # tab. Defaults to the free-tier name.
+          PA_DOMAIN: ${{ vars.PA_DOMAIN }}
+          # Where the clone lives on the server. Only used to build the upload
+          # paths, so it has to match what the WSGI file imports from.
+          PA_APP_DIR: ${{ vars.PA_APP_DIR || 'VNNLIB-Solver-Database' }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PA_TOKEN:-}" ] || [ -z "${PA_USERNAME:-}" ]; then
+            echo "no PythonAnywhere secrets set, skipping deploy"
+            exit 0
+          fi
+
+          domain="${PA_DOMAIN:-$PA_USERNAME.pythonanywhere.com}"
+          base="https://$PA_HOST/api/v0/user/$PA_USERNAME"
+          remote="/home/$PA_USERNAME/$PA_APP_DIR/api"
+
+          # Every file in api/, not just app.py, so a module added later is
+          # picked up without anyone remembering to edit this list.
+          for file in api/*; do
+            [ -f "$file" ] || continue
+            name="$(basename "$file")"
+            echo "uploading $name"
+            # --fail-with-body, so a bad token or a wrong path fails the job
+            # loudly rather than looking like a successful deploy.
+            curl -sS --fail-with-body -X POST \
+              -H "Authorization: Token $PA_TOKEN" \
+              -F "content=@$file" \
+              "$base/files/path$remote/$name"
+          done
+
+          # The restart. Uploading alone changes nothing the visitor sees: the
+          # process already imported the old app.py.
+          echo "reloading $domain"
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Token $PA_TOKEN" \
+            "$base/webapps/$domain/reload/"
+
+      - name: Check what is actually serving
+        env:
+          PA_USERNAME: ${{ secrets.PA_USERNAME }}
+          PA_DOMAIN: ${{ vars.PA_DOMAIN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PA_USERNAME:-}" ]; then
+            exit 0
+          fi
+          domain="${PA_DOMAIN:-$PA_USERNAME.pythonanywhere.com}"
+
+          # A reload takes a moment, and a request during it can still be
+          # answered by the old worker.
+          sleep 10
+
+          index="$(curl -sS --fail-with-body "https://$domain/")"
+          echo "$index"
+
+          # The deploy is only real if the new routes are there. Comparing
+          # against a route name rather than a version string, because nothing
+          # in the API reports a version and inventing one would be a second
+          # thing to remember to bump.
+          if ! echo "$index" | grep -q '/vocabulary'; then
+            echo "::error::reload reported success but /vocabulary is missing." \
+                 "The upload path is probably not where the WSGI file imports" \
+                 "from: check PA_APP_DIR against the path in the WSGI file."
+            exit 1
+          fi
+          echo "the deployed API is current"
