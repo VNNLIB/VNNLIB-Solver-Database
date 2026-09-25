@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-09-24T13:14:38Z",
+  "generated_at": "2026-09-25T15:30:28Z",
   "solvers": [
     {
       "id": "testsolver",
@@ -725,7 +725,7 @@
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-24T13:14:02Z",
+          "collected_at": "2026-09-25T15:30:28Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -733,7 +733,8 @@
               12
             ],
             "element_types": [
-              "real"
+              "real",
+              "float64"
             ],
             "operators": {
               "Gemm": []
