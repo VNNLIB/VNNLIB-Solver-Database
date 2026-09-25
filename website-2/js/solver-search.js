@@ -1,5 +1,5 @@
 /*
- * The capability search on solvers.html.
+ * The capability search, in the sliding panel on index.html.
  *
  * Where a solver's `supports` command answers "what can this solver do", this
  * asks the reverse: given a query you need solved, which solvers can take it.
@@ -18,9 +18,10 @@
  *
  * So this file builds a query, renders a list, and pages through it.
  *
- * The list is deliberately thin: name, version, when it was last updated, and a
+ * The list is deliberately thin: one row per solver carrying its name, the
+ * versions that matched as a range, when the newest of them was updated, and a
  * button. The full record is far too much to read in a table, so it lives in a
- * dialog opened per release.
+ * dialog, which is also where the releases separate again.
  */
 (function () {
     "use strict";
@@ -40,12 +41,8 @@
     const copyButton = document.getElementById("copy-command");
     const copyLabel = document.getElementById("copy-command-label");
 
-    const operatorPicker = document.getElementById("operator-picker");
-    const operatorInput = document.getElementById("operator-input");
-    const operatorSuggestions = document.getElementById("operator-suggestions");
-    const operatorField = document.getElementById("f-operators");
-
     const nameInput = document.getElementById("q-name");
+    const nameSearch = document.getElementById("name-search");
     const sortSelect = document.getElementById("sort-by");
     const filtersToggle = document.getElementById("filters-toggle");
     const filtersChevron = document.getElementById("filters-chevron");
@@ -106,18 +103,16 @@
     };
 
     /*
-     * Everything the API returned for the last capability search, and the subset
-     * of it left after the name box and the sort are applied.
+     * One page of results, and how many there are in total.
      *
-     * The split matters: capability matching is the API's job, for the reasons at
-     * the top of this file, but a name is not a capability. Sending it to
-     * /search would be inventing a filter the endpoint does not have, and it
-     * would also mean a request per keystroke. So the name narrows what is
-     * already in hand, which is why typing in it is instant and does not touch
-     * the network.
+     * Nothing else is held. Filtering, sorting and paging all happen in the API,
+     * so `rows` is exactly what is on screen and `total` is what the pager
+     * counts. The three cannot be split up: a page of ten sorted or filtered
+     * here would be a page of the wrong ten, and a total counted from one page
+     * is not a total.
      */
-    let allRows = [];
     let rows = [];
+    let total = 0;
     let page = 1;
 
     /* ------------------------------------------------------------ helpers -- */
@@ -142,14 +137,53 @@
         }
     }
 
+    /*
+     * Let the sliding box go back to following its content.
+     *
+     * js/site.js pins #solver-swap to a pixel height for the length of the slide,
+     * and measures it from whatever is on screen at the time, which during the
+     * first open is the loading state. Results that arrive before the slide ends
+     * would otherwise sit inside a box measured for something else: too tall for
+     * six rows, too short for fifty. Clearing it here means the height is only
+     * ever pinned while it is actually being animated.
+     */
+    function releasePinnedHeight() {
+        const box = document.getElementById("solver-swap");
+        if (box && box.style.height) {
+            box.style.height = "";
+        }
+    }
+
+    // The same default the API uses when no limit is sent, so the two cannot
+    // disagree about what page one holds.
     function pageSize() {
-        return Number(pageSizeSelect.value) || 25;
+        return Number(pageSizeSelect.value) || 10;
     }
 
     /* -------------------------------------------------------------- query -- */
 
+    /*
+     * The advanced filter panel is a mode, not a disclosure.
+     *
+     * Open, the search is by capability. Closed, it is by name. Which one is
+     * showing is which one applies, so a filter the reader cannot see is never
+     * narrowing their results, and neither is a name they cannot see.
+     *
+     * Closing the panel drops the capability filters from the query without
+     * clearing the controls, so reopening it and pressing Search puts them back
+     * exactly as they were. The state is the form's own; only whether it counts
+     * changes.
+     */
+    function filtersOpen() {
+        const panel = document.getElementById("filters-panel");
+        return Boolean(panel && panel.classList.contains("is-open"));
+    }
+
     function currentQuery() {
         const params = new URLSearchParams();
+        if (!filtersOpen()) {
+            return params;
+        }
         new FormData(form).forEach(function (value, key) {
             const trimmed = String(value).trim();
             if (trimmed) {
@@ -162,240 +196,386 @@
         return params;
     }
 
-    /* ------------------------------------------------- the operator picker -- */
+    /* --------------------------------------------------------- the pickers -- */
 
     /*
-     * Choosing ONNX operators from the list the database actually contains,
-     * rather than typing them.
+     * Two of the filters are lists of names chosen from the database rather than
+     * typed: the ONNX operators, and the element types. They behave identically,
+     * so they are one control used twice.
      *
-     * Two things make this worth the code. The names are case sensitive and
-     * awkward (`LeakyRelu`, `ConstantOfShape`, `ScatterND`), so a typed name is
-     * usually a typo, and a typo returns an empty result that looks exactly
-     * like a real answer. And matching is done anywhere in the name, not just
-     * at the start, because the useful queries are things like "pool" or
-     * "conv", which a prefix match would miss entirely.
+     * Why not a text box. The operator names are case sensitive and awkward
+     * (`LeakyRelu`, `ConstantOfShape`, `ScatterND`), so a typed name is usually
+     * a typo, and a typo returns an empty result that looks exactly like a real
+     * answer. Matching is anywhere in the name, not only at the start, because
+     * the useful queries are things like "pool" or "conv" which a prefix match
+     * would miss.
+     *
+     * Why not a multiple-select. A <select multiple> needs ctrl-clicking to add
+     * a second value, gives no way to search fifty names, and shows the
+     * selection as highlighted rows that scroll out of sight. Chips stay
+     * visible, and each one can be removed on its own.
      *
      * The selection is written back into a hidden comma separated field, so the
      * query builder, the command banner and the API all see an ordinary text
-     * field.
+     * field. Commas and repeats both mean AND to the API, so several chips mean
+     * "all of these".
      */
-    let knownOperators = [];
-    let chosenOperators = [];
-    let highlighted = -1;
+    const pickers = {};
 
-    function syncOperatorField() {
-        operatorField.value = chosenOperators.join(",");
-    }
+    function createPicker(config) {
+        const picker = document.getElementById(config.pickerId);
+        const input = document.getElementById(config.inputId);
+        const list = document.getElementById(config.listId);
+        const field = document.getElementById(config.fieldId);
+        if (!picker || !input || !list || !field) {
+            return null;
+        }
 
-    function renderOperatorChips() {
-        Array.prototype.slice.call(operatorPicker.querySelectorAll("[data-chip]")).forEach(
-            function (chip) {
-                operatorPicker.removeChild(chip);
-            }
-        );
+        let chosen = [];
+        let highlighted = -1;
 
-        chosenOperators.forEach(function (name) {
-            const chip = el(
-                "span",
-                "inline-flex items-center gap-1 rounded-md bg-brand-light px-2 py-0.5 font-mono text-sm text-brand-dark"
+        const api = {
+            field: field,
+            /* Used by the chips above the results, and by the form reset. */
+            clear: function () {
+                chosen = [];
+                syncField();
+                renderChips();
+                closeList();
+            },
+            refreshList: function () {
+                if (list.classList.contains("is-open")) {
+                    showList();
+                }
+            },
+        };
+
+        function syncField() {
+            field.value = chosen.join(",");
+        }
+
+        function renderChips() {
+            Array.prototype.slice.call(picker.querySelectorAll("[data-chip]")).forEach(
+                function (chip) {
+                    picker.removeChild(chip);
+                }
             );
-            chip.setAttribute("data-chip", name);
-            chip.appendChild(document.createTextNode(name));
+            chosen.forEach(function (value) {
+                const chip = el(
+                    "span",
+                    "inline-flex items-center gap-1 rounded-md bg-brand-light px-2 py-0.5 font-mono text-sm text-brand-dark"
+                );
+                chip.setAttribute("data-chip", value);
+                chip.appendChild(document.createTextNode(value));
 
-            const remove = el("button", "text-brand-dark/70 transition hover:text-red-600", "×");
-            remove.type = "button";
-            remove.setAttribute("aria-label", "Remove " + name);
-            remove.addEventListener("click", function (event) {
-                event.stopPropagation();
-                removeOperator(name);
+                const remove = el("button", "text-brand-dark/70 transition hover:text-red-600", "×");
+                remove.type = "button";
+                remove.setAttribute("aria-label", "Remove " + value);
+                remove.addEventListener("click", function (event) {
+                    event.stopPropagation();
+                    remove_(value);
+                });
+                chip.appendChild(remove);
+                picker.insertBefore(chip, input);
             });
-            chip.appendChild(remove);
+        }
 
-            // Before the input, so the text cursor stays at the end of the row.
-            operatorPicker.insertBefore(chip, operatorInput);
-        });
-    }
+        function closeList() {
+            clear(list);
+            list.classList.remove("is-open");
+            input.setAttribute("aria-expanded", "false");
+            highlighted = -1;
+        }
 
-    function closeSuggestions() {
-        clear(operatorSuggestions);
-        operatorSuggestions.classList.remove("is-open");
-        operatorInput.setAttribute("aria-expanded", "false");
-        highlighted = -1;
-    }
+        function add(value) {
+            if (chosen.indexOf(value) === -1) {
+                chosen.push(value);
+                syncField();
+                renderChips();
+                renderActiveFilters();
+                updateCommand(currentQuery());
+            }
+            input.value = "";
+            input.focus();
+            // Left open: picking one is usually the first of several.
+            showList();
+        }
 
-    function addOperator(name) {
-        if (chosenOperators.indexOf(name) === -1) {
-            chosenOperators.push(name);
-            syncOperatorField();
-            renderOperatorChips();
+        function remove_(value) {
+            chosen = chosen.filter(function (kept) {
+                return kept !== value;
+            });
+            syncField();
+            renderChips();
             renderActiveFilters();
             updateCommand(currentQuery());
         }
-        operatorInput.value = "";
-        operatorInput.focus();
-        // Left open: picking one operator is usually the first of several.
-        showSuggestions();
-    }
 
-    function removeOperator(name) {
-        chosenOperators = chosenOperators.filter(function (chosen) {
-            return chosen !== name;
-        });
-        syncOperatorField();
-        renderOperatorChips();
-        renderActiveFilters();
-        updateCommand(currentQuery());
-    }
-
-    function matchingOperators(query) {
-        const needle = query.trim().toLowerCase();
-        return knownOperators
-            .filter(function (name) {
-                return chosenOperators.indexOf(name) === -1;
-            })
-            .filter(function (name) {
-                // Substring, not prefix: "pool" has to find MaxPool.
-                return !needle || name.toLowerCase().indexOf(needle) !== -1;
-            })
-            .sort(function (a, b) {
-                // A name that starts with what was typed is the better guess, so
-                // it goes first; the rest keep alphabetical order.
-                const aStarts = a.toLowerCase().indexOf(needle) === 0;
-                const bStarts = b.toLowerCase().indexOf(needle) === 0;
-                if (aStarts !== bStarts) {
-                    return aStarts ? -1 : 1;
-                }
-                return a.localeCompare(b);
-            })
-            .slice(0, 30);
-    }
-
-    function highlight(index) {
-        const options = operatorSuggestions.querySelectorAll("[role='option']");
-        if (!options.length) {
-            return;
-        }
-        highlighted = (index + options.length) % options.length;
-        Array.prototype.forEach.call(options, function (option, i) {
-            const on = i === highlighted;
-            option.classList.toggle("bg-brand-tint", on);
-            option.setAttribute("aria-selected", String(on));
-            if (on && typeof option.scrollIntoView === "function") {
-                option.scrollIntoView({ block: "nearest" });
-            }
-        });
-    }
-
-    function showSuggestions() {
-        const matches = matchingOperators(operatorInput.value);
-        clear(operatorSuggestions);
-
-        if (!matches.length) {
-            const empty = el(
-                "li",
-                "px-3 py-2 text-base text-ink-muted",
-                knownOperators.length ? "No operator matches" : "Loading the operator list..."
-            );
-            operatorSuggestions.appendChild(empty);
-            operatorSuggestions.classList.add("is-open");
-            operatorInput.setAttribute("aria-expanded", "true");
-            highlighted = -1;
-            return;
+        function matching(query) {
+            const needle = query.trim().toLowerCase();
+            return config
+                .candidates(needle)
+                .filter(function (entry) {
+                    return chosen.indexOf(entry.value) === -1;
+                })
+                .filter(function (entry) {
+                    // Substring, not prefix: "pool" has to find MaxPool.
+                    //
+                    // `match` where an entry needs to be found by something
+                    // other than its own text: `Conv` has to stay in the list
+                    // once "conv:" has been typed, since "any element type" is
+                    // one of the choices being offered at that point, and
+                    // "Conv" does not contain "conv:".
+                    const against = (entry.match || entry.value).toLowerCase();
+                    return !needle || against.indexOf(needle) !== -1;
+                })
+                .sort(function (a, b) {
+                    // The unrestricted entry first, since "this operator at all"
+                    // is the more common of the two questions.
+                    if (Boolean(a.note) !== Boolean(b.note)) {
+                        return a.note ? -1 : 1;
+                    }
+                    // A name that starts with what was typed is the better
+                    // guess, so it goes next; the rest keep alphabetical order.
+                    const aStarts = a.value.toLowerCase().indexOf(needle) === 0;
+                    const bStarts = b.value.toLowerCase().indexOf(needle) === 0;
+                    if (aStarts !== bStarts) {
+                        return aStarts ? -1 : 1;
+                    }
+                    return a.value.localeCompare(b.value);
+                })
+                .slice(0, 40);
         }
 
-        matches.forEach(function (name) {
-            const option = el(
-                "li",
-                "cursor-pointer px-3 py-1.5 font-mono text-base text-ink transition hover:bg-brand-tint"
-            );
-            option.setAttribute("role", "option");
-            option.setAttribute("aria-selected", "false");
-
-            // Show which part of the name matched, so a substring hit does not
-            // look arbitrary.
-            const needle = operatorInput.value.trim();
-            const at = needle ? name.toLowerCase().indexOf(needle.toLowerCase()) : -1;
-            if (at === -1) {
-                option.textContent = name;
-            } else {
-                option.appendChild(document.createTextNode(name.slice(0, at)));
-                option.appendChild(
-                    el("strong", "font-bold text-brand-dark", name.slice(at, at + needle.length))
-                );
-                option.appendChild(document.createTextNode(name.slice(at + needle.length)));
-            }
-
-            // mousedown, not click: the input's blur would close the list first.
-            option.addEventListener("mousedown", function (event) {
-                event.preventDefault();
-                addOperator(name);
-            });
-
-            operatorSuggestions.appendChild(option);
-        });
-
-        operatorSuggestions.classList.add("is-open");
-        operatorInput.setAttribute("aria-expanded", "true");
-        highlight(0);
-    }
-
-    if (operatorPicker && operatorInput) {
-        // Clicking the padding around the chips should land in the input, which
-        // is what the box looks like it does.
-        operatorPicker.addEventListener("click", function (event) {
-            if (event.target === operatorPicker) {
-                operatorInput.focus();
-                showSuggestions();
-            }
-        });
-
-        operatorInput.addEventListener("focus", showSuggestions);
-        operatorInput.addEventListener("input", showSuggestions);
-        // `focus` only fires on the way in, and the input keeps focus through a
-        // pick, so a click needs to open the list too.
-        operatorInput.addEventListener("click", showSuggestions);
-        operatorInput.addEventListener("blur", function () {
-            // A tick, so a click on an option is not cancelled by the list
-            // disappearing underneath it.
-            window.setTimeout(closeSuggestions, 120);
-        });
-
-        operatorInput.addEventListener("keydown", function (event) {
-            const options = operatorSuggestions.querySelectorAll("[role='option']");
-
-            if (event.key === "ArrowDown") {
-                event.preventDefault();
-                if (!operatorSuggestions.classList.contains("is-open")) {
-                    showSuggestions();
-                } else {
-                    highlight(highlighted + 1);
-                }
+        function highlight(index) {
+            // Only the real options: the "no match" and "loading" rows are
+            // messages, and highlighting one would offer it as a choice.
+            const items = Array.prototype.slice.call(list.querySelectorAll("[role='option']"));
+            if (!items.length) {
                 return;
             }
-            if (event.key === "ArrowUp") {
+            highlighted = (index + items.length) % items.length;
+            items.forEach(function (item, i) {
+                const on = i === highlighted;
+                item.classList.toggle("bg-brand-tint", on);
+                item.setAttribute("aria-selected", String(on));
+                if (on && typeof item.scrollIntoView === "function") {
+                    item.scrollIntoView({ block: "nearest" });
+                }
+            });
+        }
+
+        function showList() {
+            const matches = matching(input.value);
+            clear(list);
+
+            if (!matches.length) {
+                list.appendChild(
+                    el(
+                        "li",
+                        "px-3 py-2 text-base text-ink-muted",
+                        config.candidates("").length ? config.emptyText : config.loadingText
+                    )
+                );
+                list.classList.add("is-open");
+                input.setAttribute("aria-expanded", "true");
+                highlighted = -1;
+                return;
+            }
+
+            const needle = input.value.trim();
+            matches.forEach(function (entry) {
+                const option = el(
+                    "li",
+                    "flex cursor-pointer items-baseline gap-2 px-3 py-1.5 transition hover:bg-brand-tint"
+                );
+                option.setAttribute("role", "option");
+                option.setAttribute("aria-selected", "false");
+                // What gets added, kept as data rather than read back out of the
+                // text, which by then has the matched span and the type list in
+                // it as well.
+                option.setAttribute("data-value", entry.value);
+
+                // Show which part of the name matched, so a substring hit does
+                // not look arbitrary.
+                const label = el("span", "font-mono text-base text-ink");
+                const at = needle ? entry.value.toLowerCase().indexOf(needle.toLowerCase()) : -1;
+                if (at === -1) {
+                    label.textContent = entry.value;
+                } else {
+                    label.appendChild(document.createTextNode(entry.value.slice(0, at)));
+                    label.appendChild(
+                        el("strong", "font-bold text-brand-dark", entry.value.slice(at, at + needle.length))
+                    );
+                    label.appendChild(document.createTextNode(entry.value.slice(at + needle.length)));
+                }
+                option.appendChild(label);
+
+                /*
+                 * The element types this name can be asked for, printed after it
+                 * the way the standard's own output does:
+                 *
+                 *     Conv float64 float32
+                 *     Relu float64 float32
+                 *     MatMul
+                 *
+                 * A name with nothing after it is not restricted, which per
+                 * section 5.4.1 means every element type its solver reports, not
+                 * none. That is the one thing in this format that reads
+                 * backwards, so it is spelled out rather than left blank.
+                 */
+                if (entry.types && entry.types.length) {
+                    option.appendChild(
+                        el(
+                            "span",
+                            "ml-auto truncate font-mono text-xs text-ink-muted",
+                            entry.types.join(" ")
+                        )
+                    );
+                }
+                if (entry.note) {
+                    option.appendChild(el("span", "ml-auto text-xs text-ink-muted", entry.note));
+                }
+
+                // mousedown, not click: the input's blur would close the list
+                // first.
+                option.addEventListener("mousedown", function (event) {
+                    event.preventDefault();
+                    add(entry.value);
+                });
+
+                list.appendChild(option);
+            });
+
+            list.classList.add("is-open");
+            input.setAttribute("aria-expanded", "true");
+            highlight(0);
+        }
+
+        // Clicking the padding around the chips should land in the input, which
+        // is what the box looks like it does.
+        picker.addEventListener("click", function (event) {
+            if (event.target === picker) {
+                input.focus();
+                showList();
+            }
+        });
+
+        input.addEventListener("focus", showList);
+        input.addEventListener("input", showList);
+        // `focus` only fires on the way in, and the input keeps focus through a
+        // pick, so a click needs to open the list too.
+        input.addEventListener("click", showList);
+        input.addEventListener("blur", function () {
+            // A tick, so a click on an option is not cancelled by the list
+            // disappearing underneath it.
+            window.setTimeout(closeList, 120);
+        });
+
+        input.addEventListener("keydown", function (event) {
+            const items = list.querySelectorAll("[role='option']");
+
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                 event.preventDefault();
-                highlight(highlighted - 1);
+                if (!list.classList.contains("is-open")) {
+                    showList();
+                } else {
+                    highlight(highlighted + (event.key === "ArrowDown" ? 1 : -1));
+                }
                 return;
             }
             if (event.key === "Enter") {
-                // Never submit the form from here: Enter means "take the
-                // operator I am looking at".
                 event.preventDefault();
-                if (options.length && highlighted >= 0) {
-                    addOperator(options[highlighted].textContent);
+                // Enter means "the one I am looking at", never "whatever I
+                // typed": a half-typed name is a filter that matches nothing.
+                if (items.length && highlighted >= 0) {
+                    add(items[highlighted].getAttribute("data-value"));
                 }
                 return;
             }
             if (event.key === "Escape") {
-                closeSuggestions();
+                closeList();
                 return;
             }
-            if (event.key === "Backspace" && !operatorInput.value && chosenOperators.length) {
+            if (event.key === "Backspace" && !input.value && chosen.length) {
                 // The usual behaviour of a field made of chips.
-                removeOperator(chosenOperators[chosenOperators.length - 1]);
+                remove_(chosen[chosen.length - 1]);
             }
         });
+
+        return api;
     }
+
+    /*
+     * The operators, and the types each one can be asked for.
+     *
+     * `operatorTypes` comes from /vocabulary as a map of name to types. A query
+     * containing a colon is taken as "this operator, at one type", and the list
+     * offers the types that operator actually has rather than every type in the
+     * database, so a combination that no solver reports is never suggested.
+     */
+    let operatorTypes = {};
+
+    function operatorCandidates(needle) {
+        const names = Object.keys(operatorTypes);
+        const colon = needle.indexOf(":");
+        if (colon === -1) {
+            return names.map(function (name) {
+                return { value: name, types: operatorTypes[name] || [] };
+            });
+        }
+        /*
+         * Typing a colon switches the list to that operator's types. Offering
+         * every name crossed with every type unconditionally would be several
+         * hundred rows, most of them combinations nobody wants; this way the
+         * expansion happens only once the reader has asked for it.
+         */
+        const stem = needle.slice(0, colon);
+        const out = [];
+        names.forEach(function (name) {
+            if (name.toLowerCase().indexOf(stem) === -1) {
+                return;
+            }
+            out.push({
+                value: name,
+                types: [],
+                note: "any element type",
+                match: needle,
+            });
+            (operatorTypes[name] || []).forEach(function (type) {
+                out.push({ value: name + ":" + type, types: [] });
+            });
+        });
+        return out;
+    }
+
+    let knownElementTypes = [];
+
+    function elementTypeCandidates() {
+        return knownElementTypes.map(function (name) {
+            return { value: name, types: [] };
+        });
+    }
+
+    pickers.operators = createPicker({
+        pickerId: "operator-picker",
+        inputId: "operator-input",
+        listId: "operator-suggestions",
+        fieldId: "f-operators",
+        candidates: operatorCandidates,
+        emptyText: "No operator matches",
+        loadingText: "Loading the operator list...",
+    });
+
+    pickers.element_types = createPicker({
+        pickerId: "element-picker",
+        inputId: "element-input",
+        listId: "element-suggestions",
+        fieldId: "f-element_types",
+        candidates: elementTypeCandidates,
+        emptyText: "No element type matches",
+        loadingText: "Loading the element types...",
+    });
 
     /* ------------------------------------------------- the command banner -- */
 
@@ -741,31 +921,55 @@
         return wrapper;
     }
 
-    function openDetails(row) {
-        const record = row.record;
-        const capabilities = record.capabilities || {};
+    /*
+     * A row of buttons, one per matching release, newest first.
+     *
+     * Newest first because that is the one a reader is most likely to want,
+     * and it is the one shown when the dialog opens, so the selected button
+     * should be where the eye already is rather than at the far end of the row.
+     */
+    function releasePicker(records, detail) {
+        const wrapper = el("div", "mt-5");
+        wrapper.appendChild(
+            el("p", "font-heading text-sm font-semibold text-ink", "Matching releases")
+        );
 
-        dialogTitle.textContent = row.name;
-        clear(dialogSubtitle);
-        dialogSubtitle.appendChild(document.createTextNode("Version " + record.version));
+        const row = el("div", "mt-2 flex flex-wrap gap-2");
+        const buttons = [];
+        const ordered = records.slice().reverse();
+
+        ordered.forEach(function (record, index) {
+            const button = el("button", "release-tab font-mono", record.version);
+            button.type = "button";
+            button.setAttribute("aria-pressed", String(index === 0));
+            button.addEventListener("click", function () {
+                buttons.forEach(function (other) {
+                    other.setAttribute("aria-pressed", String(other === button));
+                });
+                showRelease(record, detail);
+            });
+            buttons.push(button);
+            row.appendChild(button);
+        });
+
+        wrapper.appendChild(row);
+        return wrapper;
+    }
+
+    /* Everything one release reports, rendered into `host`. */
+    function showRelease(record, host) {
+        const capabilities = record.capabilities || {};
+        clear(host);
+
+        const heading = el("p", "mt-5 text-base text-ink-muted");
+        heading.appendChild(document.createTextNode("Version "));
+        heading.appendChild(el("span", "font-mono font-semibold text-ink", record.version || "unknown"));
         if (record.collected_at) {
-            dialogSubtitle.appendChild(
+            heading.appendChild(
                 document.createTextNode(", updated " + String(record.collected_at).slice(0, 10))
             );
         }
-
-        clear(dialogBody);
-
-        if (row.repo) {
-            const link = el("a", "link text-base", row.repo);
-            link.href = row.repo;
-            link.target = "_blank";
-            link.rel = "noopener";
-            const line = el("p", "text-base text-ink-muted");
-            line.appendChild(document.createTextNode("Source: "));
-            line.appendChild(link);
-            dialogBody.appendChild(line);
-        }
+        host.appendChild(heading);
 
         const list = el("dl", "mt-4 divide-y divide-ink/5");
         Object.keys(CAPABILITY_LABELS).forEach(function (field) {
@@ -783,13 +987,65 @@
                 capabilityRow("Serialises assignments", null, capabilities.serialise_assignments)
             );
         }
-        dialogBody.appendChild(list);
+        host.appendChild(list);
 
-        dialogBody.appendChild(operatorList(capabilities.operators));
+        host.appendChild(operatorList(capabilities.operators));
 
         if (Array.isArray(record.notes) && record.notes.length) {
-            dialogBody.appendChild(notesList(record.notes));
+            host.appendChild(notesList(record.notes));
         }
+    }
+
+    /*
+     * The dialog is per solver, and a solver can have several matching
+     * releases, so the body has two parts: what is true of the solver, and
+     * what is true of one release.
+     *
+     * A picker switches between releases in place rather than closing and
+     * reopening, because the interesting question once the dialog is open is
+     * usually "what changed between these two", and that is a comparison the
+     * reader makes by flicking back and forth.
+     */
+    function openDetails(card) {
+        const records = card.records || [];
+
+        dialogTitle.textContent = card.name;
+        clear(dialogSubtitle);
+        dialogSubtitle.appendChild(
+            document.createTextNode(
+                (records.length === 1 ? "Version " : "Versions ") + rangeLabel(card.matches)
+            )
+        );
+        if (card.matches.matched < card.matches.total) {
+            dialogSubtitle.appendChild(
+                document.createTextNode(
+                    " (" + card.matches.matched + " of " + card.matches.total +
+                    " releases match your filters)"
+                )
+            );
+        }
+
+        clear(dialogBody);
+
+        if (card.repo) {
+            const link = el("a", "link text-base", card.repo);
+            link.href = card.repo;
+            link.target = "_blank";
+            link.rel = "noopener";
+            const line = el("p", "text-base text-ink-muted");
+            line.appendChild(document.createTextNode("Source: "));
+            line.appendChild(link);
+            dialogBody.appendChild(line);
+        }
+
+        // Filled by showRelease, replaced wholesale on every switch.
+        const detail = el("div");
+
+        if (records.length > 1) {
+            dialogBody.appendChild(releasePicker(records, detail));
+        }
+        dialogBody.appendChild(detail);
+        showRelease(records[records.length - 1] || {}, detail);
 
         if (typeof dialog.showModal === "function") {
             dialog.showModal();
@@ -878,8 +1134,17 @@
         clear(resultsHost);
         pager.classList.add("hidden");
 
-        const box = el("div", "overflow-hidden rounded-xl border border-ink/10");
-        for (let i = 0; i < 5; i += 1) {
+        const box = el("div", "overflow-hidden rounded-xl border border-ink/10 bg-white shadow-card");
+        /*
+         * A few rows, not a page's worth.
+         *
+         * Sizing this to the page size was worse: it drew a ten-row box for a
+         * search that turns out to have six results, so the table looked like it
+         * had a fixed height and then collapsed. The table is only ever as tall
+         * as the rows in it, and this says "something is coming" without
+         * claiming how much.
+         */
+        for (let i = 0; i < 3; i += 1) {
             const line = el(
                 "div",
                 "flex items-center gap-4 border-b border-ink/5 px-4 py-4 last:border-b-0"
@@ -895,6 +1160,7 @@
     function showError(message, detail) {
         clear(resultsHost);
         pager.classList.add("hidden");
+        releasePinnedHeight();
 
         const panel = el("div", "rounded-2xl border border-red-200 bg-red-50 p-6");
         panel.appendChild(el("h3", "font-heading text-lg font-bold text-red-900", message));
@@ -918,10 +1184,11 @@
     function showEmpty(params) {
         clear(resultsHost);
         pager.classList.add("hidden");
+        releasePinnedHeight();
 
-        const panel = el("div", "rounded-2xl border border-ink/10 bg-brand-tint p-8 text-center");
+        const panel = el("div", "rounded-2xl border border-ink/10 bg-white p-8 text-center shadow-card");
         panel.appendChild(
-            el("h3", "font-heading text-lg font-bold text-ink", "No release matches every filter")
+            el("h3", "font-heading text-lg font-bold text-ink", "No solver matches every filter")
         );
         panel.appendChild(
             el(
@@ -935,22 +1202,19 @@
         resultsHost.appendChild(panel);
     }
 
+    /* `rows` is already the page the API sent, so there is nothing to slice. */
     function renderPage() {
-        const size = pageSize();
-        const pages = Math.max(1, Math.ceil(rows.length / size));
-        page = Math.min(Math.max(1, page), pages);
-
-        const slice = rows.slice((page - 1) * size, page * size);
-
+        const pages = Math.max(1, Math.ceil(total / pageSize()));
         clear(resultsHost);
+        releasePinnedHeight();
 
-        const box = el("div", "overflow-hidden rounded-xl border border-ink/10 shadow-card");
+        const box = el("div", "overflow-hidden rounded-xl border border-ink/10 bg-white shadow-card");
         const table = el("table", "w-full text-left");
 
         const thead = el("thead");
         const headRow = el("tr", "border-b border-ink/10 bg-brand-tint");
         headRow.appendChild(el("th", "table-th", "Solver"));
-        headRow.appendChild(el("th", "table-th", "Version"));
+        headRow.appendChild(el("th", "table-th", "Versions"));
         headRow.appendChild(el("th", "table-th hidden sm:table-cell", "Updated at"));
         const actions = el("th", "table-th text-right", "");
         actions.appendChild(el("span", "sr-only", "Details"));
@@ -959,18 +1223,48 @@
         table.appendChild(thead);
 
         const tbody = el("tbody", "divide-y divide-ink/5");
-        slice.forEach(function (row) {
+        rows.forEach(function (row) {
             const tr = el("tr", "transition hover:bg-brand-tint/60");
 
             tr.appendChild(el("td", "table-td font-semibold", row.name));
-            tr.appendChild(el("td", "table-td font-mono text-base", row.record.version));
-            tr.appendChild(
-                el(
-                    "td",
-                    "table-td hidden text-base text-ink-muted sm:table-cell",
-                    row.record.collected_at ? String(row.record.collected_at).slice(0, 10) : "unknown"
-                )
+
+            const versionCell = el("td", "table-td");
+            versionCell.appendChild(
+                el("span", "font-mono text-base", rangeLabel(row.matches))
             );
+            /*
+             * Only when some releases did not match. "3 of 5" next to a range
+             * is the difference between "this solver does what you asked" and
+             * "three of its releases do"; printing it on every row, including
+             * the ones where it is 5 of 5, would be noise that hides the case
+             * that matters.
+             */
+            if (row.matches.matched < row.matches.total) {
+                const count = el(
+                    "span",
+                    "ml-2 whitespace-nowrap rounded-md bg-brand-tint px-1.5 py-0.5 text-xs font-semibold text-ink-muted ring-1 ring-ink/10",
+                    row.matches.matched + " of " + row.matches.total
+                );
+                count.title =
+                    row.matches.matched + " of this solver's " + row.matches.total +
+                    " releases match every filter";
+                versionCell.appendChild(count);
+            }
+            tr.appendChild(versionCell);
+
+            const updated = (row.matches.latest || {}).collected_at;
+            const updatedCell = el(
+                "td",
+                "table-td hidden text-base text-ink-muted sm:table-cell",
+                updated ? String(updated).slice(0, 10) : "unknown"
+            );
+            // The date belongs to the newest matching release, not to the
+            // solver, so say which one it came from.
+            if (updated && row.matches.matched > 1) {
+                updatedCell.title =
+                    "Version " + (row.matches.latest || {}).version + ", the newest that matched";
+            }
+            tr.appendChild(updatedCell);
 
             const cell = el("td", "px-4 py-3 text-right");
             const button = el(
@@ -991,13 +1285,13 @@
         box.appendChild(table);
         resultsHost.appendChild(box);
 
-        renderPager(pages, slice.length);
+        renderPager(pages, rows.length);
     }
 
     function renderPager(pages, shown) {
         clear(pager);
 
-        if (rows.length <= pageSize()) {
+        if (total <= pageSize()) {
             pager.classList.add("hidden");
             return;
         }
@@ -1008,7 +1302,7 @@
             el(
                 "p",
                 "text-base text-ink-muted",
-                "Showing " + first + " to " + (first + shown - 1) + " of " + rows.length
+                "Showing " + first + " to " + (first + shown - 1) + " of " + total
             )
         );
 
@@ -1023,11 +1317,20 @@
             node.disabled = Boolean(disabled);
             if (!disabled && !current) {
                 node.addEventListener("click", function () {
+                    /*
+                     * A page is a request now, not a slice of something already
+                     * in hand, so this goes back to the API for that window.
+                     * Not refresh(), which resets to page one.
+                     *
+                     * And nothing is scrolled. The pager is already under the
+                     * reader's eyes and cursor, and the rows it replaces are
+                     * above it, so the honest thing is to leave the page where
+                     * they put it. Scrolling the results to the top of the
+                     * viewport looks like a jump downwards whenever the toolbar
+                     * was visible above them, which it usually is.
+                     */
                     page = target;
-                    renderPage();
-                    // Put the top of the results back in view, or paging feels
-                    // like nothing happened.
-                    resultsHost.scrollIntoView({ block: "start", behavior: "smooth" });
+                    load(currentQuery(), false, true);
                 });
             }
             return node;
@@ -1061,90 +1364,90 @@
     }
 
     /*
-     * One row per release, not per solver. The version is a column, so a solver
-     * with three releases is three rows: sorting and paging by release is what
-     * the columns promise, and grouping would make the counts lie.
+     * One row per solver, not per release.
+     *
+     * The grouping itself is the API's, carried in `matches`. It has to be:
+     * whether two matching releases are consecutive depends on the releases
+     * between them, and a search response only contains the ones that matched.
+     * Given 1.0.0, 1.1.0 and 2.1.0 there is nothing here that could tell you a
+     * 1.2.0 and a 2.0.0 exist and did not match, so a range drawn in the
+     * browser would be claiming a measurement it does not have.
      */
-    function flatten(payload) {
-        const out = [];
-        (payload.solvers || []).forEach(function (solver) {
-            (solver.versions || []).forEach(function (record) {
-                out.push({
-                    id: solver.id,
-                    name: solver.name || solver.id,
-                    repo: solver.repo,
-                    record: record,
-                });
-            });
+    function toCards(payload) {
+        return (payload.solvers || []).map(function (solver) {
+            const records = solver.versions || [];
+            const matches = solver.matches || fallbackMatches(records);
+            return {
+                id: solver.id,
+                name: solver.name || solver.id,
+                repo: solver.repo,
+                records: records,
+                matches: matches,
+                // The record the row sorts and dates itself on.
+                latest: records[records.length - 1] || {},
+            };
         });
-        return out;
     }
-
-    /* ------------------------------------------------- name, sort, chips --- */
-
-    const COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-
-    const SORTS = {
-        "name-asc": function (a, b) {
-            return COLLATOR.compare(a.name, b.name) || versionOrder(a, b);
-        },
-        "name-desc": function (a, b) {
-            return COLLATOR.compare(b.name, a.name) || versionOrder(a, b);
-        },
-        "version-desc": function (a, b) {
-            return -versionOrder(a, b) || COLLATOR.compare(a.name, b.name);
-        },
-        "version-asc": function (a, b) {
-            return versionOrder(a, b) || COLLATOR.compare(a.name, b.name);
-        },
-        "date-desc": function (a, b) {
-            return dateOrder(b, a) || COLLATOR.compare(a.name, b.name);
-        },
-        "date-asc": function (a, b) {
-            return dateOrder(a, b) || COLLATOR.compare(a.name, b.name);
-        },
-    };
 
     /*
-     * Natural sort, not semver. Nothing in the database says these strings are
-     * semver, so it is not assumed: the collator's numeric mode gets 1.10.0
-     * after 1.9.0, which plain string comparison would not, and that is as far as
-     * this goes. A prerelease like 1.0.0-rc1 still sorts after 1.0.0, which is
-     * wrong under semver and is a known limitation rather than a bug here.
+     * What `matches` would be if the API did not send one.
+     *
+     * Only reachable against an older deployment of the API. Every release in
+     * hand is treated as one run, which is right whenever nothing was filtered
+     * out, and is the least misleading guess otherwise because the alternative
+     * is showing no version at all.
      */
-    function versionOrder(a, b) {
-        return COLLATOR.compare(String(a.record.version), String(b.record.version));
+    function fallbackMatches(records) {
+        const versions = records.map(function (r) { return r.version; });
+        const last = records[records.length - 1] || {};
+        return {
+            ranges: versions.length
+                ? [{ from: versions[0], to: versions[versions.length - 1], versions: versions }]
+                : [],
+            latest: { version: last.version, collected_at: last.collected_at },
+            matched: versions.length,
+            total: versions.length,
+        };
     }
 
-    function dateOrder(a, b) {
-        // ISO 8601 strings compare correctly as strings, so no Date parsing. A
-        // record with no timestamp sorts as the oldest rather than throwing the
-        // comparison off.
-        return String(a.record.collected_at || "").localeCompare(String(b.record.collected_at || ""));
-    }
-
-    function currentName() {
-        return nameInput ? nameInput.value.trim().toLowerCase() : "";
-    }
-
-    /* Narrow by name, then order. Both are local to what the API already sent. */
-    function applyNameAndSort() {
-        const needle = currentName();
-        rows = needle
-            ? allRows.filter(function (row) {
-                // The id is matched as well as the display name, because the id
-                // is what appears in URLs and in `vnnfilter` output, so it is
-                // what someone may have been given.
-                return (
-                    row.name.toLowerCase().indexOf(needle) !== -1 ||
-                    String(row.id).toLowerCase().indexOf(needle) !== -1
-                );
+    /*
+     * "1.0.0", or "1.0.0 to 2.0.0", or "1.0.0 to 1.2.0, 2.1.0".
+     *
+     * A run of one is printed as the bare version rather than "1.0.0 to
+     * 1.0.0", and separate runs stay separate: joining them into one span
+     * would assert that the releases in the gap matched too.
+     */
+    function rangeLabel(matches) {
+        const ranges = (matches && matches.ranges) || [];
+        if (!ranges.length) {
+            return "unknown";
+        }
+        return ranges
+            .map(function (range) {
+                return range.from === range.to ? range.from : range.from + " to " + range.to;
             })
-            : allRows.slice();
+            .join(", ");
+    }
 
-        const sort = SORTS[sortSelect ? sortSelect.value : "date-desc"] || SORTS["date-desc"];
-        rows.sort(sort);
-        page = 1;
+    /* ----------------------------------------------------- name and chips --- */
+
+    /*
+     * Ordering used to be done here, over the rows already fetched, and is now
+     * a `sort` parameter on the request. It had to move with the paging: the API
+     * decides which ten solvers a page holds, so whatever orders them has to be
+     * whatever slices them. Sorting a page of ten in the browser only reorders
+     * that page, which looks right until you notice the top result is missing
+     * because it was on page two.
+     *
+     * The same goes for the name box, which is a `name` parameter now. Filtering
+     * a page locally leaves a page of ten minus however many were dropped, and a
+     * total that counts solvers the reader cannot reach.
+     */
+    function currentName() {
+        if (!nameInput || filtersOpen()) {
+            return "";
+        }
+        return nameInput.value.trim();
     }
 
     /* The chips above the results, one per active filter, each one removable. */
@@ -1195,13 +1498,11 @@
                     refresh();
                     return;
                 }
-                if (key === "operators") {
+                if (pickers[key]) {
                     // The hidden field is a projection of the chips, so clearing
                     // it alone would leave the chips on screen claiming a filter
                     // that is no longer applied.
-                    chosenOperators = [];
-                    syncOperatorField();
-                    renderOperatorChips();
+                    pickers[key].clear();
                 } else {
                     const field = form.elements[key];
                     if (field) {
@@ -1213,7 +1514,7 @@
                         field.dispatchEvent(new Event("change", { bubbles: true }));
                     }
                 }
-                load(currentQuery(), false);
+                refresh();
             });
             chip.appendChild(remove);
 
@@ -1238,49 +1539,80 @@
         activeFilters.appendChild(clearAll);
     }
 
-    /* Re-run the local narrowing without asking the API again. */
+    /*
+     * Ask again. Every control on this panel ends here, because every one of
+     * them changes which solvers the API should return or which slice of them.
+     */
     function refresh() {
-        if (!allRows.length) {
-            renderActiveFilters();
-            return;
-        }
-        applyNameAndSort();
-        renderActiveFilters();
-        if (!rows.length) {
-            status.textContent = "";
-            showEmpty(currentQuery());
-            return;
-        }
-        summarise();
-        renderPage();
+        page = 1;
+        load(currentQuery(), false);
     }
 
     function summarise() {
-        const releases = rows.length;
-        const solvers = new Set(rows.map(function (row) { return row.id; })).size;
-        // Counts only. When the database was generated is a fact about the
-        // pipeline, not about the solvers, and it read as though the results
-        // might be stale when they are fetched fresh on every load. Each
-        // release carries its own measurement date in the table anyway, which
-        // is the date that actually qualifies what is shown.
-        status.textContent =
-            (solvers === 1 ? "1 solver" : solvers + " solvers") +
-            ", " +
-            (releases === 1 ? "1 release" : releases + " releases");
+        const releases = rows.reduce(function (sum, row) {
+            return sum + row.matches.matched;
+        }, 0);
+        /*
+         * Counts only. When the database was generated is a fact about the
+         * pipeline, not about the solvers, and it read as though the results
+         * might be stale when they are fetched fresh on every load. Each
+         * release carries its own measurement date in the table anyway, which
+         * is the date that actually qualifies what is shown.
+         *
+         * The solver count is the total across every page; the release count is
+         * only what is on this one, because the API does not send the releases
+         * it did not send. Said as "on this page" rather than left to look like
+         * a total that does not add up.
+         */
+        const solvers = (total === 1 ? "1 solver" : total + " solvers");
+        const shown =
+            total > rows.length
+                ? ", " + releases + " releases on this page"
+                : ", " + (releases === 1 ? "1 release" : releases + " releases");
+        status.textContent = solvers + shown;
     }
 
     /* ----------------------------------------------------------- fetching -- */
 
-    function load(params, isFirstLoad) {
+    /*
+     * The whole request, filters and presentation together.
+     *
+     * `params` holds the capability filters, which are also what the vnnfilter
+     * command shows. The four below are added here rather than there because
+     * they are not part of the query: they say how to present the answer, and
+     * the package has no flags for them.
+     */
+    function searchUrl(params) {
+        const url = new URLSearchParams(params.toString());
+        const name = currentName();
+        if (name) {
+            url.set("name", name);
+        }
+        url.set("sort", sortSelect ? sortSelect.value : "date-desc");
+        url.set("limit", String(pageSize()));
+        url.set("offset", String((page - 1) * pageSize()));
+        return API + "/search?" + url.toString();
+    }
+
+    /*
+     * `inPlace` is for paging. The skeleton is the right loading state for a new
+     * search, where the answer could be anything, but it is five rows tall: swap
+     * it in for a page of ten and the box shrinks, the pager jumps up under the
+     * cursor, and then everything grows back when the rows arrive. For paging the
+     * old rows stay put and go dim, so nothing moves and the button the reader
+     * just pressed is still where they pressed it.
+     */
+    function load(params, isFirstLoad, inPlace) {
         updateCommand(params);
         status.textContent = isFirstLoad ? "Loading the database..." : "Searching...";
-        skeleton();
+        if (inPlace && rows.length) {
+            resultsHost.setAttribute("aria-busy", "true");
+            resultsHost.classList.add("is-loading");
+        } else {
+            skeleton();
+        }
 
-        const url = isFirstLoad && !params.toString()
-            ? API + "/solvers"
-            : API + "/search?" + params.toString();
-
-        fetch(url, { headers: { Accept: "application/json" } })
+        fetch(searchUrl(params), { headers: { Accept: "application/json" } })
             .then(function (response) {
                 return response.json().then(function (payload) {
                     if (!response.ok) {
@@ -1293,13 +1625,13 @@
                 });
             })
             .then(function (payload) {
-                allRows = flatten(payload);
+                resultsHost.removeAttribute("aria-busy");
+                resultsHost.classList.remove("is-loading");
+                rows = toCards(payload);
+                // `total` is every match, `rows` is this page of them. The pager
+                // needs the first to say "of 34"; the table needs the second.
+                total = typeof payload.total === "number" ? payload.total : rows.length;
 
-                if (isFirstLoad) {
-                    populateFromData(payload);
-                }
-
-                applyNameAndSort();
                 renderActiveFilters();
 
                 if (!rows.length) {
@@ -1311,44 +1643,87 @@
                 renderPage();
             })
             .catch(function (error) {
+                resultsHost.removeAttribute("aria-busy");
+                resultsHost.classList.remove("is-loading");
                 status.textContent = "";
-                allRows = [];
                 rows = [];
+                total = 0;
                 renderActiveFilters();
                 showError("The solver database could not be reached", String(error.message || error));
+            });
+
+        if (isFirstLoad) {
+            loadVocabulary();
+        }
+    }
+
+    /*
+     * The operator and element type lists, from /vocabulary rather than from the
+     * search response.
+     *
+     * A response is one page of ten now, so reading the lists off it would offer
+     * a picker built from whichever ten solvers came back first, quietly missing
+     * every operator only the others report. A failure here is not worth an
+     * error panel: the picker simply has nothing to suggest, and a name typed by
+     * hand still works.
+     */
+    function loadVocabulary() {
+        fetch(API + "/vocabulary", { headers: { Accept: "application/json" } })
+            .then(function (response) {
+                return response.ok ? response.json() : null;
+            })
+            .then(function (payload) {
+                if (payload) {
+                    populateFromVocabulary(payload);
+                }
+            })
+            .catch(function () {
+                /* Left empty on purpose. */
             });
     }
 
     /*
      * Fill the operator and element type controls from the data rather than from
      * a list hard-coded here, which would drift as solvers are added.
+     *
+     * Both lists arrive already sorted and de-duplicated, which is the whole
+     * reason /vocabulary exists: working them out means reading every release in
+     * the database, and the database is the one thing the browser does not have.
      */
-    function populateFromData(payload) {
-        const operators = new Set();
-        const elementTypes = new Set();
-        (payload.solvers || []).forEach(function (solver) {
-            (solver.versions || []).forEach(function (record) {
-                const capabilities = record.capabilities || {};
-                Object.keys(capabilities.operators || {}).forEach(function (name) {
-                    operators.add(name);
-                });
-                (capabilities.element_types || []).forEach(function (type) {
-                    elementTypes.add(type);
-                });
-            });
-        });
+    function populateFromVocabulary(payload) {
+        // A map of name to types, not a bare list: the operator rows show which
+        // element types each one can be asked for.
+        operatorTypes = payload.operators || {};
+        knownElementTypes = (payload.element_types || []).slice();
 
-        knownOperators = Array.from(operators).sort();
-
-        const select = document.getElementById("f-element_types");
-        Array.from(elementTypes).sort().forEach(function (type) {
-            const option = el("option", null, type);
-            option.value = type;
-            select.appendChild(option);
+        // A list that was open while this arrived is showing "Loading...".
+        Object.keys(pickers).forEach(function (key) {
+            if (pickers[key]) {
+                pickers[key].refreshList();
+            }
         });
     }
 
     /* ------------------------------------------------------------- wiring -- */
+
+    /*
+     * The name box is only usable while the panel is closed, and is turned off
+     * rather than hidden: the reader can still see what they typed, and it is
+     * still there when they close the panel again.
+     */
+    function syncNameAvailability() {
+        const off = filtersOpen();
+        [nameInput, nameSearch].forEach(function (control) {
+            if (!control) {
+                return;
+            }
+            control.disabled = off;
+            control.classList.toggle("is-disabled", off);
+            control.title = off
+                ? "Close the advanced filters to search by name"
+                : "";
+        });
+    }
 
     /* The filter panel, closed to begin with. */
     if (filtersToggle) {
@@ -1360,6 +1735,14 @@
             if (filtersChevron) {
                 filtersChevron.classList.toggle("rotate-180", open);
             }
+            syncNameAvailability();
+            /*
+             * Search again, because opening or closing the panel changes which
+             * criteria apply: closing drops the filters, opening drops the name.
+             * Leaving the old results on screen would show an answer to a
+             * question the controls no longer ask.
+             */
+            refresh();
             if (open) {
                 // Land on the first control rather than leaving focus on the
                 // button that revealed it.
@@ -1371,9 +1754,26 @@
         });
     }
 
+    /*
+     * The name is searched when asked for, never as it is typed.
+     *
+     * Searching per keystroke meant a request for every prefix on the way to the
+     * word the reader wanted, results flickering through answers to half-typed
+     * names, and no way to tell a finished thought from a passing one. Enter and
+     * the button are both "now".
+     */
     if (nameInput) {
-        // Local, so it can run on every keystroke without a request.
-        nameInput.addEventListener("input", refresh);
+        nameInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                // A bare input outside a form does not submit, but an input
+                // inside one would, and this one may end up in either.
+                event.preventDefault();
+                refresh();
+            }
+        });
+    }
+    if (nameSearch) {
+        nameSearch.addEventListener("click", refresh);
     }
     if (sortSelect) {
         sortSelect.addEventListener("change", refresh);
@@ -1381,7 +1781,8 @@
 
     form.addEventListener("submit", function (event) {
         event.preventDefault();
-        load(currentQuery(), false);
+        // Back to page one: the old page three may not exist under new filters.
+        refresh();
     });
 
     // The command banner tracks the filters as they are chosen, without waiting
@@ -1396,23 +1797,50 @@
 
     // Reset fires before the fields are actually cleared, so wait a tick.
     form.addEventListener("reset", function () {
-        chosenOperators = [];
         window.setTimeout(function () {
-            // After reset has cleared the fields, so the hidden operator field
-            // is not written and then wiped.
-            syncOperatorField();
-            renderOperatorChips();
-            closeSuggestions();
-            load(currentQuery(), false);
+            /*
+             * After reset has cleared the fields, not before. A reset clears the
+             * hidden fields the pickers write to but knows nothing about the
+             * chips, which are the only thing the reader can see, so each picker
+             * has to be told.
+             */
+            Object.keys(pickers).forEach(function (key) {
+                if (pickers[key]) {
+                    pickers[key].clear();
+                }
+            });
+            refresh();
         }, 0);
     });
 
-    pageSizeSelect.addEventListener("change", function () {
-        page = 1;
-        if (rows.length) {
-            renderPage();
-        }
-    });
+    // A different page size is a different window, so it is a request too.
+    pageSizeSelect.addEventListener("change", refresh);
 
-    load(currentQuery(), true);
+    /*
+     * The first fetch waits for the panel to be opened.
+     *
+     * The search shares a page with everything else now, so loading the
+     * database on every visit to the home page would be a request most readers
+     * never asked for. js/site.js dispatches this the first time the panel
+     * slides in, including when a link lands straight on it.
+     */
+    let started = false;
+
+    function start() {
+        if (started) {
+            return;
+        }
+        started = true;
+        syncNameAvailability();
+        load(currentQuery(), true);
+    }
+
+    document.addEventListener("solver-search:open", start);
+
+    // Already open, because the page was loaded with the search showing and
+    // js/site.js ran first.
+    const panel = document.getElementById("panel-search");
+    if (!panel || panel.hidden === false) {
+        start();
+    }
 })();

@@ -26,7 +26,7 @@ is no command line there, so `SOLVERS_JSON` does the same job.
 | `GET /health` | liveness, and whether the database file is present |
 | `GET /solvers` | everything, including releases that failed to install |
 | `GET /solvers/<id>` | one solver, 404 if unknown |
-| `GET /search?...` | filter; returns solvers with only their matching releases |
+| `GET /search?...` | filter; returns solvers with only their matching releases, grouped into version ranges |
 
 Every response carries `Access-Control-Allow-Origin: *`, so a page on another
 origin, the Stage 3 search page or anyone's script, can read it. The data
@@ -79,6 +79,110 @@ while vibecheck prints 51 bare names, restricting nothing.
 **Ranges take a single value.** `onnx_opset` and `vnnlib_versions` are stored
 as inclusive `[min, max]` pairs, so `?onnx_opset=16` asks "does 16 fall in
 your range".
+
+## Sorting, paging and the name
+
+`/search` also takes four parameters that change how the answer is presented
+rather than which solvers it contains:
+
+| | |
+|---|---|
+| `name` | substring of the display name or the id, case-insensitive |
+| `sort` | `name-asc`, `name-desc`, `version-asc`, `version-desc`, `date-asc`, `date-desc`. Default `date-desc` |
+| `limit` | page size. Default 10, capped at 200 |
+| `offset` | how many results to skip |
+
+```
+/search?arithmetic=POLY&sort=name-asc&limit=10&offset=20
+```
+
+The response carries `total`, the whole result set, alongside `solvers`, which
+is the page. A pager cannot say "1 to 10 of 34" from the ten it was given.
+
+**The three travel together on purpose.** Sorting or filtering a page in the
+browser sorts or filters that page only, which looks right until the reader
+notices the top result is missing because it was on page two, and a total
+counted from one page is not a total. Whoever slices has to be whoever orders
+and filters, so all of it is here.
+
+That is also why `name` is here despite not being a capability. It has no
+`vnnfilter` flag and is not part of the command the page displays; it is a
+parameter of the request and nothing more.
+
+An unknown `sort` is a 400, like an unknown filter: quietly substituting the
+default would answer a different question and look like it had worked. A `limit`
+or `offset` that is not a number falls back to the default instead, since those
+are a caller's arithmetic rather than a name they might have misspelled.
+
+## /vocabulary
+
+```
+GET /vocabulary
+{
+  "operators": { "Conv": ["float32", "float64"], "MatMul": ["real"], ... },
+  "element_types": ["bfloat16", "float16", "float32", ...]
+}
+```
+
+Every element type any solver reports, and every operator mapped to the types it
+can usefully be asked for. The search page builds its two pickers from this
+rather than from hard-coded lists that would drift as solvers are added.
+
+**The types beside an operator are not just the ones printed next to it.**
+Section 5.4.1 says an operator listed with no types supports *every* type that
+solver reports, so a solver printing a bare `Relu` alongside `real` and
+`float32` does support `Relu` at both. The union is therefore the explicit lists
+plus, for any solver that listed the operator bare, that solver's whole
+`element_types`. Reading the empty list as "no types" would offer nothing for
+exactly the operators that are supported most widely.
+
+It exists because of paging. The page used to read those lists off the first
+search response; a response is now ten solvers, so the picker would offer
+whatever those ten happened to support and silently omit everything else.
+Working out the real answer means reading every release in the database, which
+is the one thing the browser does not have.
+
+## What a search result carries
+
+Each solver in a `/search` response has its `versions` narrowed to the releases
+that matched, and an extra `matches` object describing them as a whole:
+
+```json
+{
+  "id": "testsolver11",
+  "name": "TestSolver Eleven",
+  "versions": [ ... only the matching records ... ],
+  "matches": {
+    "ranges": [
+      { "from": "1.0.0", "to": "1.1.0", "versions": ["1.0.0", "1.1.0"] },
+      { "from": "2.1.0", "to": "2.1.0", "versions": ["2.1.0"] }
+    ],
+    "latest": { "version": "2.1.0", "collected_at": "2026-09-24T00:00:00Z" },
+    "matched": 3,
+    "total": 5
+  }
+}
+```
+
+This exists so a consumer can show one row per solver instead of one per
+release. It is computed here rather than in the browser for a reason that is
+not obvious: **whether two matching releases are consecutive depends on the
+releases between them, and a caller never receives those.** Given only
+`["1.0.0", "1.1.0", "2.1.0"]`, nothing tells you that a 1.2.0 and a 2.0.0 exist
+and did not match. A page that drew "1.0.0 to 2.1.0" from that would be
+claiming a measurement it does not have.
+
+`ranges` is therefore a list of **consecutive runs**, not one span. Two
+releases are consecutive when they are adjacent in the solver's `versions`
+array, which SCHEMA.md makes a sorted list, so no version string is ever
+parsed here: "does 1.10.0 come after 1.9.0" is a question the build already
+answered, and answering it a second time with a different rule is how two
+orderings end up disagreeing.
+
+A run of one has `from` equal to `to`, so a single-release solver needs no
+special case. `latest` is the newest **matching** release, which is what a row
+should sort and date itself on, and `matched` / `total` say how much of the
+solver qualified.
 
 **Releases that never installed never match**, not even an empty query. Search
 answers "what can do this", and nothing was measured about them: they are

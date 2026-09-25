@@ -7,8 +7,8 @@ browser.
 ## Layout
 
 ```
-index.html              the home page, anchored sections
-solvers.html            search the solver database by capability
+index.html              the whole site: anchored sections, and the solver
+                        search as a panel that slides in over one of them
 bibtex.html             the 1.0 citation, linked from elsewhere
 tailwind.config.js      the design tokens: palette, fonts, shadows
 build.js                compiles css/tailwind.css, to drop the CDN
@@ -19,7 +19,7 @@ css/
     body.css              Lato subset, as font family "SB Body"
 js/
     site.js               the rail, page transition, scroll reveal, back to top
-    solver-search.js      everything on solvers.html
+    solver-search.js      the solver search panel
     select.js             a styleable dropdown for every <select class="field">
     neurons.js            the masthead's neuron field
 assets/                 images, favicons, the neuron artwork, the standard PDFs
@@ -78,7 +78,7 @@ feeds it to the CLI. `index.html` stays the single source.
 Re-run it after changing any class name or colour, or the compiled file goes
 stale while the CDN version stays correct.
 
-## solvers.html
+## The solver search
 
 VNN-LIB 2.0 requires a solver to report its own capabilities through a
 `supports` command. Those answers are collected automatically by the
@@ -102,24 +102,142 @@ moves, that is the only line to change. When it cannot be reached the page
 explains what happened and links to the database in the repository, rather than
 sitting empty.
 
+### A panel, not a page
+
+The search is not a separate page. It is the second of two panels inside the
+news section: the news and the hand-kept solver table slide out to the left, the
+search slides in from the right, and a Back button reverses it.
+
+It belongs there because it is the same subject as the table it sits beside. The
+table is what was reported by hand, the search is what the pipeline measured,
+and sending a reader to another document to cross one to the other cost them
+their place on the page and a full reload for content that was already one
+section away.
+
+What the implementation has to get right, in `js/site.js`:
+
+- **The URL.** Opening pushes `#find-a-solver`, so the browser's own Back button
+  reverses the slide, a reload comes back to the search, and it can be linked to.
+  The Back button in the panel calls `history.back()` rather than sliding
+  directly, so the two cannot get out of step.
+- **The height.** The two panels are very different heights, so the box is
+  pinned to the outgoing height, released to the incoming one, and set back to
+  `auto` when the slide ends. Skipping that last step leaves the box frozen at
+  whatever it measured, and a search returning fifty rows overflows it.
+- **Focus and the reading order.** The panel that is off screen carries `hidden`
+  as well as a transform. A panel that is invisible but still focusable is how a
+  keyboard user ends up typing into a form they cannot see.
+- **The first fetch.** The database is only requested the first time the panel
+  opens, since the search now shares a page with everyone who came to read the
+  news.
+
+`#find-a-solver` is also why the button is still an `<a href>` rather than a
+`<button>`: it can be middle-clicked, copied and shared, and it works before the
+script runs.
+
+Note that the old `solvers.html` is gone. Anything linking to it from outside
+the site now 404s; a one-line redirect stub would fix that if it matters.
+
+### One row per solver
+
+A solver with several releases is **one row**, showing the versions that matched
+as a range: `1.0.0 to 2.0.0`, or `1.0.0, 2.0.0` when the matches are not
+consecutive. The Details dialog is where the releases separate again, behind a
+picker that switches between them in place.
+
+The grouping is **not computed here**. `/search` returns it, in a `matches`
+object beside the narrowed `versions` list, and the page only formats it. That
+is not a preference about where code should live, it is the only place the
+question can be answered: whether two matching releases are consecutive depends
+on the releases between them, and a search response contains only the ones that
+matched. Given `1.0.0`, `1.1.0` and `2.1.0`, nothing in the payload says a
+`1.2.0` and a `2.0.0` exist and were rejected. A range drawn from that alone
+would claim a measurement the page does not have.
+
+So a run of matches is a range, a gap ends one range and starts another, and a
+row says `2 of 3` beside the versions when some releases did not qualify. The
+badge is shown only in that case: printing `3 of 3` on every other row would
+bury the one that matters.
+
+`Updated at` and the version sort both key off the **newest matching release**,
+since a row no longer has one version or one date, and a solver is as current as
+its newest usable release.
+
+### Paging must not move the page
+
+Two rules, both learned by getting them wrong:
+
+**Nothing scrolls when you page.** The pager is already under the reader's eyes
+and cursor, and the rows it replaces are above it, so the page stays exactly
+where they put it. Scrolling the results to the top of the viewport reads as a
+jump *downwards* whenever the toolbar was visible above them, which it usually
+is. Opening the panel still scrolls, because that one was asked for.
+
+**The rows stay put while the next page loads.** The skeleton is the right
+loading state for a new search, where the answer could be anything, but swapping
+it in to page means the box shrinks to the skeleton's height, the pager jumps up
+under the cursor, and everything grows back a moment later. Paging instead dims
+the current rows in place and sets `aria-busy`, so nothing moves and the button
+just pressed is still where it was pressed.
+
+**And the table is only ever as tall as the rows in it.** The skeleton draws a
+few placeholder rows rather than a page's worth: sizing it to the page size drew
+a ten-row box for a search with six results, which made the table look like it
+had a fixed height and then collapse. `renderPage` also releases the pixel
+height `js/site.js` pins on the sliding box, because that height was measured
+from whatever was on screen when the slide began, which on first open is the
+loading state.
+
 ### What runs where
 
-Two kinds of narrowing happen on this page, and they are deliberately split.
+**Everything that decides which solvers appear, and in what order, is the API's.**
+The capability filters, the name box, the sort and the paging are all parameters
+on one `/search` request, and the page renders what comes back without
+reordering or slicing it.
 
-**Capability filters go to the API**, for the reasons above. Each change means a
-request, which is why they are behind a Search button rather than live.
+That is not tidiness. The three cannot be separated: the API decides which ten
+solvers a page holds, so sorting those ten in the browser only reorders that
+page, which looks correct until the reader notices the top result is missing
+because it was on page two. Filtering them locally leaves a page of ten minus
+however many were dropped, and a total that counts solvers they cannot reach.
 
-**The name box and the sort are local**, over the rows already fetched. A name is
-not a capability, so `/search` has no field for it; sending one would be
-inventing a filter the endpoint does not have, and it would mean a request per
-keystroke. Sorting is the same: the result set is small enough to order in the
-browser, and doing it server-side would add a round trip for no gain. Both are
-therefore instant.
+So every control on the panel ends in the same place, a request:
 
-Pagination is local too, for the same reason. If the database grows to the point
-where the whole thing is too much to hold, the natural change is `limit` and
-`offset` on the API and paging becomes a request; nothing in the markup has to
-move for that.
+| | |
+|---|---|
+| Capability filters | the Search button inside the panel |
+| Name | its own Search button beside the box, or Enter. **Never as it is typed** |
+| Sort by | `sort=` |
+| Per page | `limit=`, default 10 |
+| Previous / Next / a page number | `offset=`, the only control that does not reset to page one |
+
+Nothing searches on a keystroke. Searching per keystroke meant a request for
+every prefix on the way to the word the reader wanted, results flickering
+through answers to half-typed names, and no way to tell a finished thought from
+a passing one. A button says when.
+
+### The advanced filter panel is a mode
+
+Open, the search is by capability. Closed, it is by name. Whichever is showing
+is the one that applies, so a filter the reader cannot see never narrows their
+results, and neither does a name they cannot see.
+
+- **Closing the panel drops the capability filters** from the query without
+  clearing the controls. Reopening it and pressing Search puts them back exactly
+  as they were: the values are the form's own, and only whether they count
+  changes.
+- **While it is open the name box is disabled**, dimmed rather than hidden, so
+  what was typed is still there when it becomes live again.
+- **Toggling the panel re-runs the search**, because opening or closing it
+  changes which criteria apply. Leaving the old rows up would show the answer to
+  a question the controls no longer ask.
+- The `vnnfilter` banner follows the same rule, so it only ever shows the command
+  for what is actually applied.
+
+The operator picker and the element type list come from `/vocabulary`, one
+request on first open, not from the search response: a response is ten solvers
+now, so building the picker from it would offer whatever those ten support and
+omit the rest.
 
 ### The command banner
 
@@ -134,25 +252,55 @@ The name box is not in the command, because the package has no equivalent flag.
 
 ## Form controls
 
-### The operator picker
+### The two pickers
 
-ONNX operator names are case sensitive and awkward (`LeakyRelu`,
+The ONNX operators and the element types are both lists of names chosen from the
+database, and they are the same control used twice.
+
+**Not a text box.** Operator names are case sensitive and awkward (`LeakyRelu`,
 `ConstantOfShape`, `ScatterND`), so a typed name is usually a typo, and a typo
-returns an empty result that looks exactly like a real answer. The field in the
-advanced filters is therefore a picker over the names the database actually
-contains.
+returns an empty result that looks exactly like a real answer. Matching is
+anywhere in the name, not only at the start, because the useful queries are
+things like `pool` or `conv`; the matched span is shown in bold so a substring
+hit does not look arbitrary.
 
-Matching is anywhere in the name, not only at the start, because the useful
-queries are things like `pool` or `conv`. The matched span is shown in bold, so
-a substring hit does not look arbitrary. Chosen names become chips, and the
-selection is written into a hidden comma separated field, so the query builder,
-the command banner and the API all see an ordinary text field.
+**Not a `<select multiple>`.** It needs ctrl-clicking to add a second value,
+gives no way to search fifty names, and shows the selection as highlighted rows
+that scroll out of sight. Chips stay visible and each one is removable on its
+own.
 
-The suggestion list opens on focus, on input and on click. The click listener is
-needed because the input keeps focus through a pick (the option's `mousedown` is
-prevented, so the list does not vanish before the click lands), and clicking an
-input that already has focus fires no `focus` event. After a pick the list stays
-open, since picking one operator is usually the first of several.
+Element types are a picker for a further reason: a solver can be asked for
+several at once, and they have no ordering between them, so there is nothing a
+single choice could stand in for. `float64` does not imply `float32`.
+
+Each selection is written into a hidden comma separated field, so the query
+builder, the command banner and the API all see an ordinary text field. Commas
+and repeats both mean AND to the API, so several chips mean "all of these".
+
+#### An operator's element types
+
+Each operator row lists the types it can be asked for, printed after the name
+the way the standard's own output does:
+
+```
+Conv     float64 float32
+Relu     float64 float32
+MatMul
+Gemm
+Add      float64 float32 int64 int32
+Flatten
+```
+
+Typing a colon switches the list to that one operator's types, so `conv:` offers
+`Conv` (any element type) followed by `Conv:float32`, `Conv:float64` and the
+rest, and the API is asked for `operators=Conv:float64`. The expansion only
+happens once the reader has asked for it: offering every name crossed with every
+type would be several hundred rows, most of them combinations no solver reports.
+
+The types themselves come from `/vocabulary`, because working them out means
+reading every release in the database. A name with nothing listed after it is
+not restricted, which per section 5.4.1 means every element type its solver
+reports, not none.
 
 ### The dropdowns
 
@@ -171,7 +319,7 @@ The button carries the combobox role, the list carries listbox and option roles,
 and the arrow keys, Home, End, Enter, Escape and Tab behave as they do in a real
 select. What is lost is the OS picker on a phone, which is better on touch than
 any of this. To give it back, delete the `<script src="js/select.js">` line in
-`solvers.html`; nothing else has to change.
+`index.html`; nothing else has to change.
 
 ## Motion
 
@@ -231,8 +379,8 @@ is the way back to the top and to the home page, not a section. Its colour is
 set in `css/site.css` rather than by a utility class, so the scrollspy cannot
 take it away.
 
-On `solvers.html` the rail's links point back at `index.html#...`, so it shows
-progress and the current page but lights no dot.
+Clicking a rail dot while the solver panel is showing puts the overview back
+first, since every dot points at a section of it.
 
 ## The masthead field
 
