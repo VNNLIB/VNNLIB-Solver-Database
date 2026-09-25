@@ -17,7 +17,7 @@
 body.solver-page {
     background: var(--brand-bg);
     color: var(--brand-ink);
-    padding-top: 88px;
+    padding-top: 83px;
 }
 
 a {
@@ -39,24 +39,15 @@ a {
 
 .navbar-brand .masthead-heading {
     align-items: center;
-    background: linear-gradient(90deg, #ffffff, #a7f3df 46%, #fbbf24);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #ffffff;
     display: inline-flex;
-    font-size: 1.18rem;
+    font-size: 1.6rem;
     font-weight: 800;
     gap: .6rem;
 }
 
 .navbar-brand .masthead-heading::before {
-    background: conic-gradient(from 160deg, var(--brand-cyan), var(--brand-amber), var(--brand-plum), var(--brand-cyan));
-    border-radius: 8px;
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.12);
-    content: "";
-    display: inline-block;
-    height: 1.7rem;
-    width: 1.7rem;
+    content: none;
 }
 
 #mainNav {
@@ -145,6 +136,7 @@ a {
 
 .hero-copy {
     color: rgba(255,255,255,0.88);
+    font-size: 1.35rem;
     max-width: 42rem;
 }
 
@@ -168,6 +160,16 @@ a {
     color: #a7f3df;
 }
 
+.hero-standard {
+    color: #ffffff;
+    font-size: clamp(1.25rem, 3vw, 2rem);
+    letter-spacing: 0;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    max-width: 44rem;
+    text-transform: none;
+}
+
 .section-heading {
     margin-bottom: 1.7rem;
     max-width: 48rem;
@@ -181,11 +183,22 @@ a {
 
 .lead-copy {
     color: #4b5563;
+    font-size: 1.08rem;
+    line-height: 1.75;
     margin-top: 1rem;
 }
 
 .lead-copy:first-of-type {
     margin-top: 1.1rem;
+}
+
+.intro-list {
+    color: #374151;
+    font-size: 1.08rem;
+    line-height: 1.75;
+    margin-bottom: 1rem;
+    margin-top: -.25rem;
+    padding-left: 1.4rem;
 }
 
 .section-muted {
@@ -268,6 +281,56 @@ a {
 .content-band {
     margin-top: 2rem;
     padding: 1.5rem;
+}
+
+.document-intro {
+    margin-bottom: 1.25rem;
+    margin-top: 0;
+}
+
+.document-actions {
+    display: grid;
+    gap: .75rem;
+}
+
+.documents-heading {
+    margin-top: 2.5rem;
+}
+
+.document-grid {
+    margin-bottom: 1.25rem;
+}
+
+.document-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.document-card h2 {
+    color: var(--brand-navy);
+    font-size: 1.18rem;
+    font-weight: 800;
+}
+
+.document-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    margin-top: auto;
+    padding-top: .75rem;
+}
+
+.document-links a {
+    background: rgba(37,99,235,0.08);
+    border: 1px solid rgba(37,99,235,0.18);
+    border-radius: 999px;
+    font-weight: 700;
+    padding: .42rem .75rem;
+}
+
+.document-source-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .process-grid {
@@ -433,35 +496,94 @@ a {
     overflow: hidden;
 }
 
-.code-panel-header {
-    background: rgba(255,255,255,0.08);
-    display: flex;
-    gap: .45rem;
-    padding: .8rem 1rem;
-}
-
-.code-panel-header span {
-    background: #f59e0b;
-    border-radius: 50%;
-    display: block;
-    height: .75rem;
-    width: .75rem;
-}
-
-.code-panel-header span:nth-child(2) {
-    background: #14b8a6;
-}
-
-.code-panel-header span:nth-child(3) {
-    background: #a78bfa;
-}
-
 .code-panel pre {
     color: #e5f7ff;
     font-size: .92rem;
     margin: 0;
     overflow: auto;
-    padding: 1rem;
+    padding: 1.2rem;
+    white-space: pre;
+}
+
+.library-grid {
+    align-items: stretch;
+}
+
+.library-card {
+    min-height: 100%;
+}
+
+.library-card h3 a {
+    color: var(--brand-navy);
+}
+
+.library-card h3 a:hover {
+    color: var(--brand-blue);
+}
+
+.language-mark {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    font-size: 1rem;
+    font-weight: 800;
+    height: 2.8rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+    min-width: 2.8rem;
+    padding: 0 .65rem;
+}
+
+.language-python {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.language-cpp {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.language-julia {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.language-ocaml {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.language-agda {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.related-mark {
+    background: #ecfdf5;
+    color: #0f766e;
+}
+
+.library-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-bottom: 0;
+}
+
+.library-tag {
+    background: #e5e7eb;
+    border-radius: 999px;
+    color: #374151;
+    display: inline-flex;
+    font-size: .84rem;
+    font-weight: 700;
+    padding: .25rem .6rem;
+}
+
+.library-note {
+    color: #4b5563;
+    margin-top: 1.5rem;
 }
 
 .solver-filter-panel {
@@ -597,12 +719,132 @@ a {
     box-shadow: 0 0 0 .2rem rgba(15,118,110,0.14);
 }
 
+.solver-filter-panel .solver-name-search {
+    font-size: 1.05rem;
+    min-height: 3.35rem;
+}
+
+#advanced-search {
+    margin-top: 1rem;
+}
+
 .solver-filter-panel .filter-chip-select {
     min-height: 6.3rem;
 }
 
 .solver-filter-panel .filter-chip-select option {
     padding: .24rem .1rem;
+}
+
+.theory-select {
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+.pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .1rem;
+}
+
+.pill {
+    background: #ffffff;
+    border: 1px solid rgba(100,116,139,0.34);
+    border-radius: 999px;
+    color: #334155;
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 600;
+    padding: .4rem .72rem;
+    text-align: left;
+    transition: background-color .14s ease, border-color .14s ease, color .14s ease, transform .1s ease;
+}
+
+.pill:hover {
+    border-color: var(--brand-cyan);
+    transform: translateY(-1px);
+}
+
+.pill:focus-visible {
+    box-shadow: 0 0 0 .2rem rgba(15,118,110,0.18);
+    outline: none;
+}
+
+.pill.is-active {
+    background: var(--brand-cyan);
+    border-color: var(--brand-cyan);
+    color: #ffffff;
+}
+
+.solver-filter-panel .filter-file-control {
+    background: #ffffff;
+    font-size: .9rem;
+    padding: .67rem .75rem;
+}
+
+.filter-help {
+    color: #64748b;
+    font-size: .82rem;
+    line-height: 1.35;
+    margin-top: .42rem;
+}
+
+.active-filters {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin: -.15rem 0 1rem;
+    min-height: 2rem;
+}
+
+.active-filter-note,
+.active-filter-chip {
+    align-items: center;
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: .85rem;
+    gap: .35rem;
+    line-height: 1.25;
+    padding: .42rem .68rem;
+}
+
+.active-filter-note {
+    background: rgba(255,255,255,0.72);
+    border: 1px dashed rgba(100,116,139,0.38);
+    color: #64748b;
+}
+
+.active-filter-chip {
+    background: rgba(15,118,110,0.10);
+    border: 1px solid rgba(15,118,110,0.20);
+    color: #115e59;
+    cursor: pointer;
+    font-weight: 700;
+    transition: background-color .14s ease, transform .1s ease;
+}
+
+.active-filter-chip:hover {
+    background: rgba(15,118,110,0.18);
+    transform: translateY(-1px);
+}
+
+.active-filter-chip:focus-visible {
+    box-shadow: 0 0 0 .2rem rgba(15,118,110,0.22);
+    outline: none;
+}
+
+.active-filter-chip .chip-remove {
+    font-weight: 800;
+    opacity: .75;
 }
 
 .solver-actions {
@@ -630,7 +872,7 @@ a {
 .solver-table {
     background: #ffffff;
     margin-bottom: 0;
-    min-width: 980px;
+    min-width: 720px;
 }
 
 .solver-table th {
@@ -744,9 +986,33 @@ a {
     color: #a7f3df;
 }
 
+.footer p {
+    margin-bottom: .35rem;
+}
+
+.img-footer {
+    filter: brightness(0) invert(1);
+    height: 2.6rem;
+    margin-left: .35rem;
+    opacity: .92;
+    vertical-align: middle;
+}
+
+@media (max-width: 991.98px) {
+    /* Bootstrap only defines .col-lg-* inside its own min-width:992px media
+       query, so below that these columns have no width/flex-basis at all.
+       The code panel's <pre> (white-space:pre) then forces its column - and
+       the whole flex row - wider than the viewport instead of wrapping. */
+    .site-hero .col-lg-7,
+    .site-hero .col-lg-5 {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     body.solver-page {
-        padding-top: 72px;
+        padding-top: 67px;
     }
 
     #mainNav {

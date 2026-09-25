@@ -35,56 +35,105 @@
         <div class="container">
             <p class="eyebrow">Reference</p>
             <h1>Documents</h1>
-            <p class="lead">Released versions of the VNN-LIB standard and companion references.</p>
+            <p class="lead">Released versions of the VNN-LIB standard, source files, and contribution links.</p>
         </div>
     </header>
 
     <main class="page-section">
         <div class="container">
-            <div class="solver-table-shell">
-                <table class="table table-hover solver-table">
-                    <thead>
-                        <tr>
-                            <th>Document</th>
-                            <th>Release Date</th>
-                            <th>Version</th>
-                            <th>Link</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>VNN-LIB Standard</strong></td>
-                            <td>December 15th 2025</td>
-                            <td>2.0</td>
-                            <td><a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/download/v2.0.0/standard.pdf">PDF</a></td>
-                        </tr>
-                        <tr>
-                            <td><strong>VNN-LIB Standard</strong></td>
-                            <td>September 27th 2025</td>
-                            <td>1.0</td>
-                            <td><a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/download/v1.0/standard.pdf">PDF</a></td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="section-heading">
+                <p class="eyebrow">Standard repository</p>
+                <h2>Specification document and grammar</h2>
+                <p class="lead-copy">
+                    The VNNLIB-Standard repository contains the source for the VNN-LIB
+                    standard document and the formal grammar for VNNLIB queries.
+                </p>
             </div>
 
-            <div class="content-band">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <h2>What the Standard Defines</h2>
-                        <p>VNN-LIB defines a formal query language for neural network verification, together with the command-line interface used by compliant solvers.</p>
+            <div class="content-band document-intro">
+                <div class="row align-items-center">
+                    <div class="col-lg-7">
+                        <h2>Contribute to the standard</h2>
+                        <p>
+                            Use the standard repository to read the source, follow changes, or
+                            suggest improvements through GitHub issues.
+                        </p>
                     </div>
-                    <div class="col-lg-6">
-                        <h2>How This Site Uses It</h2>
-                        <p>The solver search focuses on Section 5 capabilities. It records what solvers report, then exposes those records for website and package-based search.</p>
+                    <div class="col-lg-5">
+                        <div class="document-actions">
+                            <a class="btn btn-primary" target="_blank" rel="noopener"
+                                href="https://github.com/VNNLIB/VNNLIB-Standard">View standard repository</a>
+                            <a class="btn btn-outline-secondary" target="_blank" rel="noopener"
+                                href="https://github.com/VNNLIB/VNNLIB-Standard/issues">Suggest a change</a>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="section-heading documents-heading">
+                <p class="eyebrow">Released standards</p>
+                <h2>Download VNN-LIB</h2>
+            </div>
+
+            <div class="feature-grid document-grid">
+                <article class="feature-card document-card">
+                    <div class="feature-icon"><i class="fas fa-file-pdf"></i></div>
+                    <h3>VNN-LIB Standard 2.0.0</h3>
+                    <p>Released December 15, 2025.</p>
+                    <div class="document-links">
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/tag/v2.0.0">Release</a>
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/download/v2.0.0/standard.pdf">PDF</a>
+                    </div>
+                </article>
+                <article class="feature-card document-card">
+                    <div class="feature-icon"><i class="fas fa-file-pdf"></i></div>
+                    <h3>VNN-LIB Standard 1.0.0</h3>
+                    <p>Released September 27, 2025.</p>
+                    <div class="document-links">
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/tag/v1.0.0">Release</a>
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/releases/download/v1.0/standard.pdf">PDF</a>
+                    </div>
+                </article>
+            </div>
+
+            <div class="feature-grid document-grid document-source-grid">
+                <article class="feature-card document-card">
+                    <div class="feature-icon"><i class="fas fa-code"></i></div>
+                    <div>
+                        <h2>Standard source</h2>
+                        <p>The LaTeX source for the standard document is maintained in the repository.</p>
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/blob/main/document/standard.tex">document/standard.tex</a>
+                    </div>
+                </article>
+                <article class="feature-card document-card">
+                    <div class="feature-icon"><i class="fas fa-project-diagram"></i></div>
+                    <div>
+                        <h2>Formal grammar</h2>
+                        <p>The repository also contains a formal grammar for VNNLIB queries.</p>
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/blob/main/syntax/grammar.cf">syntax/grammar.cf</a>
+                    </div>
+                </article>
+                <article class="feature-card document-card">
+                    <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                    <div>
+                        <h2>Contributions</h2>
+                        <p>Suggestions for the standard should be discussed through the standard repository.</p>
+                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/issues">Open an issue</a>
+                    </div>
+                </article>
             </div>
         </div>
     </main>
 
     <footer class="copyright footer py-4 text-center text-white bg-secondary">
-        <div class="container"><small><a target="_blank" rel="noopener" href="https://github.com/VNNLIB">VNN-LIB on GitHub</a> | Solver capability search prototype</small></div>
+        <div class="container">
+            <p>Powered by AIMS-Lab
+                <a target="_blank" rel="noopener" href="https://aims-lab.github.io/">
+                    <img class="img-footer" src="assets/svg/unige.svg" alt="UniGE">
+                </a>
+            </p>
+            <small class="pre-wrap"><a target="_blank" rel="noopener" href="https://github.com/NeVerTools/NeVerTools.github.io/blob/master/LICENSE">MIT Licensed</a> | vnnlib.org 2023 | Hosted by <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></small>
+        </div>
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
