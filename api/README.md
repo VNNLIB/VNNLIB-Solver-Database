@@ -117,13 +117,24 @@ are a caller's arithmetic rather than a name they might have misspelled.
 ## /vocabulary
 
 ```
-GET /vocabulary  ->  { "operators": [...], "element_types": [...] }
+GET /vocabulary
+{
+  "operators": { "Conv": ["float32", "float64"], "MatMul": ["real"], ... },
+  "element_types": ["bfloat16", "float16", "float32", ...]
+}
 ```
 
-Every operator name and element type any solver reports, sorted and
-de-duplicated. The search page builds its operator picker and its element type
-list from this rather than from a hard-coded list that would drift as solvers
-are added.
+Every element type any solver reports, and every operator mapped to the types it
+can usefully be asked for. The search page builds its two pickers from this
+rather than from hard-coded lists that would drift as solvers are added.
+
+**The types beside an operator are not just the ones printed next to it.**
+Section 5.4.1 says an operator listed with no types supports *every* type that
+solver reports, so a solver printing a bare `Relu` alongside `real` and
+`float32` does support `Relu` at both. The union is therefore the explicit lists
+plus, for any solver that listed the operator bare, that solver's whole
+`element_types`. Reading the empty list as "no types" would offer nothing for
+exactly the operators that are supported most widely.
 
 It exists because of paging. The page used to read those lists off the first
 search response; a response is now ten solvers, so the picker would offer

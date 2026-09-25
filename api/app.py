@@ -467,21 +467,32 @@ def vocabulary():
     fraction of the operators and silently omit the rest.
 
     Small enough to be one request on first open: names, not records.
+
+    `operators` maps each name to the element types it can usefully be asked
+    for, which is not simply the types printed beside it. Section 5.4.1 says an
+    operator listed with no types supports *every* type that solver reports, so
+    a solver printing a bare `Relu` alongside `real` and `float32` does support
+    `Relu` at both. The union is therefore the explicit lists plus, for any
+    solver that listed the operator bare, that solver's whole `element_types`.
+    Reading the empty list as "no types" would offer nothing for exactly the
+    operators that are supported most widely.
     """
-    operators = set()
+    operators = {}
     element_types = set()
     for solver in database()["solvers"]:
         if not isinstance(solver, dict):
             continue
         for record in solver_versions(solver):
             capabilities = record.get("capabilities") or {}
-            operators.update(operator_types(capabilities))
-            for name in capabilities.get("element_types") or []:
-                element_types.add(name)
+            reported = capabilities.get("element_types") or []
+            element_types.update(reported)
+            for name, restricted_to in operator_types(capabilities).items():
+                known = operators.setdefault(name, set())
+                known.update(restricted_to if restricted_to else reported)
     return jsonify(
         {
             "generated_at": database()["generated_at"],
-            "operators": sorted(operators),
+            "operators": {name: sorted(types) for name, types in sorted(operators.items())},
             "element_types": sorted(element_types),
         }
     )

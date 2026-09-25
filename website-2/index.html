@@ -504,11 +504,36 @@
                                     ONNX and versions
                                 </legend>
                                 <div class="mt-3 grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
-                                    <div>
-                                        <label class="field-label" for="f-element_types">Element type</label>
-                                        <select id="f-element_types" name="element_types" class="field">
-                                            <option value="">Any</option>
-                                        </select>
+                                    <!--
+                                      Element types are picked the same way
+                                      operators are, and for the same reason: a
+                                      solver can be asked for several at once,
+                                      and a dropdown that takes one value cannot
+                                      say so. They have no ordering between them
+                                      either, so there is nothing for a single
+                                      choice to stand in for: float64 does not
+                                      imply float32.
+                                    -->
+                                    <div class="sm:col-span-2">
+                                        <label class="field-label" for="element-input">Element types</label>
+
+                                        <div id="element-picker"
+                                            class="field flex cursor-text flex-wrap items-center gap-1.5 py-2">
+                                            <!-- Chips are inserted here, before the input. -->
+                                            <input id="element-input" type="text" autocomplete="off" role="combobox"
+                                                aria-expanded="false" aria-autocomplete="list"
+                                                aria-controls="element-suggestions"
+                                                class="min-w-[8rem] flex-1 border-0 bg-transparent p-0 text-base text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-0"
+                                                placeholder="Any">
+                                        </div>
+
+                                        <div class="relative">
+                                            <ul id="element-suggestions" role="listbox" aria-label="Matching element types"
+                                                class="suggestions absolute inset-x-0 top-1 z-20 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-ink/15 bg-white py-1 shadow-card">
+                                            </ul>
+                                        </div>
+
+                                        <input id="f-element_types" name="element_types" type="hidden">
                                     </div>
 
                                         <!--
@@ -536,7 +561,7 @@
                                                 aria-expanded="false" aria-autocomplete="list"
                                                 aria-controls="operator-suggestions"
                                                 class="min-w-[10rem] flex-1 border-0 bg-transparent p-0 text-base text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-0"
-                                                placeholder="Type to search, for example pool">
+                                                placeholder="Type to search, for example pool or Conv:float32">
                                             </div>
 
                                             <div class="relative">

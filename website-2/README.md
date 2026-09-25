@@ -252,25 +252,55 @@ The name box is not in the command, because the package has no equivalent flag.
 
 ## Form controls
 
-### The operator picker
+### The two pickers
 
-ONNX operator names are case sensitive and awkward (`LeakyRelu`,
+The ONNX operators and the element types are both lists of names chosen from the
+database, and they are the same control used twice.
+
+**Not a text box.** Operator names are case sensitive and awkward (`LeakyRelu`,
 `ConstantOfShape`, `ScatterND`), so a typed name is usually a typo, and a typo
-returns an empty result that looks exactly like a real answer. The field in the
-advanced filters is therefore a picker over the names the database actually
-contains.
+returns an empty result that looks exactly like a real answer. Matching is
+anywhere in the name, not only at the start, because the useful queries are
+things like `pool` or `conv`; the matched span is shown in bold so a substring
+hit does not look arbitrary.
 
-Matching is anywhere in the name, not only at the start, because the useful
-queries are things like `pool` or `conv`. The matched span is shown in bold, so
-a substring hit does not look arbitrary. Chosen names become chips, and the
-selection is written into a hidden comma separated field, so the query builder,
-the command banner and the API all see an ordinary text field.
+**Not a `<select multiple>`.** It needs ctrl-clicking to add a second value,
+gives no way to search fifty names, and shows the selection as highlighted rows
+that scroll out of sight. Chips stay visible and each one is removable on its
+own.
 
-The suggestion list opens on focus, on input and on click. The click listener is
-needed because the input keeps focus through a pick (the option's `mousedown` is
-prevented, so the list does not vanish before the click lands), and clicking an
-input that already has focus fires no `focus` event. After a pick the list stays
-open, since picking one operator is usually the first of several.
+Element types are a picker for a further reason: a solver can be asked for
+several at once, and they have no ordering between them, so there is nothing a
+single choice could stand in for. `float64` does not imply `float32`.
+
+Each selection is written into a hidden comma separated field, so the query
+builder, the command banner and the API all see an ordinary text field. Commas
+and repeats both mean AND to the API, so several chips mean "all of these".
+
+#### An operator's element types
+
+Each operator row lists the types it can be asked for, printed after the name
+the way the standard's own output does:
+
+```
+Conv     float64 float32
+Relu     float64 float32
+MatMul
+Gemm
+Add      float64 float32 int64 int32
+Flatten
+```
+
+Typing a colon switches the list to that one operator's types, so `conv:` offers
+`Conv` (any element type) followed by `Conv:float32`, `Conv:float64` and the
+rest, and the API is asked for `operators=Conv:float64`. The expansion only
+happens once the reader has asked for it: offering every name crossed with every
+type would be several hundred rows, most of them combinations no solver reports.
+
+The types themselves come from `/vocabulary`, because working them out means
+reading every release in the database. A name with nothing listed after it is
+not restricted, which per section 5.4.1 means every element type its solver
+reports, not none.
 
 ### The dropdowns
 

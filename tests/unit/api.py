@@ -283,9 +283,18 @@ def main():
 
         status, body = run(client, "/vocabulary")
         check("vocabulary lists every operator in the database, not one page's worth",
-              status == 200 and body["operators"] == ["Conv", "Relu"], body.get("operators"))
+              status == 200 and sorted(body["operators"]) == ["Conv", "Relu"], body.get("operators"))
         check("and every element type",
               body["element_types"] == ["float32", "real"], body.get("element_types"))
+        # `strong` prints "Conv float64 float32", so Conv carries those two even
+        # though float64 is not among its own element_types: the restriction is
+        # what the solver said, and the search reports back what it was told.
+        check("an operator's explicit type list is carried through",
+              body["operators"]["Conv"] == ["float32", "float64"], body["operators"].get("Conv"))
+        # A bare `Relu` means every type that solver reports, per 5.4.1, so the
+        # union picks those up rather than leaving the widest operator empty.
+        check("a bare operator takes its solvers' element types, not an empty list",
+              body["operators"]["Relu"] == ["float32", "real"], body["operators"].get("Relu"))
 
         # ------------------------------- paging, sorting and the name ----
         #

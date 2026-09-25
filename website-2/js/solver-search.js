@@ -41,11 +41,6 @@
     const copyButton = document.getElementById("copy-command");
     const copyLabel = document.getElementById("copy-command-label");
 
-    const operatorPicker = document.getElementById("operator-picker");
-    const operatorInput = document.getElementById("operator-input");
-    const operatorSuggestions = document.getElementById("operator-suggestions");
-    const operatorField = document.getElementById("f-operators");
-
     const nameInput = document.getElementById("q-name");
     const nameSearch = document.getElementById("name-search");
     const sortSelect = document.getElementById("sort-by");
@@ -201,240 +196,386 @@
         return params;
     }
 
-    /* ------------------------------------------------- the operator picker -- */
+    /* --------------------------------------------------------- the pickers -- */
 
     /*
-     * Choosing ONNX operators from the list the database actually contains,
-     * rather than typing them.
+     * Two of the filters are lists of names chosen from the database rather than
+     * typed: the ONNX operators, and the element types. They behave identically,
+     * so they are one control used twice.
      *
-     * Two things make this worth the code. The names are case sensitive and
-     * awkward (`LeakyRelu`, `ConstantOfShape`, `ScatterND`), so a typed name is
-     * usually a typo, and a typo returns an empty result that looks exactly
-     * like a real answer. And matching is done anywhere in the name, not just
-     * at the start, because the useful queries are things like "pool" or
-     * "conv", which a prefix match would miss entirely.
+     * Why not a text box. The operator names are case sensitive and awkward
+     * (`LeakyRelu`, `ConstantOfShape`, `ScatterND`), so a typed name is usually
+     * a typo, and a typo returns an empty result that looks exactly like a real
+     * answer. Matching is anywhere in the name, not only at the start, because
+     * the useful queries are things like "pool" or "conv" which a prefix match
+     * would miss.
+     *
+     * Why not a multiple-select. A <select multiple> needs ctrl-clicking to add
+     * a second value, gives no way to search fifty names, and shows the
+     * selection as highlighted rows that scroll out of sight. Chips stay
+     * visible, and each one can be removed on its own.
      *
      * The selection is written back into a hidden comma separated field, so the
      * query builder, the command banner and the API all see an ordinary text
-     * field.
+     * field. Commas and repeats both mean AND to the API, so several chips mean
+     * "all of these".
      */
-    let knownOperators = [];
-    let chosenOperators = [];
-    let highlighted = -1;
+    const pickers = {};
 
-    function syncOperatorField() {
-        operatorField.value = chosenOperators.join(",");
-    }
+    function createPicker(config) {
+        const picker = document.getElementById(config.pickerId);
+        const input = document.getElementById(config.inputId);
+        const list = document.getElementById(config.listId);
+        const field = document.getElementById(config.fieldId);
+        if (!picker || !input || !list || !field) {
+            return null;
+        }
 
-    function renderOperatorChips() {
-        Array.prototype.slice.call(operatorPicker.querySelectorAll("[data-chip]")).forEach(
-            function (chip) {
-                operatorPicker.removeChild(chip);
-            }
-        );
+        let chosen = [];
+        let highlighted = -1;
 
-        chosenOperators.forEach(function (name) {
-            const chip = el(
-                "span",
-                "inline-flex items-center gap-1 rounded-md bg-brand-light px-2 py-0.5 font-mono text-sm text-brand-dark"
+        const api = {
+            field: field,
+            /* Used by the chips above the results, and by the form reset. */
+            clear: function () {
+                chosen = [];
+                syncField();
+                renderChips();
+                closeList();
+            },
+            refreshList: function () {
+                if (list.classList.contains("is-open")) {
+                    showList();
+                }
+            },
+        };
+
+        function syncField() {
+            field.value = chosen.join(",");
+        }
+
+        function renderChips() {
+            Array.prototype.slice.call(picker.querySelectorAll("[data-chip]")).forEach(
+                function (chip) {
+                    picker.removeChild(chip);
+                }
             );
-            chip.setAttribute("data-chip", name);
-            chip.appendChild(document.createTextNode(name));
+            chosen.forEach(function (value) {
+                const chip = el(
+                    "span",
+                    "inline-flex items-center gap-1 rounded-md bg-brand-light px-2 py-0.5 font-mono text-sm text-brand-dark"
+                );
+                chip.setAttribute("data-chip", value);
+                chip.appendChild(document.createTextNode(value));
 
-            const remove = el("button", "text-brand-dark/70 transition hover:text-red-600", "×");
-            remove.type = "button";
-            remove.setAttribute("aria-label", "Remove " + name);
-            remove.addEventListener("click", function (event) {
-                event.stopPropagation();
-                removeOperator(name);
+                const remove = el("button", "text-brand-dark/70 transition hover:text-red-600", "×");
+                remove.type = "button";
+                remove.setAttribute("aria-label", "Remove " + value);
+                remove.addEventListener("click", function (event) {
+                    event.stopPropagation();
+                    remove_(value);
+                });
+                chip.appendChild(remove);
+                picker.insertBefore(chip, input);
             });
-            chip.appendChild(remove);
+        }
 
-            // Before the input, so the text cursor stays at the end of the row.
-            operatorPicker.insertBefore(chip, operatorInput);
-        });
-    }
+        function closeList() {
+            clear(list);
+            list.classList.remove("is-open");
+            input.setAttribute("aria-expanded", "false");
+            highlighted = -1;
+        }
 
-    function closeSuggestions() {
-        clear(operatorSuggestions);
-        operatorSuggestions.classList.remove("is-open");
-        operatorInput.setAttribute("aria-expanded", "false");
-        highlighted = -1;
-    }
+        function add(value) {
+            if (chosen.indexOf(value) === -1) {
+                chosen.push(value);
+                syncField();
+                renderChips();
+                renderActiveFilters();
+                updateCommand(currentQuery());
+            }
+            input.value = "";
+            input.focus();
+            // Left open: picking one is usually the first of several.
+            showList();
+        }
 
-    function addOperator(name) {
-        if (chosenOperators.indexOf(name) === -1) {
-            chosenOperators.push(name);
-            syncOperatorField();
-            renderOperatorChips();
+        function remove_(value) {
+            chosen = chosen.filter(function (kept) {
+                return kept !== value;
+            });
+            syncField();
+            renderChips();
             renderActiveFilters();
             updateCommand(currentQuery());
         }
-        operatorInput.value = "";
-        operatorInput.focus();
-        // Left open: picking one operator is usually the first of several.
-        showSuggestions();
-    }
 
-    function removeOperator(name) {
-        chosenOperators = chosenOperators.filter(function (chosen) {
-            return chosen !== name;
-        });
-        syncOperatorField();
-        renderOperatorChips();
-        renderActiveFilters();
-        updateCommand(currentQuery());
-    }
-
-    function matchingOperators(query) {
-        const needle = query.trim().toLowerCase();
-        return knownOperators
-            .filter(function (name) {
-                return chosenOperators.indexOf(name) === -1;
-            })
-            .filter(function (name) {
-                // Substring, not prefix: "pool" has to find MaxPool.
-                return !needle || name.toLowerCase().indexOf(needle) !== -1;
-            })
-            .sort(function (a, b) {
-                // A name that starts with what was typed is the better guess, so
-                // it goes first; the rest keep alphabetical order.
-                const aStarts = a.toLowerCase().indexOf(needle) === 0;
-                const bStarts = b.toLowerCase().indexOf(needle) === 0;
-                if (aStarts !== bStarts) {
-                    return aStarts ? -1 : 1;
-                }
-                return a.localeCompare(b);
-            })
-            .slice(0, 30);
-    }
-
-    function highlight(index) {
-        const options = operatorSuggestions.querySelectorAll("[role='option']");
-        if (!options.length) {
-            return;
-        }
-        highlighted = (index + options.length) % options.length;
-        Array.prototype.forEach.call(options, function (option, i) {
-            const on = i === highlighted;
-            option.classList.toggle("bg-brand-tint", on);
-            option.setAttribute("aria-selected", String(on));
-            if (on && typeof option.scrollIntoView === "function") {
-                option.scrollIntoView({ block: "nearest" });
-            }
-        });
-    }
-
-    function showSuggestions() {
-        const matches = matchingOperators(operatorInput.value);
-        clear(operatorSuggestions);
-
-        if (!matches.length) {
-            const empty = el(
-                "li",
-                "px-3 py-2 text-base text-ink-muted",
-                knownOperators.length ? "No operator matches" : "Loading the operator list..."
-            );
-            operatorSuggestions.appendChild(empty);
-            operatorSuggestions.classList.add("is-open");
-            operatorInput.setAttribute("aria-expanded", "true");
-            highlighted = -1;
-            return;
+        function matching(query) {
+            const needle = query.trim().toLowerCase();
+            return config
+                .candidates(needle)
+                .filter(function (entry) {
+                    return chosen.indexOf(entry.value) === -1;
+                })
+                .filter(function (entry) {
+                    // Substring, not prefix: "pool" has to find MaxPool.
+                    //
+                    // `match` where an entry needs to be found by something
+                    // other than its own text: `Conv` has to stay in the list
+                    // once "conv:" has been typed, since "any element type" is
+                    // one of the choices being offered at that point, and
+                    // "Conv" does not contain "conv:".
+                    const against = (entry.match || entry.value).toLowerCase();
+                    return !needle || against.indexOf(needle) !== -1;
+                })
+                .sort(function (a, b) {
+                    // The unrestricted entry first, since "this operator at all"
+                    // is the more common of the two questions.
+                    if (Boolean(a.note) !== Boolean(b.note)) {
+                        return a.note ? -1 : 1;
+                    }
+                    // A name that starts with what was typed is the better
+                    // guess, so it goes next; the rest keep alphabetical order.
+                    const aStarts = a.value.toLowerCase().indexOf(needle) === 0;
+                    const bStarts = b.value.toLowerCase().indexOf(needle) === 0;
+                    if (aStarts !== bStarts) {
+                        return aStarts ? -1 : 1;
+                    }
+                    return a.value.localeCompare(b.value);
+                })
+                .slice(0, 40);
         }
 
-        matches.forEach(function (name) {
-            const option = el(
-                "li",
-                "cursor-pointer px-3 py-1.5 font-mono text-base text-ink transition hover:bg-brand-tint"
-            );
-            option.setAttribute("role", "option");
-            option.setAttribute("aria-selected", "false");
-
-            // Show which part of the name matched, so a substring hit does not
-            // look arbitrary.
-            const needle = operatorInput.value.trim();
-            const at = needle ? name.toLowerCase().indexOf(needle.toLowerCase()) : -1;
-            if (at === -1) {
-                option.textContent = name;
-            } else {
-                option.appendChild(document.createTextNode(name.slice(0, at)));
-                option.appendChild(
-                    el("strong", "font-bold text-brand-dark", name.slice(at, at + needle.length))
-                );
-                option.appendChild(document.createTextNode(name.slice(at + needle.length)));
-            }
-
-            // mousedown, not click: the input's blur would close the list first.
-            option.addEventListener("mousedown", function (event) {
-                event.preventDefault();
-                addOperator(name);
-            });
-
-            operatorSuggestions.appendChild(option);
-        });
-
-        operatorSuggestions.classList.add("is-open");
-        operatorInput.setAttribute("aria-expanded", "true");
-        highlight(0);
-    }
-
-    if (operatorPicker && operatorInput) {
-        // Clicking the padding around the chips should land in the input, which
-        // is what the box looks like it does.
-        operatorPicker.addEventListener("click", function (event) {
-            if (event.target === operatorPicker) {
-                operatorInput.focus();
-                showSuggestions();
-            }
-        });
-
-        operatorInput.addEventListener("focus", showSuggestions);
-        operatorInput.addEventListener("input", showSuggestions);
-        // `focus` only fires on the way in, and the input keeps focus through a
-        // pick, so a click needs to open the list too.
-        operatorInput.addEventListener("click", showSuggestions);
-        operatorInput.addEventListener("blur", function () {
-            // A tick, so a click on an option is not cancelled by the list
-            // disappearing underneath it.
-            window.setTimeout(closeSuggestions, 120);
-        });
-
-        operatorInput.addEventListener("keydown", function (event) {
-            const options = operatorSuggestions.querySelectorAll("[role='option']");
-
-            if (event.key === "ArrowDown") {
-                event.preventDefault();
-                if (!operatorSuggestions.classList.contains("is-open")) {
-                    showSuggestions();
-                } else {
-                    highlight(highlighted + 1);
-                }
+        function highlight(index) {
+            // Only the real options: the "no match" and "loading" rows are
+            // messages, and highlighting one would offer it as a choice.
+            const items = Array.prototype.slice.call(list.querySelectorAll("[role='option']"));
+            if (!items.length) {
                 return;
             }
-            if (event.key === "ArrowUp") {
+            highlighted = (index + items.length) % items.length;
+            items.forEach(function (item, i) {
+                const on = i === highlighted;
+                item.classList.toggle("bg-brand-tint", on);
+                item.setAttribute("aria-selected", String(on));
+                if (on && typeof item.scrollIntoView === "function") {
+                    item.scrollIntoView({ block: "nearest" });
+                }
+            });
+        }
+
+        function showList() {
+            const matches = matching(input.value);
+            clear(list);
+
+            if (!matches.length) {
+                list.appendChild(
+                    el(
+                        "li",
+                        "px-3 py-2 text-base text-ink-muted",
+                        config.candidates("").length ? config.emptyText : config.loadingText
+                    )
+                );
+                list.classList.add("is-open");
+                input.setAttribute("aria-expanded", "true");
+                highlighted = -1;
+                return;
+            }
+
+            const needle = input.value.trim();
+            matches.forEach(function (entry) {
+                const option = el(
+                    "li",
+                    "flex cursor-pointer items-baseline gap-2 px-3 py-1.5 transition hover:bg-brand-tint"
+                );
+                option.setAttribute("role", "option");
+                option.setAttribute("aria-selected", "false");
+                // What gets added, kept as data rather than read back out of the
+                // text, which by then has the matched span and the type list in
+                // it as well.
+                option.setAttribute("data-value", entry.value);
+
+                // Show which part of the name matched, so a substring hit does
+                // not look arbitrary.
+                const label = el("span", "font-mono text-base text-ink");
+                const at = needle ? entry.value.toLowerCase().indexOf(needle.toLowerCase()) : -1;
+                if (at === -1) {
+                    label.textContent = entry.value;
+                } else {
+                    label.appendChild(document.createTextNode(entry.value.slice(0, at)));
+                    label.appendChild(
+                        el("strong", "font-bold text-brand-dark", entry.value.slice(at, at + needle.length))
+                    );
+                    label.appendChild(document.createTextNode(entry.value.slice(at + needle.length)));
+                }
+                option.appendChild(label);
+
+                /*
+                 * The element types this name can be asked for, printed after it
+                 * the way the standard's own output does:
+                 *
+                 *     Conv float64 float32
+                 *     Relu float64 float32
+                 *     MatMul
+                 *
+                 * A name with nothing after it is not restricted, which per
+                 * section 5.4.1 means every element type its solver reports, not
+                 * none. That is the one thing in this format that reads
+                 * backwards, so it is spelled out rather than left blank.
+                 */
+                if (entry.types && entry.types.length) {
+                    option.appendChild(
+                        el(
+                            "span",
+                            "ml-auto truncate font-mono text-xs text-ink-muted",
+                            entry.types.join(" ")
+                        )
+                    );
+                }
+                if (entry.note) {
+                    option.appendChild(el("span", "ml-auto text-xs text-ink-muted", entry.note));
+                }
+
+                // mousedown, not click: the input's blur would close the list
+                // first.
+                option.addEventListener("mousedown", function (event) {
+                    event.preventDefault();
+                    add(entry.value);
+                });
+
+                list.appendChild(option);
+            });
+
+            list.classList.add("is-open");
+            input.setAttribute("aria-expanded", "true");
+            highlight(0);
+        }
+
+        // Clicking the padding around the chips should land in the input, which
+        // is what the box looks like it does.
+        picker.addEventListener("click", function (event) {
+            if (event.target === picker) {
+                input.focus();
+                showList();
+            }
+        });
+
+        input.addEventListener("focus", showList);
+        input.addEventListener("input", showList);
+        // `focus` only fires on the way in, and the input keeps focus through a
+        // pick, so a click needs to open the list too.
+        input.addEventListener("click", showList);
+        input.addEventListener("blur", function () {
+            // A tick, so a click on an option is not cancelled by the list
+            // disappearing underneath it.
+            window.setTimeout(closeList, 120);
+        });
+
+        input.addEventListener("keydown", function (event) {
+            const items = list.querySelectorAll("[role='option']");
+
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                 event.preventDefault();
-                highlight(highlighted - 1);
+                if (!list.classList.contains("is-open")) {
+                    showList();
+                } else {
+                    highlight(highlighted + (event.key === "ArrowDown" ? 1 : -1));
+                }
                 return;
             }
             if (event.key === "Enter") {
-                // Never submit the form from here: Enter means "take the
-                // operator I am looking at".
                 event.preventDefault();
-                if (options.length && highlighted >= 0) {
-                    addOperator(options[highlighted].textContent);
+                // Enter means "the one I am looking at", never "whatever I
+                // typed": a half-typed name is a filter that matches nothing.
+                if (items.length && highlighted >= 0) {
+                    add(items[highlighted].getAttribute("data-value"));
                 }
                 return;
             }
             if (event.key === "Escape") {
-                closeSuggestions();
+                closeList();
                 return;
             }
-            if (event.key === "Backspace" && !operatorInput.value && chosenOperators.length) {
+            if (event.key === "Backspace" && !input.value && chosen.length) {
                 // The usual behaviour of a field made of chips.
-                removeOperator(chosenOperators[chosenOperators.length - 1]);
+                remove_(chosen[chosen.length - 1]);
             }
         });
+
+        return api;
     }
+
+    /*
+     * The operators, and the types each one can be asked for.
+     *
+     * `operatorTypes` comes from /vocabulary as a map of name to types. A query
+     * containing a colon is taken as "this operator, at one type", and the list
+     * offers the types that operator actually has rather than every type in the
+     * database, so a combination that no solver reports is never suggested.
+     */
+    let operatorTypes = {};
+
+    function operatorCandidates(needle) {
+        const names = Object.keys(operatorTypes);
+        const colon = needle.indexOf(":");
+        if (colon === -1) {
+            return names.map(function (name) {
+                return { value: name, types: operatorTypes[name] || [] };
+            });
+        }
+        /*
+         * Typing a colon switches the list to that operator's types. Offering
+         * every name crossed with every type unconditionally would be several
+         * hundred rows, most of them combinations nobody wants; this way the
+         * expansion happens only once the reader has asked for it.
+         */
+        const stem = needle.slice(0, colon);
+        const out = [];
+        names.forEach(function (name) {
+            if (name.toLowerCase().indexOf(stem) === -1) {
+                return;
+            }
+            out.push({
+                value: name,
+                types: [],
+                note: "any element type",
+                match: needle,
+            });
+            (operatorTypes[name] || []).forEach(function (type) {
+                out.push({ value: name + ":" + type, types: [] });
+            });
+        });
+        return out;
+    }
+
+    let knownElementTypes = [];
+
+    function elementTypeCandidates() {
+        return knownElementTypes.map(function (name) {
+            return { value: name, types: [] };
+        });
+    }
+
+    pickers.operators = createPicker({
+        pickerId: "operator-picker",
+        inputId: "operator-input",
+        listId: "operator-suggestions",
+        fieldId: "f-operators",
+        candidates: operatorCandidates,
+        emptyText: "No operator matches",
+        loadingText: "Loading the operator list...",
+    });
+
+    pickers.element_types = createPicker({
+        pickerId: "element-picker",
+        inputId: "element-input",
+        listId: "element-suggestions",
+        fieldId: "f-element_types",
+        candidates: elementTypeCandidates,
+        emptyText: "No element type matches",
+        loadingText: "Loading the element types...",
+    });
 
     /* ------------------------------------------------- the command banner -- */
 
@@ -1357,13 +1498,11 @@
                     refresh();
                     return;
                 }
-                if (key === "operators") {
+                if (pickers[key]) {
                     // The hidden field is a projection of the chips, so clearing
                     // it alone would leave the chips on screen claiming a filter
                     // that is no longer applied.
-                    chosenOperators = [];
-                    syncOperatorField();
-                    renderOperatorChips();
+                    pickers[key].clear();
                 } else {
                     const field = form.elements[key];
                     if (field) {
@@ -1552,13 +1691,16 @@
      * the database, and the database is the one thing the browser does not have.
      */
     function populateFromVocabulary(payload) {
-        knownOperators = (payload.operators || []).slice();
+        // A map of name to types, not a bare list: the operator rows show which
+        // element types each one can be asked for.
+        operatorTypes = payload.operators || {};
+        knownElementTypes = (payload.element_types || []).slice();
 
-        const select = document.getElementById("f-element_types");
-        (payload.element_types || []).forEach(function (type) {
-            const option = el("option", null, type);
-            option.value = type;
-            select.appendChild(option);
+        // A list that was open while this arrived is showing "Loading...".
+        Object.keys(pickers).forEach(function (key) {
+            if (pickers[key]) {
+                pickers[key].refreshList();
+            }
         });
     }
 
@@ -1655,13 +1797,18 @@
 
     // Reset fires before the fields are actually cleared, so wait a tick.
     form.addEventListener("reset", function () {
-        chosenOperators = [];
         window.setTimeout(function () {
-            // After reset has cleared the fields, so the hidden operator field
-            // is not written and then wiped.
-            syncOperatorField();
-            renderOperatorChips();
-            closeSuggestions();
+            /*
+             * After reset has cleared the fields, not before. A reset clears the
+             * hidden fields the pickers write to but knows nothing about the
+             * chips, which are the only thing the reader can see, so each picker
+             * has to be told.
+             */
+            Object.keys(pickers).forEach(function (key) {
+                if (pickers[key]) {
+                    pickers[key].clear();
+                }
+            });
             refresh();
         }, 0);
     });
