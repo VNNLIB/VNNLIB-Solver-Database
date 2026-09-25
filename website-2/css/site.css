@@ -430,6 +430,120 @@ section[id],
 }
 
 /*
+ * A control that is off because the other search mode is showing.
+ *
+ * Dimmed rather than hidden, so what the reader typed is still there when they
+ * close the advanced filters and it becomes live again. `disabled` on the
+ * elements is what actually stops them; this only says so.
+ */
+.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/*
+ * The results while the next page is on its way.
+ *
+ * Dimmed rather than replaced, and not moved: paging is the one case where the
+ * reader's cursor is already on the control they are using, so the rows must not
+ * change height under it. Pointer events go off so a second click cannot land on
+ * a Details button for a row that is about to be replaced.
+ */
+#search-results.is-loading {
+    opacity: 0.45;
+    pointer-events: none;
+    transition: opacity 160ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #search-results.is-loading {
+        transition: none;
+    }
+}
+
+/* ------------------------------------------------------ the sliding panels */
+
+/*
+ * Two panels in one box, one showing at a time.
+ *
+ * `clip` rather than `hidden`, because `hidden` makes the element a scroll
+ * container: the off-screen panel would be reachable by scrolling sideways,
+ * and on a touchpad it would be reachable by accident.
+ *
+ * The height is set in pixels by js/site.js for the length of the slide and
+ * released to `auto` afterwards, so the box is never pinned to a stale height
+ * when the window is resized or the results change.
+ */
+.swap {
+    position: relative;
+    overflow-x: clip;
+    transition: height 440ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * Only the showing panel is in flow. The other is taken out of it, which is
+ * what lets the box be the height of one panel rather than the taller of the
+ * two: in a grid or a stack they would both contribute, and the news column
+ * would carry a screenful of blank space under it to make room for a search
+ * that is not on screen.
+ */
+.swap__panel {
+    transition:
+        transform 440ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 260ms ease-out;
+}
+
+.swap__panel:not(.is-active) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Not clickable while sliding away, so a click cannot land on the panel
+     * that is leaving. */
+    pointer-events: none;
+}
+
+.swap__panel.is-right {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.swap__panel.is-left {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+.swap__panel.is-active {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swap,
+    .swap__panel {
+        transition: none;
+    }
+}
+
+/*
+ * The selected release in the details dialog. An attribute selector rather
+ * than a second class, because `aria-pressed` is what tells a screen reader
+ * which one is showing, and driving the look from the same attribute means
+ * the two cannot disagree.
+ */
+.release-tab[aria-pressed="true"] {
+    border-color: #008ae6;
+    background-color: #008ae6;
+    color: #ffffff;
+}
+
+.release-tab[aria-pressed="true"]:hover {
+    border-color: #0071bd;
+    background-color: #0071bd;
+    color: #ffffff;
+}
+
+/*
  * The replacement for a native select's popup. See js/select.js for why there
  * is one at all: the native list is drawn by the operating system and no CSS
  * reaches inside it.

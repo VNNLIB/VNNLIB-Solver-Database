@@ -181,7 +181,26 @@
         <!-- ==================================================== news ======= -->
         <section id="news" class="bg-brand-tint py-16 sm:py-20">
             <div class="mx-auto max-w-6xl px-6">
-                <div class="grid gap-12 lg:grid-cols-2">
+
+                <!--
+                  Two panels side by side in one box, one showing at a time.
+
+                  The solver search used to be its own page. It is the same
+                  section of the site as the list it continues, so it is the
+                  same section of the document: the news and the hand-kept
+                  table slide out to the left, the search slides in from the
+                  right, and a Back button reverses it. Nothing navigates, so
+                  nothing is re-fetched and the reader does not lose their
+                  place on the page.
+
+                  The container's height follows whichever panel is showing,
+                  measured and animated in js/site.js, because the two are very
+                  different heights and a snap would shove the rest of the page
+                  up or down mid-slide.
+                -->
+                <div id="solver-swap" class="swap" data-showing="overview">
+                    <div id="panel-overview" class="swap__panel is-active">
+                        <div class="grid gap-12 lg:grid-cols-2">
                     <div>
                         <h2 class="section-title">Latest News</h2>
                         <div class="section-rule"></div>
@@ -267,14 +286,19 @@
                         </p>
 
                         <!--
-                          The way to the solver page, here rather than on the
-                          rail. The rail is a map of this page, and a link to a
-                          different page sitting among its sections read as one
-                          of them. It belongs next to the list it continues: the
-                          table above is what was reported by hand, and the page
-                          below is what the pipeline measured.
+                          The way into the search, here rather than on the
+                          rail. The rail is a map of this page's sections, and
+                          this is a view of one of them, not another one. It
+                          belongs beside the list it continues: the table above
+                          is what was reported by hand, the search is what the
+                          pipeline measured.
+
+                          Still an <a> with a real href, not a bare button, so
+                          it can be opened in a new tab, copied, and shared, and
+                          so it still works before the script runs. The click
+                          handler in js/site.js takes over and slides instead.
                         -->
-                        <a href="solvers.html"
+                        <a id="search-open" href="#find-a-solver"
                             class="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-3 font-heading text-sm font-semibold text-white shadow-card transition hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-ink">
                             Find a solver
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -287,6 +311,372 @@
                             element types and opset versions, collected automatically from the solvers
                             themselves.
                         </p>
+                    </div>
+                        </div>
+                    </div>
+
+                    <!--
+                      The search. `aria-hidden` and `hidden` are both set while
+                      it is off screen: the first keeps it out of a screen
+                      reader's reading order, the second keeps it out of the tab
+                      order, and neither is something transform alone does. A
+                      panel that is invisible but still focusable is how a
+                      keyboard user ends up typing into a form they cannot see.
+                    -->
+                    <div id="panel-search" class="swap__panel is-right" aria-hidden="true" hidden>
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <h2 class="section-title">Find a solver</h2>
+                                <div class="section-rule"></div>
+                            </div>
+                            <button id="search-back" type="button"
+                                class="inline-flex items-center gap-2 rounded-lg border border-ink/20 bg-white px-4 py-2.5 font-heading text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 17l-5-5 5-5M18 12H6" />
+                                </svg>
+                                Back
+                            </button>
+                        </div>
+                        <p class="mt-6 max-w-prose text-lg leading-relaxed text-ink-muted">
+                            Every VNN-LIB 2.0 solver reports what it supports through its <code
+                                class="rounded bg-white px-1.5 py-0.5 font-mono text-base text-ink ring-1 ring-ink/10">supports</code>
+                            command. Those answers are collected automatically, and this searches them in
+                            reverse: describe the query you need to solve, and it returns the solvers that can
+                            take it.
+                        </p>
+
+                    <!-- ==================================================== toolbar -->
+                    <!--
+                      What most visitors want is one of these three things, so they are
+                      the only controls on screen to begin with: find a solver by name,
+                      change the order, or open the capability filters. The filters are a
+                      panel behind a button rather than nine controls in the way, because
+                      choosing a theory means knowing what the theories are, and someone
+                      who has come to look up a name should not have to read past them.
+                    -->
+                    <div class="rounded-2xl border border-ink/10 bg-white p-5 shadow-card sm:p-6">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-end">
+                            <!--
+                              The name is searched on demand, not as it is typed. Every
+                              keystroke used to be a request, which meant a search nobody
+                              asked for on the way to the one they wanted, and answers
+                              arriving out of order. The button says when.
+                            -->
+                            <div>
+                                <label class="field-label" for="q-name">Search by name</label>
+                                <div class="flex items-center gap-2">
+                                    <div class="relative">
+                                        <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-muted"
+                                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                                            aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                                        </svg>
+                                        <input id="q-name" type="search" autocomplete="off" class="field w-full pl-10 sm:w-56"
+                                            placeholder="Solver name">
+                                    </div>
+                                    <button id="name-search" type="button"
+                                        class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-brand px-4 py-2.5 font-heading text-sm font-semibold text-white shadow-card transition hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-ink">
+                                        Search
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="sort-by">Sort by</label>
+                                <select id="sort-by" class="field lg:w-60">
+                                    <option value="name-asc">Name, A to Z</option>
+                                    <option value="name-desc">Name, Z to A</option>
+                                    <option value="version-desc">Version, newest first</option>
+                                    <option value="version-asc">Version, oldest first</option>
+                                    <option value="date-desc" selected>Recently updated first</option>
+                                    <option value="date-asc">Least recently updated first</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="page-size">Per page</label>
+                                <select id="page-size" class="field lg:w-24">
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+
+                            <button id="filters-toggle" type="button" aria-expanded="false"
+                                aria-controls="filters-panel"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/20 bg-white px-4 py-2.5 font-heading text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 6h16M7 12h10M10 18h4" />
+                                </svg>
+                                <span>Advanced filters</span>
+                                <span id="filter-count"
+                                    class="hidden min-w-5 rounded-full bg-brand px-1.5 text-xs leading-5 text-white">0</span>
+                                <svg id="filters-chevron" class="h-4 w-4 transition-transform" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- ================================================ filters -->
+                        <!--
+                          The panel animates open by growing from `grid-template-rows:
+                          0fr` to `1fr`, which is the one way to transition to a height
+                          nobody has measured. `height: auto` is not animatable, and the
+                          alternatives are worse: a fixed max-height either clips the
+                          panel or eases towards a number far larger than the content,
+                          which reads as a pause before anything moves.
+                        -->
+                        <div id="filters-panel" class="filters-panel">
+                            <div class="filters-panel__inner">
+                                <form id="solver-search-form" class="mt-5 border-t border-ink/10 pt-5">
+                            <!--
+                              Grouped, because the nine controls are two different kinds
+                              of question. The first five ask which theories a solver
+                              handles, which is what Chapter 4 of the standard is about
+                              and what the downward closure applies to. The rest are
+                              concrete ONNX and version facts. Without the split they
+                              read as one undifferentiated wall of dropdowns.
+                            -->
+                            <fieldset>
+                                <legend class="font-heading text-sm font-bold uppercase tracking-wide text-ink-muted">
+                                    Theories supported
+                                </legend>
+                                <div class="mt-3 grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                                    <div>
+                                        <label class="field-label" for="f-hidden_nodes">Hidden nodes</label>
+                                        <select id="f-hidden_nodes" name="hidden_nodes" class="field">
+                                            <option value="">Any</option>
+                                            <option value="NH">NH, no hidden node declarations</option>
+                                            <option value="H">H, may declare hidden nodes</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="field-label" for="f-multiple_io">Inputs and outputs</label>
+                                        <select id="f-multiple_io" name="multiple_io" class="field">
+                                            <option value="">Any</option>
+                                            <option value="SIO">SIO, one input and one output</option>
+                                            <option value="MIO">MIO, arbitrarily many</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="field-label" for="f-multiple_networks">Multiple networks</label>
+                                        <select id="f-multiple_networks" name="multiple_networks" class="field">
+                                            <option value="">Any</option>
+                                            <option value="SNET">SNET, one network</option>
+                                            <option value="MENET">MENET, equal-to only</option>
+                                            <option value="MINET">MINET, isomorphic-to allowed</option>
+                                            <option value="MNET">MNET, arbitrarily many</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="field-label" for="f-node_comparisons">Node comparisons</label>
+                                        <select id="f-node_comparisons" name="node_comparisons" class="field">
+                                            <option value="">Any</option>
+                                            <option value="SNC">SNC, no cross-node assertions</option>
+                                            <option value="MNC">MNC, comparisons allowed</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="field-label" for="f-arithmetic">Arithmetic theory</label>
+                                        <select id="f-arithmetic" name="arithmetic" class="field">
+                                            <option value="">Any</option>
+                                            <option value="BND">BND, variable against constant</option>
+                                            <option value="OUTC">OUTC, hidden or output comparisons</option>
+                                            <option value="LIN">LIN, linear expressions</option>
+                                            <option value="POLY">POLY, polynomial</option>
+                                        </select>
+                                    </div>
+
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="mt-5">
+                                <legend class="font-heading text-sm font-bold uppercase tracking-wide text-ink-muted">
+                                    ONNX and versions
+                                </legend>
+                                <div class="mt-3 grid gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div>
+                                        <label class="field-label" for="f-element_types">Element type</label>
+                                        <select id="f-element_types" name="element_types" class="field">
+                                            <option value="">Any</option>
+                                        </select>
+                                    </div>
+
+                                        <!--
+                                        Operators are picked, not typed.
+
+                                        There are over fifty of them, spelled exactly as ONNX
+                                        spells them, and the casing is part of the name:
+                                        `LeakyRelu`, `ConstantOfShape`, `ScatterND`. Expecting
+                                        anyone to reproduce that from memory into a text box meant
+                                        that a typo silently returned nothing and looked like an
+                                        answer. A datalist was the first attempt, but it only
+                                        matches from the start of a word, so typing `pool` found
+                                        nothing while `MaxPool` and `AveragePool` both existed.
+
+                                        So: a list built from the database, matched anywhere in
+                                        the name, added as removable chips.
+                                        -->
+                                        <div class="sm:col-span-2">
+                                            <label class="field-label" for="operator-input">ONNX operators</label>
+
+                                            <div id="operator-picker"
+                                                class="field flex cursor-text flex-wrap items-center gap-1.5 py-2">
+                                                <!-- Chips are inserted here, before the input. -->
+                                                <input id="operator-input" type="text" autocomplete="off" role="combobox"
+                                                aria-expanded="false" aria-autocomplete="list"
+                                                aria-controls="operator-suggestions"
+                                                class="min-w-[10rem] flex-1 border-0 bg-transparent p-0 text-base text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-0"
+                                                placeholder="Type to search, for example pool">
+                                            </div>
+
+                                            <div class="relative">
+                                                <ul id="operator-suggestions" role="listbox" aria-label="Matching operators"
+                                                    class="suggestions absolute inset-x-0 top-1 z-20 max-h-60 overflow-y-auto overflow-x-hidden rounded-xl border border-ink/15 bg-white py-1 shadow-card">
+                                                </ul>
+                                            </div>
+
+                                            <!--
+                                            What the form actually submits. The chips are the
+                                            interface; this stays a plain comma separated field so
+                                            currentQuery, the command banner and the API contract
+                                            are all unchanged.
+                                            -->
+                                            <input id="f-operators" name="operators" type="hidden">
+
+                                            </div>
+
+                                            <div>
+                                                <label class="field-label" for="f-onnx_opset">ONNX opset version</label>
+                                                <input id="f-onnx_opset" name="onnx_opset" type="number" min="1" max="30"
+                                                placeholder="17" class="field">
+                                            </div>
+
+                                            <div>
+                                                <label class="field-label" for="f-vnnlib_versions">VNN-LIB version</label>
+                                                <select id="f-vnnlib_versions" name="vnnlib_versions" class="field">
+                                                    <option value="">Any</option>
+                                                    <option value="1.0">1.0</option>
+                                                    <option value="2.0">2.0</option>
+                                                </select>
+                                                </div>
+                                </div>
+                            </fieldset>
+
+                        <div class="mt-5 flex flex-wrap items-center gap-3">
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-3 font-heading text-sm font-semibold text-white shadow-card transition hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-ink">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                                </svg>
+                                Search
+                            </button>
+                            <button type="reset"
+                                class="rounded-lg border border-ink/20 px-5 py-3 font-heading text-sm font-semibold text-ink transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                                Clear filters
+                            </button>
+                        </div>
+
+                        <!--
+                          The same search as a command. It is rebuilt on every change to
+                          a filter, so the page doubles as documentation for the package:
+                          whatever you assembled by clicking, here is the line that does
+                          it from a terminal or inside a script.
+                        -->
+                        <div class="mt-7">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h3 class="font-heading text-sm font-semibold uppercase tracking-wide text-ink-muted">
+                                    The same search from a terminal
+                                </h3>
+                                <button id="copy-command" type="button"
+                                    class="inline-flex items-center gap-1.5 rounded-md border border-ink/15 bg-white px-2.5 py-1.5 font-heading text-xs font-semibold text-ink transition hover:border-brand hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M8 8V5a1 1 0 011-1h10a1 1 0 011 1v10a1 1 0 01-1 1h-3M5 8h10a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9a1 1 0 011-1z" />
+                                    </svg>
+                                    <span id="copy-command-label">Copy</span>
+                                </button>
+                            </div>
+
+                            <!-- A terminal, not an input: the prompt is decoration and is not copied. -->
+                            <div class="mt-2 overflow-hidden rounded-lg bg-ink shadow-card">
+                                <div class="flex items-center gap-1.5 border-b border-white/10 px-4 py-2.5">
+                                    <span class="h-2.5 w-2.5 rounded-full bg-red-400/70"></span>
+                                    <span class="h-2.5 w-2.5 rounded-full bg-amber-400/70"></span>
+                                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/70"></span>
+                                    <span class="ml-2 font-mono text-xs text-white/40">bash</span>
+                                </div>
+                                <!--
+                                  The command wraps rather than scrolling sideways. A
+                                  long operator list makes this line longer than the
+                                  panel, and a horizontal scrollbar would hide the end of
+                                  it behind a gesture, on the one element whose whole
+                                  purpose is to be read and copied whole.
+
+                                  The hanging indent, pl-5 against -indent-5, puts
+                                  continuation lines under the command instead of under
+                                  the prompt, so the wrapped flags still read as one
+                                  argument list.
+                                -->
+                                <div class="px-4 py-4">
+                                    <pre class="whitespace-pre-wrap break-words pl-5 -indent-5 font-mono text-sm leading-relaxed text-code-text"><span
+                                            class="select-none text-brand" aria-hidden="true">$ </span><code
+                                            id="command-line">pip install vnnfilter</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================================================== results -->
+                    <section class="mt-10" aria-labelledby="results-heading">
+                        <div>
+                            <h2 id="results-heading" class="font-heading text-xl font-bold text-ink">Results</h2>
+                            <p id="search-status" class="mt-1 text-base text-ink-muted" role="status"
+                                aria-live="polite"></p>
+                        </div>
+
+                        <!--
+                          Chips for whatever is narrowing the list, so a filter set
+                          inside the collapsed panel is still visible, and removable,
+                          from here.
+
+                          On its own full-width row: a flex item shrinks by default, so
+                          sharing a row with the heading would squeeze the box towards the
+                          width of a single chip and push the rest out of sight.
+                        -->
+                        <div id="active-filters" class="mt-3 flex w-full flex-wrap items-center gap-2"></div>
+
+                        <!-- Filled by js/solver-search.js: the table, or a loading, empty or error state. -->
+                        <div id="search-results" class="mt-5"></div>
+
+                        <nav id="pagination" class="mt-6 hidden items-center justify-between gap-4 sm:flex"
+                            aria-label="Result pages"></nav>
+                    </section>
+
+                    <p class="mt-10 max-w-prose text-base leading-relaxed text-ink-muted">
+                        The same data is available as
+                        <a class="link" target="_blank" rel="noopener"
+                            href="https://12er90.pythonanywhere.com/solvers">JSON</a>, and on the command line
+                        through <code>pip install vnnfilter</code>. To register a solver, open a pull request against
+                        the
+                        <a class="link" target="_blank" rel="noopener"
+                            href="https://github.com/VNNLIB/VNNLIB-Solver-Database">solver database</a>.
+                    </p>
                     </div>
                 </div>
             </div>
@@ -541,6 +931,30 @@
     </main>
 
     <!--
+      Details for one release. A native <dialog> rather than a hand-built
+      overlay, so Escape closes it, focus is trapped while it is open, and the
+      rest of the page is inert without any of that being reimplemented.
+    -->
+    <dialog id="details-dialog"
+        class="w-[min(46rem,calc(100vw-2rem))] rounded-2xl p-0">
+        <div class="flex items-start justify-between gap-4 border-b border-ink/10 bg-brand-tint px-6 py-5">
+            <div>
+                <h2 id="details-title" class="font-heading text-2xl font-bold text-ink"></h2>
+                <p id="details-subtitle" class="mt-1 text-base text-ink-muted"></p>
+            </div>
+            <button id="details-close" type="button"
+                class="rounded-lg p-2 text-ink-muted transition hover:bg-white hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                <span class="sr-only">Close</span>
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                    aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="details-body" class="dialog-scroll px-6 py-6"></div>
+    </dialog>
+
+    <!--
       Copyright. Centred on a navy band: the credit line with the UniGE crest
       beside it, then the small print.
     -->
@@ -608,11 +1022,22 @@
             .field-hint {
                 @apply mt-1.5 text-sm leading-snug text-ink-muted;
             }
+            .page-button {
+                @apply inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-ink/15 bg-white px-3 font-heading text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink/15 disabled:hover:text-ink;
+            }
+            .page-button-current {
+                @apply inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-brand bg-brand px-3 font-heading text-sm font-semibold text-white;
+            }
+            .release-tab {
+                @apply inline-flex items-center rounded-lg border border-ink/15 bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand;
+            }
         }
     </style>
 
     <script src="js/site.js"></script>
     <script src="js/neurons.js"></script>
+    <script src="js/select.js"></script>
+    <script src="js/solver-search.js"></script>
 </body>
 
 </html>

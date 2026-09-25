@@ -7,6 +7,11 @@
 # contract SUBMITTING.md gives real submitters: it writes an executable named
 # exactly testsolver14 into $SOLVER_BIN_DIR and exits 0.
 #
+# This solver is the one whose capabilities do not only grow: float64 is here
+# in 1.0.0, absent in 1.5.0, and back in 2.0.0. A float64 search therefore
+# matches its first and last releases but not the middle one, which is the
+# case that makes /search return two version ranges rather than one span.
+#
 set -euo pipefail
 
 : "${SOLVER_BIN_DIR:=$PWD}"
@@ -30,6 +35,7 @@ case "${2:-}" in
     ;;
   --onnx-element-types)
     echo "real"
+    echo "float64"
     ;;
   --onnx-operators)
     echo "Gemm"

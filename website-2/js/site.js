@@ -100,9 +100,7 @@
         const items = Array.prototype.slice.call(rail.querySelectorAll(".rail-item"));
         const fill = document.getElementById("rail-fill");
 
-        // Only the items that point at a section of this page. On solvers.html
-        // that is none of them, and the rail still shows progress and the
-        // current page.
+        // Only the items that point at a section of this page.
         const targets = items
             .map(function (item) {
                 const href = item.getAttribute("href") || "";
@@ -296,6 +294,230 @@
                 { threshold: 0.25 }
             );
             watcher.observe(example);
+        }
+    }
+
+    /* --------------------------------------------------- the solver panel -- */
+
+    /*
+     * Sliding the solver search in over the news and the solver list.
+     *
+     * Three things this has to get right, and each one is a way the same
+     * feature is usually broken:
+     *
+     *   The URL. `#find-a-solver` is pushed when the panel opens, so the
+     *   browser's own Back button reverses the slide, a reload comes back to
+     *   the search rather than the top of the page, and the search can be
+     *   linked to from anywhere. The Back button in the panel does exactly what
+     *   the browser's does, because it calls it.
+     *
+     *   The height. The two panels are very different heights, so the box is
+     *   pinned to the outgoing height, released to the incoming one, and set
+     *   back to `auto` when the slide ends. Without the last step the box stays
+     *   frozen at whatever it measured, and a search returning fifty rows
+     *   overflows it.
+     *
+     *   Focus. The panel that is off screen is `hidden` as well as translated,
+     *   so a keyboard user cannot tab into a form they cannot see, and focus is
+     *   moved into whichever panel arrives.
+     */
+    const swap = document.getElementById("solver-swap");
+    const overview = document.getElementById("panel-overview");
+    const searchPanel = document.getElementById("panel-search");
+    const openLink = document.getElementById("search-open");
+    const backButton = document.getElementById("search-back");
+    const SEARCH_HASH = "#find-a-solver";
+    const SLIDE_MS = 440;
+
+    if (swap && overview && searchPanel && openLink && backButton) {
+        let sliding = false;
+
+        const reduced = window.matchMedia
+            ? window.matchMedia("(prefers-reduced-motion: reduce)")
+            : { matches: false };
+
+        function showing() {
+            return swap.dataset.showing;
+        }
+
+        /*
+         * `hidden` is removed before measuring and re-applied after the slide,
+         * because a display:none element measures as zero and cannot be
+         * transitioned at all.
+         */
+        function slide(to) {
+            if (sliding || showing() === to) {
+                return;
+            }
+            const incoming = to === "search" ? searchPanel : overview;
+            const outgoing = to === "search" ? overview : searchPanel;
+            const fromEdge = to === "search" ? "is-right" : "is-left";
+            const toEdge = to === "search" ? "is-left" : "is-right";
+
+            incoming.hidden = false;
+            incoming.removeAttribute("aria-hidden");
+            outgoing.setAttribute("aria-hidden", "true");
+
+            // Measure both, with the incoming panel in flow and the outgoing
+            // one out of it, which is the arrangement that will be true once
+            // the slide is done.
+            const startHeight = swap.offsetHeight;
+            outgoing.classList.remove("is-active");
+            incoming.classList.add("is-active");
+            const endHeight = swap.offsetHeight;
+
+            swap.dataset.showing = to;
+            if (to === "search") {
+                // js/solver-search.js waits for this before its first fetch, so
+                // the database is not downloaded by readers who never open the
+                // search.
+                document.dispatchEvent(new CustomEvent("solver-search:open"));
+            }
+
+            if (reduced.matches || !startHeight || !endHeight) {
+                // Nothing to animate: either the reader asked for less motion,
+                // or nothing has been laid out yet, which is what a zero height
+                // means. Land on the end state directly.
+                incoming.classList.remove("is-right", "is-left");
+                outgoing.classList.add(toEdge);
+                outgoing.hidden = true;
+                swap.style.height = "";
+                focusPanel(incoming);
+                return;
+            }
+
+            sliding = true;
+            swap.style.height = startHeight + "px";
+            // Read, to force the height above to be the start of the
+            // transition rather than being collapsed into the line below it.
+            void swap.offsetHeight;
+
+            incoming.classList.remove(fromEdge);
+            outgoing.classList.add(toEdge);
+            swap.style.height = endHeight + "px";
+
+            let done = false;
+            function finish() {
+                if (done) {
+                    return;
+                }
+                done = true;
+                window.clearTimeout(timer);
+                swap.removeEventListener("transitionend", onEnd);
+                // Back to auto, so the box follows its content from here on.
+                swap.style.height = "";
+                outgoing.hidden = true;
+                sliding = false;
+                focusPanel(incoming);
+            }
+            function onEnd(event) {
+                if (event.target === swap && event.propertyName === "height") {
+                    finish();
+                }
+            }
+            swap.addEventListener("transitionend", onEnd);
+            // Backstop, for a browser that skips the transition and so never
+            // fires the event, which would leave the box pinned forever.
+            const timer = window.setTimeout(finish, SLIDE_MS + 120);
+        }
+
+        /*
+         * Focus goes to the panel itself, not to the first control in it. The
+         * first control in the search is a text box, and focusing it would make
+         * a phone open its keyboard over the results the reader came to see.
+         */
+        function focusPanel(panel) {
+            panel.setAttribute("tabindex", "-1");
+            panel.focus({ preventScroll: true });
+        }
+
+        // Guarded, because scrollIntoView is missing in a few environments and
+        // failing to scroll should never take the slide down with it.
+        function bringIntoView(element) {
+            if (element && typeof element.scrollIntoView === "function") {
+                element.scrollIntoView({
+                    block: "start",
+                    behavior: reduced.matches ? "auto" : "smooth",
+                });
+            }
+        }
+
+        function openSearch(pushState) {
+            if (pushState && window.history && window.history.pushState) {
+                window.history.pushState({ solverSearch: true }, "", SEARCH_HASH);
+            }
+            slide("search");
+            // The search starts at the top of the box, which is where the
+            // toolbar is. Without this the reader is left looking at wherever
+            // the solver list happened to be scrolled to.
+            bringIntoView(swap);
+        }
+
+        function closeSearch() {
+            // Delegated to the browser, so the Back button and this button are
+            // the same action and cannot get out of step.
+            if (window.history && window.history.state && window.history.state.solverSearch) {
+                window.history.back();
+                return;
+            }
+            leaveSearch();
+        }
+
+        function leaveSearch() {
+            slide("overview");
+            bringIntoView(document.getElementById("solvers"));
+        }
+
+        openLink.addEventListener("click", function (event) {
+            event.preventDefault();
+            openSearch(true);
+        });
+
+        backButton.addEventListener("click", function () {
+            closeSearch();
+        });
+
+        // Escape, while the search is showing and nothing has claimed it. The
+        // details dialog is a <dialog>, which takes Escape for itself, so this
+        // only ever fires when no dialog is open.
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && showing() === "search") {
+                closeSearch();
+            }
+        });
+
+        window.addEventListener("popstate", function () {
+            slide(window.location.hash === SEARCH_HASH ? "search" : "overview");
+        });
+
+        // A link or a reload landing on #find-a-solver opens the search with no
+        // animation, because there is nothing to animate away from.
+        if (window.location.hash === SEARCH_HASH) {
+            searchPanel.hidden = false;
+            searchPanel.removeAttribute("aria-hidden");
+            searchPanel.classList.remove("is-right");
+            searchPanel.classList.add("is-active");
+            overview.classList.remove("is-active");
+            overview.classList.add("is-left");
+            overview.setAttribute("aria-hidden", "true");
+            overview.hidden = true;
+            swap.dataset.showing = "search";
+            // solver-search.js checks the panel itself in this case, since it
+            // runs after this file and the event would already have been missed.
+        }
+
+        /*
+         * Any rail dot is a jump to a section of the overview, so it has to put
+         * the overview back first, or the reader is sent to an anchor inside a
+         * panel that is not on screen.
+         */
+        if (rail) {
+            rail.addEventListener("click", function (event) {
+                const item = event.target.closest ? event.target.closest(".rail-item") : null;
+                if (item && showing() === "search") {
+                    slide("overview");
+                }
+            });
         }
     }
 

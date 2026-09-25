@@ -15,11 +15,10 @@
  * feeds them to the CLI. The HTML stays the single source.
  *
  * Every page is scanned, not just index.html, because a page may declare
- * components only it uses: solvers.html has the pagination buttons, index.html
- * has the carousel arrows. Taking one page's block would silently leave the
- * other page's components out of the compiled stylesheet, which shows up as a
- * few unstyled controls on one page only, in the compiled build and not under
- * the CDN. That is a bad bug to go looking for.
+ * components only it uses. Taking one page's block would silently leave another
+ * page's components out of the compiled stylesheet, which shows up as a few
+ * unstyled controls on one page only, in the compiled build and not under the
+ * CDN. That is a bad bug to go looking for.
  */
 
 const { execFileSync } = require("child_process");
