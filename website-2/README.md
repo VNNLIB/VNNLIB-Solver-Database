@@ -120,6 +120,14 @@ What the implementation has to get right, in `js/site.js`:
   reverses the slide, a reload comes back to the search, and it can be linked to.
   The Back button in the panel calls `history.back()` rather than sliding
   directly, so the two cannot get out of step.
+- **Going back does not scroll.** Both panels are the same box in the same
+  section, so when the search slides away the reader is already looking at what
+  replaced it. Scrolling `#solvers` to the top of the viewport, which is what
+  this did at first, moved the page *down* past the Latest News column to reach
+  it, which reads as being thrown elsewhere for pressing Back. The one case that
+  does need a scroll is a reader deep in a long results list: the overview is far
+  shorter, so the section can end up off screen entirely, and `keepInView` only
+  corrects when the box has actually left the viewport.
 - **The height.** The two panels are very different heights, so the box is
   pinned to the outgoing height, released to the incoming one, and set back to
   `auto` when the slide ends. Skipping that last step leaves the box frozen at
