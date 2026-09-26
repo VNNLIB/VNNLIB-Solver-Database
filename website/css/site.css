@@ -576,6 +576,17 @@ a {
     grid-column: span 3;
 }
 
+.library-card-header {
+    align-items: center;
+    display: flex;
+    gap: .85rem;
+    margin-bottom: 1rem;
+}
+
+.library-card-header h3 {
+    margin-bottom: 0;
+}
+
 .library-card h3 a {
     color: var(--brand-navy);
 }
@@ -597,10 +608,10 @@ a {
     display: inline-flex;
     font-size: 1rem;
     font-weight: 800;
-    height: 2.8rem;
+    flex: 0 0 auto;
+    height: 2.65rem;
     justify-content: center;
-    margin-bottom: 1rem;
-    min-width: 2.8rem;
+    min-width: 2.65rem;
     padding: 0 .65rem;
 }
 
