@@ -557,7 +557,7 @@ a {
 .library-card {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     min-height: 100%;
 }
 
@@ -581,6 +581,7 @@ a {
     display: flex;
     gap: .85rem;
     margin-bottom: 1rem;
+    min-height: 3rem;
 }
 
 .library-card-header h3 {
