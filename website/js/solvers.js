@@ -457,8 +457,13 @@
     }
 
     function populateOperatorSuggestions(solvers) {
-        $("operator-suggestions").innerHTML = allOperators(solvers).map(function (operator) {
+        var operators = allOperators(solvers);
+        $("operator-suggestions").innerHTML = operators.map(function (operator) {
             return '<option value="' + escapeHtml(operator) + '"></option>';
+        }).join("");
+        $("operator-choices").innerHTML = operators.map(function (operator) {
+            return '<button type="button" class="pill operator-choice" data-operator="' + escapeHtml(operator) + '">'
+                + escapeHtml(operator) + "</button>";
         }).join("");
     }
 
@@ -586,19 +591,23 @@
         }).join("");
     }
 
+    function solverLink(solver) {
+        var url = solver.link || solver.url || solver.homepage || solver.website || solver.repo;
+        return url
+            ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + "</a>"
+            : "Unknown";
+    }
+
     function solverRow(solver, version, rowId) {
         var capabilities = version.capabilities || {};
         var detailId = "solver-detail-" + rowId;
-        var repo = solver.repo
-            ? '<a href="' + escapeHtml(solver.repo) + '" target="_blank" rel="noopener">' + escapeHtml(solver.repo) + "</a>"
-            : "Unknown";
 
         return [
             "<tr>",
             '<td><strong>' + escapeHtml(solver.name || solver.id) + '</strong><div class="solver-meta">' + escapeHtml(solver.id) + "</div></td>",
             "<td>" + escapeHtml(version.version || "Unknown") + "</td>",
             "<td>" + rangeText(capabilities.vnnlib_versions) + "</td>",
-            "<td>" + repo + "</td>",
+            "<td>" + solverLink(solver) + "</td>",
             '<td><button class="btn btn-sm btn-outline-primary" type="button" data-toggle="collapse" data-target="#' + detailId + '" aria-expanded="false" aria-controls="' + detailId + '">Details</button></td>',
             "</tr>",
             '<tr class="solver-detail-row"><td colspan="5"><div class="collapse" id="' + detailId + '">' + versionDetails(version) + "</div></td></tr>"
@@ -684,6 +693,15 @@
                 return;
             }
             removeFilterValue(chip.dataset.field, chip.dataset.value || null);
+        });
+
+        $("operator-choices").addEventListener("click", function (event) {
+            var choice = event.target.closest(".operator-choice");
+            if (!choice) {
+                return;
+            }
+            $("filter-operators").value = mergeCommaInput($("filter-operators").value, [choice.dataset.operator]);
+            $("filter-operators").dispatchEvent(new Event("input", { bubbles: true }));
         });
 
         [
