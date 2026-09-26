@@ -457,8 +457,13 @@
     }
 
     function populateOperatorSuggestions(solvers) {
-        $("operator-suggestions").innerHTML = allOperators(solvers).map(function (operator) {
+        var operators = allOperators(solvers);
+        $("operator-suggestions").innerHTML = operators.map(function (operator) {
             return '<option value="' + escapeHtml(operator) + '"></option>';
+        }).join("");
+        $("operator-choices").innerHTML = operators.map(function (operator) {
+            return '<button type="button" class="pill operator-choice" data-operator="' + escapeHtml(operator) + '">'
+                + escapeHtml(operator) + "</button>";
         }).join("");
     }
 
@@ -688,6 +693,15 @@
                 return;
             }
             removeFilterValue(chip.dataset.field, chip.dataset.value || null);
+        });
+
+        $("operator-choices").addEventListener("click", function (event) {
+            var choice = event.target.closest(".operator-choice");
+            if (!choice) {
+                return;
+            }
+            $("filter-operators").value = mergeCommaInput($("filter-operators").value, [choice.dataset.operator]);
+            $("filter-operators").dispatchEvent(new Event("input", { bubbles: true }));
         });
 
         [

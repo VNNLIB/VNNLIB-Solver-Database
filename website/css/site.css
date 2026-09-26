@@ -784,6 +784,20 @@ a {
     color: #ffffff;
 }
 
+.operator-choice-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .6rem;
+    max-height: 7.8rem;
+    overflow: auto;
+    padding-right: .2rem;
+}
+
+.operator-choice {
+    background: #ffffff;
+}
+
 .solver-filter-panel .filter-file-control {
     background: #ffffff;
     font-size: .9rem;
