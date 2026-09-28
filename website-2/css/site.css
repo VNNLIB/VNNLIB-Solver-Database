@@ -146,14 +146,28 @@ section[id],
     transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
+/*
+ * Hovering is not being current, and the two must not look alike.
+ *
+ * These used to both be brand blue, which meant clicking a dot and then
+ * scrolling lit two: the one still under the pointer, and the one the scrollspy
+ * had moved to. Hover now darkens the dot and grows it slightly, while current
+ * keeps the blue, the larger scale and the ring below, so only one dot can ever
+ * read as "you are here".
+ */
 .rail-item:hover .rail-dot,
 .rail-item:focus-visible .rail-dot {
-    background: #008ae6;
-    transform: scale(1.25);
+    background: rgba(2, 0, 36, 0.5);
+    transform: scale(1.2);
 }
 
 /* The section being read, and the current page on solvers.html. */
+/*
+ * After the hover rule on purpose: equal specificity, so source order decides,
+ * and the current section must keep its treatment while the pointer is over it.
+ */
 .rail-item.is-current .rail-dot,
+.rail-item.is-current:hover .rail-dot,
 .rail-item[aria-current="page"] .rail-dot {
     background: #008ae6;
     transform: scale(1.45);

@@ -134,7 +134,7 @@ Any value outside the permitted set is a conformance failure: that field becomes
 
 | Field | Source | Meaning |
 |---|---|---|
-| `serialise_assignments` | `--serialise-assignments` | Whether the solver can write assignments as ONNX `TensorProto` files. Irrelevant to search; recorded because the standard makes reporting it mandatory |
+| `serialise_assignments` | `--serialise-assignments` | Whether the solver can write assignments as ONNX `TensorProto` files. Recorded because the standard makes reporting it mandatory, and searchable: `/search?serialise_assignments=true` |
 
 ---
 

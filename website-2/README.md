@@ -22,7 +22,7 @@ js/
     solver-search.js      the solver search panel
     select.js             a styleable dropdown for every <select class="field">
     neurons.js            the masthead's neuron field
-assets/                 images, favicons, the neuron artwork, the standard PDFs
+assets/                 images, favicons, the standard PDFs
 ```
 
 ## Styling
@@ -242,11 +242,6 @@ results, and neither does a name they cannot see.
 - The `vnnfilter` banner follows the same rule, so it only ever shows the command
   for what is actually applied.
 
-The operator picker and the element type list come from `/vocabulary`, one
-request on first open, not from the search response: a response is ten solvers
-now, so building the picker from it would offer whatever those ten support and
-omit the rest.
-
 ### The command banner
 
 Whatever you assemble by clicking is shown as the equivalent `vnnfilter`
@@ -306,9 +301,9 @@ happens once the reader has asked for it: offering every name crossed with every
 type would be several hundred rows, most of them combinations no solver reports.
 
 The types themselves come from `/vocabulary`, because working them out means
-reading every release in the database. A name with nothing listed after it is
-not restricted, which per section 5.4.1 means every element type its solver
-reports, not none.
+reading every release in the database, and one search response is ten solvers.
+A name with nothing listed after it is unrestricted, per the empty-list rule
+above.
 
 ### The dropdowns
 
@@ -342,6 +337,7 @@ Nothing moves for its own sake, and everything below is skipped entirely under
 | The filters panel | 420ms, on `grid-template-rows: 0fr → 1fr`, which animates to a height nothing has measured. |
 | The details dialog | 220ms in and out. No backdrop blur: blurring the whole page per frame made scrolling behind the dialog stutter. |
 | Dropdowns and suggestions | 200ms. |
+| The solver panel slide | 440ms, with the container's height animated alongside it. See *A panel, not a page*. |
 
 ## The footer crest
 
@@ -353,19 +349,23 @@ turns it white, keeping the artwork's shape and transparency.
 
 ## Page transitions
 
-Clicking an internal link shows a brief overlay before the next page loads.
-These are static pages that usually arrive in well under a second, and in that
+Clicking a link to another page on this site shows a brief overlay while it
+loads, because a static page usually arrives in well under a second and in that
 window the browser shows nothing, which reads as a click that did not land.
 
-`MINIMUM_MS` in `js/site.js` is a floor on how briefly the overlay may appear,
-so it cannot flash in and out and look like a glitch. It is not a timer the
-navigation waits on: a page slower than that keeps the overlay until it arrives.
-Raising it to a few seconds would make every page change feel slower than showing
-nothing, so it is set to 450ms, about the shortest interval that still registers
-as deliberate.
+`MINIMUM_MS` in `js/site.js` is a floor on how briefly the overlay may appear, so
+it cannot flash in and out and look like a glitch. It is not a timer the
+navigation waits on: a slower page keeps the overlay until it arrives. It is set
+to 450ms, about the shortest interval that registers as deliberate.
 
 External links, anchors on the current page, downloads and modifier-clicks are
 all left to the browser.
+
+**Dormant, as it stands.** The site became one page when the solver search
+stopped being `solvers.html`, and `bibtex.html` is reached from off-site rather
+than linked from here, so nothing currently triggers this. It is kept because it
+costs nothing while idle and a second page would want it, but it is the first
+thing to delete if the site stays as one.
 
 ## The rail
 
@@ -392,10 +392,51 @@ first, since every dot points at a section of it.
 
 ## The masthead field
 
-`js/neurons.js` draws drifting neurons that find each other, hold a link for a
-while, and let go. Each one is a tinted copy of `assets/img/neuron.png`, a black
-silhouette with the nucleus punched out; the tint is a `source-in` composite
-rather than a filter, so the hole stays a hole and the gradient shows through.
+`js/neurons.js` draws drifting nodes that find each other, hold a link for a
+while, and let go. Each is a filled arc, so there is no image to load and the
+field is there on the first frame.
+
+Radii run from 1.2 to 7 pixels, squared so they bunch towards the small end. A
+flat spread puts as many large nodes on screen as small ones, which at this
+density is a field of blobs; weighted, the small ones sit back and an occasional
+large one comes forward, and the field has depth.
+
+**One colour, `#4db8ff`.** It used to pick from nine, which meant a different
+colour mix on every load and no two screenshots alike. A single hue leaves the
+size and the linking to carry the variation, which is what the field is about.
+Not `brand` itself: `#008ae6` is the blue for links on white and sits too close
+to the navy to read against it.
+
+**The halo and the disc composite differently, and this matters.** The halo is
+the large-area one and is drawn `source-over`. Additively, overlapping halos
+accumulate without a ceiling, so the header brightened and dimmed as the field
+drifted through it and the gradient behind stopped reading as a fixed background.
+Normal alpha compositing approaches the halo colour and never passes it, so a
+dense patch is tinted rather than blown out. The disc keeps `lighter` because it
+is a few pixels across: enough to make two nodes flare as they cross and to stop
+a node cutting a hole in a link, not enough to affect the header.
+
+Density is one node per 8,500 square pixels, capped at 160. Each link is
+deliberately faint, because alpha accumulates where lines cross and a link that
+looks right on its own turns the middle of a dense field into a pale sheet.
+
+**Links are objects with their own lifetime, not a distance test.** Two nodes
+within 135px *may* bond, and the partner is chosen at random from all those in
+range rather than every one of them being connected. A bond then holds for 60 to
+260 frames, fades in and out over its own life, and breaks early if the two drift
+past 190px or if either node reaches the end of its life. No node holds more than
+three at once, and the field keeps to about 1.1 links per node.
+
+Distance alone made the field deterministic: the same arrangement always drew the
+same web, so nothing changed unless something moved, and there was nothing random
+about it. Holding the links as state also made drawing cheaper, since it is now
+one pass over roughly as many links as there are nodes rather than a rediscovery
+of every pair. `MAX_NODES` is still the number to lower if it ever stutters,
+because finding new partners is the one cost that scales with node count.
+
+**It ignores the mouse.** There is no pointer tracking and no attraction, so the
+field behaves the same whether or not anyone is moving a mouse over it, and on a
+touch screen it is not a lesser version of itself.
 
 It sits behind the text with `pointer-events: none`, stops entirely when the
 masthead is off screen or the tab is in the background, and draws a single still

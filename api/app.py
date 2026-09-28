@@ -60,8 +60,17 @@ THEORY_FIELDS = [
 # Asked for as a single value, checked against an inclusive [min, max] pair.
 RANGE_FIELDS = ["onnx_opset", "vnnlib_versions"]
 
+# Asked for as "true" or "false", compared to a boolean the solver reported.
+#
+# Section 5.4.3 of the standard calls these "other": they are neither a theory
+# nor an ONNX fact. `vnnfilter` exposes them as store_true flags, so the package
+# can only ever require one, but the API answers either way, since asking which
+# solvers cannot serialise assignments is a legitimate question even if the
+# command line has no way to spell it.
+BOOLEAN_FIELDS = ["serialise_assignments"]
+
 # Everything that narrows which solvers come back.
-FILTERS = THEORY_FIELDS + RANGE_FIELDS + ["operators", "element_types"]
+FILTERS = THEORY_FIELDS + RANGE_FIELDS + BOOLEAN_FIELDS + ["operators", "element_types"]
 
 # Everything that changes how they are presented rather than which they are.
 # Kept apart from FILTERS so a typo in either is still rejected, and so the
@@ -195,6 +204,15 @@ def version_matches(record, query):
         if wanted not in (capabilities.get("element_types") or []):
             return False
 
+    for field in BOOLEAN_FIELDS:
+        for wanted in query.get(field, []):
+            # `is` rather than `==`, and an exact match on the boolean. A field
+            # that is null, meaning the solver's answer was unusable, matches
+            # neither true nor false: nothing was established about it, so it
+            # cannot satisfy a question about it either way.
+            if capabilities.get(field) is not (wanted == "true"):
+                return False
+
     return True
 
 
@@ -204,8 +222,9 @@ def parse_query(args):
     ?arithmetic=POLY&operators=Conv,Relu wants all three.
     """
     query = {}
-    fields = THEORY_FIELDS + RANGE_FIELDS + ["operators", "element_types"]
-    for field in fields:
+    # FILTERS, not a second hand-written list: the two drifting apart is how a
+    # filter gets advertised by `/` and then silently ignored by `/search`.
+    for field in FILTERS:
         values = []
         for raw in args.getlist(field):
             values += [v.strip() for v in raw.split(",") if v.strip()]
@@ -514,6 +533,15 @@ def search_endpoint():
         return jsonify(
             {"error": f"unknown sort {sort!r}, expected one of {sorted(SORTS)}"}
         ), 400
+
+    for field in BOOLEAN_FIELDS:
+        bad = [v for v in query.get(field, []) if v not in ("true", "false")]
+        if bad:
+            # Rejected rather than coerced: anything truthy-looking would answer
+            # a different question than the one asked and look like it worked.
+            return jsonify(
+                {"error": f"{field} must be 'true' or 'false', got {sorted(bad)}"}
+            ), 400
 
     name = (request.args.get("name") or "").strip()
     limit = positive_int(request.args.get("limit"), DEFAULT_LIMIT, MAX_LIMIT)

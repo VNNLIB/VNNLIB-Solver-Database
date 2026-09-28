@@ -76,6 +76,23 @@ Relu float64 float32
 
 while vibecheck prints 51 bare names, restricting nothing.
 
+**Boolean capabilities take `true` or `false`.**
+
+```
+/search?serialise_assignments=true
+```
+
+Section 5.4.3 of the standard calls these "other": neither a theory nor an ONNX
+fact. A release whose answer was unusable, so the field is `null`, matches
+neither value: nothing was established about it, so it cannot satisfy a question
+about it either way. Anything other than `true` or `false` is a 400 rather than
+being coerced.
+
+`vnnfilter` declares the flag with `store_true`, so the package can only require
+the capability, never require its absence. The API answers both, since asking
+which solvers cannot serialise assignments is a legitimate question even if the
+command line has no way to spell it.
+
 **Ranges take a single value.** `onnx_opset` and `vnnlib_versions` are stored
 as inclusive `[min, max]` pairs, so `?onnx_opset=16` asks "does 16 fall in
 your range".
@@ -128,11 +145,9 @@ Every element type any solver reports, and every operator mapped to the types it
 can usefully be asked for. The search page builds its two pickers from this
 rather than from hard-coded lists that would drift as solvers are added.
 
-**The types beside an operator are not just the ones printed next to it.**
-Section 5.4.1 says an operator listed with no types supports *every* type that
-solver reports, so a solver printing a bare `Relu` alongside `real` and
-`float32` does support `Relu` at both. The union is therefore the explicit lists
-plus, for any solver that listed the operator bare, that solver's whole
+**The types beside an operator are not just the ones printed next to it.** The
+empty-list rule above applies here too, so the union is the explicit lists plus,
+for any solver that listed the operator bare, that solver's whole
 `element_types`. Reading the empty list as "no types" would offer nothing for
 exactly the operators that are supported most widely.
 
@@ -243,36 +258,43 @@ api.app.DATABASE = api.app.DEMO_DATABASE   # remove once main has real data
 this knows they are looking at fixture data rather than collected data. Delete
 the line and reload once the real database has content.
 
-### Updating the data
+## Keeping it up to date
 
-By hand:
+Two things are deployed, on different schedules, and conflating them is the one
+mistake this setup makes easy. **The data and the code are separate.**
 
-```bash
-cd ~/VNNLIB-Solver-Database && git pull
-```
+| | Where it lives | Who updates it | Needs a reload |
+|---|---|---|---|
+| The database | `/home/<you>/solvers.json`, outside the clone | `collect.yml`, after every collection | No |
+| The code | the clone the WSGI file imports from | nobody, unless you set it up | Yes |
 
-**No reload needed for data changes**: the process re-reads the file whenever
-its mtime changes, so the next request serves the new database. Reload only
-after changing code.
+`database()` re-reads the file whenever its mtime changes, so an upload is live
+on the next request. A running web app, by contrast, holds `app.py` in memory
+from whenever it last started, so new code needs the process restarted.
 
-### Updating it automatically
+That asymmetry is why the API can look maintained while being months behind: the
+data is fresh, `/health` says `ok`, and a route added last week is simply absent.
 
-`collect.yml` pushes the database straight to PythonAnywhere after a
-collection, using their Files API. Set two repository secrets (Settings →
-Secrets and variables → Actions):
+### The data
+
+`collect.yml` pushes the database to PythonAnywhere after a collection, using
+their Files API. Set two repository secrets (Settings → Secrets and variables →
+Actions):
 
 | Secret | Value |
 |---|---|
 | `PA_USERNAME` | your PythonAnywhere username |
 | `PA_API_TOKEN` | Account page → API Token tab |
 
-Add a repository *variable* `PA_HOST` = `eu.pythonanywhere.com` if your
-account is on their EU system. Without the secrets the step prints
-`no PythonAnywhere secrets set, skipping publish` and the workflow carries on.
+Add a repository *variable* `PA_HOST` = `eu.pythonanywhere.com` if your account
+is on their EU system. Without the secrets the step prints `no PythonAnywhere
+secrets set, skipping publish` and the workflow carries on.
 
-It uploads to `/home/<you>/solvers.json`, **outside** the git clone on
-purpose, so the checkout stays clean and `git pull` there never conflicts with
-a file the API overwrote. Point the web app at it in the WSGI file:
+It uploads **outside** the git clone on purpose, so the checkout stays clean and
+a `git pull` there never conflicts with a file the API overwrote. The consequence
+worth knowing: pulling the repository on the server does **not** change the data
+being served, because the served file is not in the repository. Point the web app
+at it in the WSGI file:
 
 ```python
 from api.app import app as application
@@ -280,59 +302,37 @@ import api.app, pathlib
 api.app.DATABASE = pathlib.Path('/home/<you>/solvers.json')
 ```
 
-Nothing needs reloading afterwards: a new upload changes the file's mtime, and
-the next request re-reads it.
-
 This lives inside `collect.yml` rather than in a workflow watching `data/**`,
 because a push made with `GITHUB_TOKEN` deliberately does not trigger further
-workflows, and a separate one would simply never run.
+workflows, and a separate one would never run.
 
-Two things about the free tier: the web app expires every three months until
-you click the button on the Web tab, and outbound HTTP from your code is
-restricted to their whitelist, which is irrelevant here, since this API makes no
-outbound requests.
+### The code
 
-### Updating the code
+Merging to main deploys nothing: PythonAnywhere serves from its own clone, which
+nothing on GitHub's side touches.
 
-This is the part that catches people out. **Merging to main deploys nothing.**
-There are three copies of the code and merging only touches the first:
-
-| | Updated by |
-|---|---|
-| GitHub `main` | merging |
-| The clone on PythonAnywhere's disk | `git pull` there, or an upload |
-| The running web app | Reload, which restarts the process |
-
-A running app holds `app.py` in memory from whenever it last started, so a pull
-on its own changes nothing a visitor sees. That is why the data can look
-current, since `collect.yml` uploads it, while a route added last week is still
-missing: the data is deployed automatically and the code never was.
-
-By hand:
+By hand, once:
 
 ```bash
 cd ~/VNNLIB-Solver-Database && git pull
-grep -c vocabulary api/app.py      # must be more than 0, or you pulled elsewhere
+grep -c vocabulary api/app.py      # more than 0, or you pulled the wrong checkout
 ```
 
-then **Web tab → Reload**, and check what is actually serving:
+then **Web tab → Reload**, and confirm what is actually serving:
 
 ```bash
 curl -s https://<you>.pythonanywhere.com/ | grep -c vocabulary
 ```
 
-If the `grep` on the server printed `0`, the checkout you pulled is not the one
-the web app imports from. The WSGI file link at the top of the Web tab gives the
-real path.
+A `0` from the first `grep` means the directory you pulled is not the one the web
+app imports from; the WSGI file link at the top of the Web tab gives the real
+path.
 
-#### Automatically, on push
-
-`deploy-api.yml` uploads everything in `api/` and calls the reload endpoint,
-using the same `PA_USERNAME` and `PA_API_TOKEN` secrets as above. It runs on
-pushes to `main` that touch `api/**`, and can be run by hand from the Actions
-tab. Afterwards it fetches `/` and fails the job if the new routes are absent,
-so a deploy that silently landed in the wrong directory is a red build rather
-than a mystery.
+**On push:** `deploy-api.yml` uploads everything in `api/` and calls the reload
+endpoint, using the same two secrets. It runs on pushes to `main` touching
+`api/**`, and can be triggered from the Actions tab. Afterwards it fetches `/`
+and fails the job if the new routes are absent, so a deploy that landed in the
+wrong directory is a red build rather than a silent no-op.
 
 Two optional repository variables:
 
@@ -341,19 +341,15 @@ Two optional repository variables:
 | `PA_DOMAIN` | `<user>.pythonanywhere.com` | a custom domain |
 | `PA_APP_DIR` | `VNNLIB-Solver-Database` | the clone is somewhere else |
 
-`PA_APP_DIR` has to match the path the WSGI file imports from, since that is
-where the files are uploaded.
+`PA_APP_DIR` must match the path the WSGI file imports from, since that is where
+the files are uploaded.
 
-It uploads files rather than pulling, which leaves two cases for a console:
+Because it uploads rather than pulls, two cases still need a console: a new
+dependency, which it cannot `pip install`, and code the API imports from outside
+`api/`, which it does not ship.
 
-- **A new dependency.** The API cannot `pip install` into its own virtualenv,
-  so anything added to `requirements.txt` needs one `pip install -r` there.
-- **Code the API imports from outside `api/`.** Only `api/` is shipped.
-
-#### Automatically, daily
-
-The free tier includes one scheduled task, which deploys the whole repository
-rather than a few files. Schedule tab, once a day:
+**Daily:** the free tier includes one scheduled task, which deploys the whole
+repository and so covers both of those. Schedule tab, once a day:
 
 ```bash
 cd ~/VNNLIB-Solver-Database && git pull && touch /var/www/<you>_pythonanywhere_com_wsgi.py
@@ -363,8 +359,13 @@ Touching the WSGI file is what Reload does. Take the exact filename from the Web
 tab, since it is derived from the domain.
 
 The two automations are worth having together: the scheduled pull keeps the
-server honestly in step with `main`, including changes this file's uploads miss,
-and the workflow makes a change live now rather than tomorrow.
+server in step with `main` including what the upload misses, and the workflow
+makes a change live now rather than tomorrow.
+
+Two things about the free tier: the web app expires every three months until you
+click the button on the Web tab, and outbound HTTP from your code is restricted
+to their whitelist, which is irrelevant here since this API makes no outbound
+requests.
 
 ## Anywhere else
 
