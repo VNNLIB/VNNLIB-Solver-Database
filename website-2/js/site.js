@@ -383,6 +383,7 @@
                 outgoing.hidden = true;
                 swap.style.height = "";
                 focusPanel(incoming);
+                keepInView();
                 return;
             }
 
@@ -409,6 +410,7 @@
                 outgoing.hidden = true;
                 sliding = false;
                 focusPanel(incoming);
+                keepInView();
             }
             function onEnd(event) {
                 if (event.target === swap && event.propertyName === "height") {
@@ -419,6 +421,30 @@
             // Backstop, for a browser that skips the transition and so never
             // fires the event, which would leave the box pinned forever.
             const timer = window.setTimeout(finish, SLIDE_MS + 120);
+        }
+
+        /*
+         * Scroll only when the box has left the screen, never otherwise.
+         *
+         * The search panel can be several screens tall and the overview is not,
+         * so a reader who was at the bottom of fifty results and pressed Back
+         * can be left below everything the section contains, looking at
+         * Documents. Correcting that is worth a scroll. Being moved while the
+         * section is already in front of you is not.
+         */
+        function keepInView() {
+            if (typeof swap.getBoundingClientRect !== "function") {
+                return;
+            }
+            const box = swap.getBoundingClientRect();
+            const viewport = window.innerHeight || 0;
+            if (!viewport || !box.height) {
+                return;
+            }
+            const offScreen = box.bottom < 0 || box.top > viewport;
+            if (offScreen) {
+                bringIntoView(swap);
+            }
         }
 
         /*
@@ -463,9 +489,22 @@
             leaveSearch();
         }
 
+        /*
+         * Going back does not scroll.
+         *
+         * Both panels live in the same box in the same section, so when the
+         * search slides away the reader is already looking at the thing that
+         * replaced it. Scrolling `#solvers` to the top of the viewport, which is
+         * what this used to do, moved the page *down* past the Latest News
+         * column to reach it, which reads as being thrown somewhere else for
+         * pressing Back.
+         *
+         * The one case that does need correcting is handled in slide(): if the
+         * reader had scrolled deep into a long results list, the overview is far
+         * shorter and the section can end up off screen entirely.
+         */
         function leaveSearch() {
             slide("overview");
-            bringIntoView(document.getElementById("solvers"));
         }
 
         openLink.addEventListener("click", function (event) {

@@ -27,6 +27,8 @@ def _release(version, arithmetic):
             "element_types": ["float32"],
             "operators": ["Relu"],
             "vnnlib_versions": ["2.0", "2.0"],
+            # Unusable, per SCHEMA.md: the solver's answer could not be parsed.
+            "serialise_assignments": None,
         },
         "satisfies": {"arithmetic": arithmetic, "hidden_nodes": ["NH"],
                       "multiple_io": ["SIO"], "multiple_networks": ["SNET"],
@@ -48,6 +50,7 @@ DATABASE = {
                     "element_types": ["real", "float32"],
                     "operators": ["Conv float64 float32", "Relu"],
                     "vnnlib_versions": ["1.0", "2.0"],
+                    "serialise_assignments": True,
                 },
                 # Reported POLY, so the closure covers the weaker ones.
                 "satisfies": {"arithmetic": ["BND", "OUTC", "LIN", "POLY"],
@@ -66,6 +69,7 @@ DATABASE = {
                     "element_types": ["float32"],
                     "operators": ["Relu"],
                     "vnnlib_versions": ["2.0", "2.0"],
+                    "serialise_assignments": False,
                 },
                 "satisfies": {"arithmetic": ["BND"], "hidden_nodes": ["NH"],
                               "multiple_io": ["SIO"], "multiple_networks": ["SNET"],
@@ -280,6 +284,24 @@ def main():
         check("no internal bookkeeping leaks into the response",
               all("_last_index" not in r for r in entry["matches"]["ranges"]),
               entry["matches"]["ranges"])
+
+        # ------------------------------------- serialise_assignments -----
+        status, body = run(client, "/search?serialise_assignments=true")
+        check("a boolean capability can be required",
+              ids(body) == ["strong"], ids(body))
+        status, body = run(client, "/search?serialise_assignments=false")
+        check("and can be required to be absent",
+              ids(body) == ["weak"], ids(body))
+        check("a null answer matches neither true nor false, since nothing was "
+              "established about it",
+              "multi" not in ids(json.loads(client.get("/search?serialise_assignments=true").data))
+              and "multi" not in ids(body))
+        status, body = run(client, "/search?serialise_assignments=yes")
+        check("anything other than true or false is rejected, not coerced",
+              status == 400 and "serialise_assignments" in body["error"], body)
+        status, body = run(client, "/")
+        check("it is advertised as a filter",
+              "serialise_assignments" in body["filters"], body["filters"])
 
         status, body = run(client, "/vocabulary")
         check("vocabulary lists every operator in the database, not one page's worth",

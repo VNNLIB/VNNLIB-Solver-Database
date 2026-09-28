@@ -1,18 +1,25 @@
 /*
- * The masthead field: drifting neurons that find each other, hold a link for a
+ * The masthead field: drifting nodes that find each other, hold a link for a
  * while, and let go.
  *
  * It is a neural network read as a night sky, which is the one visual metaphor
  * this site has earned: the whole standard is about what a solver can say
  * about a network's nodes and the edges between them.
  *
- * Three decisions worth knowing about, because each is the difference between
- * an effect and a nuisance:
+ * Four decisions worth knowing about, because each is the difference between an
+ * effect and a nuisance:
  *
- *   It is behind the text and cannot be clicked. The canvas has
- *   `pointer-events: none`, so the heading stays selectable and anything
- *   placed over it stays clickable. The pointer is tracked on the header
- *   instead.
+ *   It connects itself, and randomly. Two nodes in range *may* bond; the one
+ *   that does is chosen at random from those available, holds for a while and
+ *   then lets go. Deciding it by distance alone made the field deterministic,
+ *   so nothing ever changed unless something moved, and the same arrangement
+ *   always drew the same web.
+ *
+ *   It ignores the mouse entirely. There is no pointer tracking and no
+ *   attraction, so the field behaves the same whether anyone is moving a mouse
+ *   over it or not, and on a touch screen, where there is no pointer at all, it
+ *   is not a lesser version of itself. The canvas is `pointer-events: none`, so
+ *   the heading stays selectable and anything over it stays clickable.
  *
  *   It stops when nobody is looking. Off screen, or in a background tab, the
  *   loop does no work at all. A canvas animation that keeps running while the
@@ -48,15 +55,35 @@
     // One node per this many square pixels, so a wide screen gets a fuller
     // field and a phone does not get a swarm it has to draw sixty times a
     // second.
-    const AREA_PER_NODE = 26000;
+    const AREA_PER_NODE = 8500;
     const MIN_NODES = 12;
-    const MAX_NODES = 48;
+    const MAX_NODES = 160;
 
-    // Nodes closer than this are linked, and the line fades out as they part.
-    const LINK_DISTANCE = 190;
-    // The pointer reaches further than the nodes do, so moving through the
-    // field visibly gathers it.
-    const POINTER_DISTANCE = 200;
+    /*
+     * Linking.
+     *
+     * A link is a thing with its own lifetime, not a fact about distance. Two
+     * nodes within LINK_DISTANCE *may* bond, and once bonded they hold it for a
+     * while and then let go, so the web keeps rewiring even where the nodes have
+     * barely moved. Deciding it purely by distance made the field deterministic:
+     * the same arrangement always produced the same web, and nothing ever
+     * changed unless something moved.
+     */
+    const LINK_DISTANCE = 135;
+    // Past this a held link snaps, however much life it had left.
+    const LINK_BREAK_DISTANCE = 190;
+    // How long a bond lasts, in frames. Short enough that the web visibly
+    // rewires, long enough that it is not a flicker.
+    const LINK_MIN_LIFE = 60;
+    const LINK_MAX_LIFE = 260;
+    // How many bonds one node will hold at once. Without a cap the dense parts
+    // of the field mat together and the sparse parts stay empty.
+    const MAX_DEGREE = 3;
+    // Bonds attempted per frame. Each attempt is one node against the others,
+    // so this is the only per-frame cost that scales with node count.
+    const LINK_ATTEMPTS = 6;
+    // Links in total, as a multiple of the node count.
+    const LINKS_PER_NODE = 1.1;
 
     const SPEED = 0.16;
     // A small random nudge each frame. Without it the nodes travel in straight
@@ -65,64 +92,31 @@
     const JITTER = 0.008;
     const MAX_SPEED = 0.45;
 
-    const WHITE = "255, 255, 255";
+    /*
+     * One colour for the whole field.
+     *
+     * It used to pick from nine, which meant the masthead had a different colour
+     * mix on every load and no two screenshots matched. A single hue also lets
+     * the size and the linking carry the variation, which is what the field is
+     * actually about.
+     *
+     * This tone rather than `brand` itself: #008ae6 is the blue for links on
+     * white, and against the navy gradient it is too close to the background to
+     * read. This is the lighter brand tone the wordmark already uses on hover.
+     */
+    const NODE_COLOUR = "#4db8ff";
 
     /*
-     * The colours a neuron can be.
+     * How large a node is drawn, as a radius.
      *
-     * Chosen to sit on the navy gradient rather than to be a spectrum: every
-     * one is light enough to read against it, and the two brand tones are in
-     * the set so the field still belongs to this site rather than looking like
-     * a screensaver that wandered in.
+     * A wide range on purpose. Every node the same size reads as a regular
+     * pattern however randomly they are placed, while a spread of radii gives
+     * the field depth: the small ones sit back, the large ones come forward.
+     * The distribution is squared below, so small is the common case and a
+     * large node is an occasional event rather than a third of the field.
      */
-    const PALETTE = [
-        "#7dd3fc",
-        "#a5b4fc",
-        "#f0abfc",
-        "#86efac",
-        "#fde68a",
-        "#fca5a5",
-        "#67e8f9",
-        "#ffffff",
-        "#4db8ff",
-    ];
-
-    // Where the drawn neuron comes from, and how big it is drawn.
-    const SPRITE_SRC = "assets/img/neuron.png";
-    const MIN_SIZE = 16;
-    const MAX_SIZE = 38;
-
-    /* --------------------------------------------------------- the sprites */
-
-    /*
-     * One tinted copy of the neuron drawing per palette colour.
-     *
-     * The source PNG is a black silhouette on transparency, with the nucleus
-     * punched out as a hole. Painting it in a colour is therefore a composite,
-     * not a filter: draw the artwork, then fill the whole box with the colour
-     * under `source-in`, which keeps the colour only where the artwork had
-     * pixels. The hole stays a hole, so the gradient shows through the middle
-     * of every neuron.
-     *
-     * Built once, up front, rather than per node per frame. Nine small canvases
-     * is nothing; nine hundred composites a second would not be.
-     */
-    const sprites = [];
-
-    function buildSprites(image) {
-        const size = image.naturalWidth || 128;
-        PALETTE.forEach(function (colour) {
-            const off = document.createElement("canvas");
-            off.width = size;
-            off.height = size;
-            const octx = off.getContext("2d");
-            octx.drawImage(image, 0, 0, size, size);
-            octx.globalCompositeOperation = "source-in";
-            octx.fillStyle = colour;
-            octx.fillRect(0, 0, size, size);
-            sprites.push(off);
-        });
-    }
+    const MIN_RADIUS = 1.2;
+    const MAX_RADIUS = 7;
 
     /* ---------------------------------------------------------------- state */
 
@@ -130,10 +124,9 @@
     let height = 0;
     let ratio = 1;
     let nodes = [];
+    let links = [];
     let frame = null;
     let visible = true;
-
-    const pointer = { x: -9999, y: -9999, active: false };
 
     function random(min, max) {
         return min + Math.random() * (max - min);
@@ -155,15 +148,23 @@
             y: random(0, height),
             vx: random(-SPEED, SPEED),
             vy: random(-SPEED, SPEED),
-            size: random(MIN_SIZE, MAX_SIZE),
+            /*
+             * Squared, so the radii bunch towards the small end. A flat random
+             * spread puts as many 7px nodes on screen as 1.2px ones, and at
+             * this density that is a field of blobs rather than a field with a
+             * few bright points in it.
+             */
+            radius: MIN_RADIUS + (MAX_RADIUS - MIN_RADIUS) * Math.pow(Math.random(), 2),
             life: seeded ? random(0, maxLife) : 0,
             maxLife: maxLife,
-            // Which tinted sprite to draw, and how it is turned. A neuron is a
-            // six-armed shape, so without a random angle every one of them
-            // points the same way and the field reads as wallpaper.
-            colour: Math.floor(Math.random() * PALETTE.length),
-            angle: random(0, Math.PI * 2),
-            spin: random(-0.0025, 0.0025),
+            /*
+             * `dead` is how a link knows its endpoint is gone. A node at the end
+             * of its life is replaced by a new object rather than reset, so any
+             * link still holding the old one has to drop it, and comparing
+             * object identity is not enough once the array slot has been reused.
+             */
+            dead: false,
+            degree: 0,
         };
     }
 
@@ -193,6 +194,35 @@
         for (let i = 0; i < count; i += 1) {
             nodes.push(makeNode(true));
         }
+
+        /*
+         * Links are dropped, not kept. They hold references to node objects, and
+         * every node has just been replaced, so anything surviving a rebuild
+         * would be drawing lines between points that no longer move. `build` also
+         * runs on resize, where that would be very visible.
+         */
+        links = [];
+        seedLinks();
+    }
+
+    /*
+     * Fill the web before the first frame, so the field arrives already
+     * connected rather than wiring itself up in front of the reader. Also the
+     * only thing that gives the reduced-motion still frame any links at all,
+     * since that path draws once and never calls step().
+     *
+     * Bounded rather than looping until full: a sparse arrangement may simply not
+     * have enough pairs in range, and this should not spin looking for them.
+     */
+    function seedLinks() {
+        for (let pass = 0; pass < 60; pass += 1) {
+            formLinks();
+        }
+        // Spread their ages, or every seeded bond would expire at once and the
+        // whole web would blink out together a few seconds in.
+        links.forEach(function (link) {
+            link.life = random(0, link.maxLife);
+        });
     }
 
     /*
@@ -210,12 +240,144 @@
         return 1;
     }
 
+    /* ----------------------------------------------------------- the links */
+
+    /*
+     * Links age, break and form, once per frame.
+     *
+     * Three ways a bond ends, and each is wanted: its life runs out, an endpoint
+     * reaches the end of *its* life, or the two drift too far apart. The first is
+     * what makes the web rewire on its own; the third is what stops a bond
+     * stretching across the whole masthead as its ends wander.
+     */
+    function ageLinks() {
+        links = links.filter(function (link) {
+            link.life += 1;
+
+            if (link.a.dead || link.b.dead) {
+                return false;
+            }
+            if (link.life >= link.maxLife) {
+                link.a.degree -= 1;
+                link.b.degree -= 1;
+                return false;
+            }
+
+            const dx = link.a.x - link.b.x;
+            const dy = link.a.y - link.b.y;
+            if (dx * dx + dy * dy > LINK_BREAK_DISTANCE * LINK_BREAK_DISTANCE) {
+                link.a.degree -= 1;
+                link.b.degree -= 1;
+                return false;
+            }
+            return true;
+        });
+
+        /*
+         * A dead endpoint leaves its partner's degree overstated, because the
+         * branch above returns before decrementing: the dead node's count no
+         * longer matters, but the survivor's does. Recounting from the links is
+         * cheaper and less error-prone than tracking every exit path.
+         */
+        nodes.forEach(function (node) {
+            node.degree = 0;
+        });
+        links.forEach(function (link) {
+            link.a.degree += 1;
+            link.b.degree += 1;
+        });
+    }
+
+    function linked(a, b) {
+        return links.some(function (link) {
+            return (link.a === a && link.b === b) || (link.a === b && link.b === a);
+        });
+    }
+
+    /*
+     * Try to form a few bonds.
+     *
+     * Randomly, deliberately. A node picks one partner from all of those in
+     * range rather than bonding with every one of them, so two nodes sitting
+     * together are not necessarily connected and the web is not a function of
+     * the arrangement. It also means the same field looks different every time
+     * it is watched.
+     */
+    function formLinks() {
+        const ceiling = Math.round(nodes.length * LINKS_PER_NODE);
+
+        for (let attempt = 0; attempt < LINK_ATTEMPTS; attempt += 1) {
+            if (links.length >= ceiling) {
+                return;
+            }
+
+            const a = nodes[Math.floor(Math.random() * nodes.length)];
+            if (!a || a.degree >= MAX_DEGREE || alphaOf(a) <= 0) {
+                continue;
+            }
+
+            // Everything in range and willing, then one of them at random.
+            const candidates = [];
+            for (let i = 0; i < nodes.length; i += 1) {
+                const b = nodes[i];
+                if (b === a || b.degree >= MAX_DEGREE || alphaOf(b) <= 0) {
+                    continue;
+                }
+                const dx = a.x - b.x;
+                const dy = a.y - b.y;
+                if (dx * dx + dy * dy > LINK_DISTANCE * LINK_DISTANCE) {
+                    continue;
+                }
+                if (linked(a, b)) {
+                    continue;
+                }
+                candidates.push(b);
+            }
+            if (!candidates.length) {
+                continue;
+            }
+
+            const b = candidates[Math.floor(Math.random() * candidates.length)];
+            a.degree += 1;
+            b.degree += 1;
+            links.push({
+                a: a,
+                b: b,
+                life: 0,
+                maxLife: random(LINK_MIN_LIFE, LINK_MAX_LIFE),
+            });
+        }
+    }
+
+    /*
+     * How visible a link is: it fades in and out over its own life, so a bond
+     * arrives and leaves rather than blinking on. Multiplied by a distance
+     * falloff, so one that is stretching thins out as it goes.
+     */
+    function linkAlpha(link) {
+        const fade = 0.18;
+        const t = link.life / link.maxLife;
+        let envelope = 1;
+        if (t < fade) {
+            envelope = t / fade;
+        } else if (t > 1 - fade) {
+            envelope = (1 - t) / fade;
+        }
+
+        const distance = Math.hypot(link.a.x - link.b.x, link.a.y - link.b.y);
+        const reach = Math.max(0, 1 - distance / LINK_BREAK_DISTANCE);
+
+        return envelope * reach * alphaOf(link.a) * alphaOf(link.b);
+    }
+
     function step() {
         nodes.forEach(function (node, index) {
             node.life += 1;
             if (node.life >= node.maxLife) {
                 // Replaced rather than reset, so it reappears somewhere else
-                // with a new speed and lifetime.
+                // with a new speed and lifetime. Marked dead first, so the
+                // links holding it drop it on this same frame.
+                node.dead = true;
                 nodes[index] = makeNode(false);
                 return;
             }
@@ -231,23 +393,8 @@
                 node.vy = (node.vy / speed) * MAX_SPEED;
             }
 
-            if (pointer.active) {
-                // A gentle pull towards the pointer, falling off with distance,
-                // so moving through the field disturbs it instead of the field
-                // ignoring the reader entirely.
-                const dx = pointer.x - node.x;
-                const dy = pointer.y - node.y;
-                const distance = Math.hypot(dx, dy);
-                if (distance > 1 && distance < POINTER_DISTANCE) {
-                    const pull = (1 - distance / POINTER_DISTANCE) * 0.02;
-                    node.vx += (dx / distance) * pull;
-                    node.vy += (dy / distance) * pull;
-                }
-            }
-
             node.x += node.vx;
             node.y += node.vy;
-            node.angle += node.spin;
 
             // Wrap at the edges. Bouncing would collect nodes along the sides,
             // which is exactly where the field should be thinnest.
@@ -257,6 +404,9 @@
             if (node.y < -margin) node.y = height + margin;
             if (node.y > height + margin) node.y = -margin;
         });
+
+        ageLinks();
+        formLinks();
     }
 
     function draw() {
@@ -265,103 +415,73 @@
         /*
          * Links first, so the nodes sit on top of them.
          *
-         * This is the O(n squared) part: at 90 nodes that is about 4,000 pairs
-         * a frame, which is nothing. It is worth knowing where the ceiling is,
-         * though, because raising MAX_NODES raises this quadratically.
+         * One pass over the links that exist, rather than over every pair of
+         * nodes. The old version tested all 12,800 pairs a frame to rediscover a
+         * web it then threw away; holding the links as state means drawing them
+         * costs one pass over about as many links as there are nodes.
          */
-        for (let i = 0; i < nodes.length; i += 1) {
-            const a = nodes[i];
-            const alphaA = alphaOf(a);
-            if (alphaA <= 0) {
-                continue;
+        links.forEach(function (link) {
+            const alpha = linkAlpha(link);
+            if (alpha <= 0.01) {
+                return;
             }
-
-            for (let j = i + 1; j < nodes.length; j += 1) {
-                const b = nodes[j];
-                const dx = a.x - b.x;
-                const dy = a.y - b.y;
-                // Compare squared distances: one square root per pair saved,
-                // and the only reason the real distance is needed is the fade.
-                const squared = dx * dx + dy * dy;
-                if (squared > LINK_DISTANCE * LINK_DISTANCE) {
-                    continue;
-                }
-
-                const distance = Math.sqrt(squared);
-                const strength = 1 - distance / LINK_DISTANCE;
-                const alpha = strength * alphaA * alphaOf(b) * 0.45;
-                if (alpha <= 0.01) {
-                    continue;
-                }
-
-                // The line takes one endpoint's colour, so the web is as
-                // varied as the neurons on it. Using a neutral line instead
-                // made the colours look pasted on rather than connected.
-                ctx.strokeStyle = PALETTE[a.colour];
-                ctx.globalAlpha = alpha;
-                ctx.lineWidth = strength * 1.1;
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-            }
-
-            // And a link to the pointer, which is what makes the field feel
-            // like it noticed you.
-            if (pointer.active) {
-                const dx = a.x - pointer.x;
-                const dy = a.y - pointer.y;
-                const distance = Math.hypot(dx, dy);
-                if (distance < POINTER_DISTANCE) {
-                    const strength = 1 - distance / POINTER_DISTANCE;
-                    ctx.strokeStyle =
-                        "rgba(" + WHITE + ", " + (strength * alphaA * 0.35).toFixed(3) + ")";
-                    ctx.lineWidth = strength * 1.2;
-                    ctx.beginPath();
-                    ctx.moveTo(a.x, a.y);
-                    ctx.lineTo(pointer.x, pointer.y);
-                    ctx.stroke();
-                }
-            }
-        }
+            ctx.strokeStyle = NODE_COLOUR;
+            ctx.globalAlpha = alpha * 0.34;
+            ctx.lineWidth = 0.9;
+            ctx.beginPath();
+            ctx.moveTo(link.a.x, link.a.y);
+            ctx.lineTo(link.b.x, link.b.y);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        });
 
         nodes.forEach(function (node) {
             const alpha = alphaOf(node);
-            if (alpha <= 0 || !sprites.length) {
+            if (alpha <= 0) {
                 return;
             }
 
-            const sprite = sprites[node.colour % sprites.length];
-            const half = node.size / 2;
-
             ctx.save();
-            ctx.globalAlpha = alpha;
             ctx.translate(node.x, node.y);
-            ctx.rotate(node.angle);
 
             /*
-             * A halo under the drawing.
+             * The halo, and then the disc, composited differently on purpose.
              *
-             * The artwork is thin-limbed, so on the navy it would otherwise
-             * read as a scratch rather than a cell. `lighter` adds the glow to
-             * what is behind it instead of covering it, which is what makes
-             * overlapping neurons brighten each other rather than punching
-             * holes in one another.
+             * The halo is the large-area one, and it is drawn `source-over`.
+             * Additively, overlapping halos accumulate without any ceiling, so
+             * the header visibly brightened and dimmed as the field drifted
+             * through it: the gradient behind stopped looking like a fixed
+             * background and started looking like weather. Normal alpha
+             * compositing approaches the halo colour and never exceeds it, so a
+             * dense patch is tinted rather than blown out, and the gradient
+             * holds still.
+             *
+             * The disc keeps `lighter`, because it is a few pixels across: it is
+             * what makes two nodes passing over each other flare, and what keeps
+             * a node from cutting a hole in a link it crosses, without covering
+             * enough of the header to affect it.
+             *
+             * The halo is scaled to the node, so a large node carries a large
+             * glow and the size difference reads at a glance.
              */
-            ctx.globalCompositeOperation = "lighter";
-            const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, half * 1.5);
-            glow.addColorStop(0, PALETTE[node.colour]);
+            const halo = node.radius * 3;
+            const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, halo);
+            glow.addColorStop(0, NODE_COLOUR);
             glow.addColorStop(1, "rgba(0, 0, 0, 0)");
-            ctx.globalAlpha = alpha * 0.16;
+            ctx.globalAlpha = alpha * 0.14;
             ctx.fillStyle = glow;
             ctx.beginPath();
-            ctx.arc(0, 0, half * 1.5, 0, Math.PI * 2);
+            ctx.arc(0, 0, halo, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.globalCompositeOperation = "lighter";
+            ctx.globalAlpha = alpha * 0.9;
+            ctx.fillStyle = NODE_COLOUR;
+            ctx.beginPath();
+            ctx.arc(0, 0, node.radius, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.globalCompositeOperation = "source-over";
-            ctx.globalAlpha = alpha * 0.9;
-            ctx.drawImage(sprite, -half, -half, node.size, node.size);
             ctx.restore();
         });
     }
@@ -376,16 +496,6 @@
     }
 
     /* --------------------------------------------------------------- wiring */
-
-    header.addEventListener("pointermove", function (event) {
-        const rect = header.getBoundingClientRect();
-        pointer.x = event.clientX - rect.left;
-        pointer.y = event.clientY - rect.top;
-        pointer.active = true;
-    });
-    header.addEventListener("pointerleave", function () {
-        pointer.active = false;
-    });
 
     let resizeTimer = null;
     window.addEventListener("resize", function () {
@@ -406,25 +516,15 @@
     }
 
     /*
-     * Nothing is drawn until the artwork has loaded, because every neuron is a
-     * tinted copy of it. A failure to load is not worth a broken masthead, so
-     * the field simply never appears and the heading is unaffected.
+     * Nothing to load. The nodes are drawn with arcs, so the field is there on
+     * the first frame rather than waiting on an image that may never arrive.
      */
-    const image = new Image();
-    image.decoding = "async";
-    image.addEventListener("load", function () {
-        buildSprites(image);
-        build();
+    build();
 
-        if (reduced) {
-            // One frame, held. The field is there, it simply does not move.
-            draw();
-            return;
-        }
+    if (reduced) {
+        // One frame, held. The field is there, it simply does not move.
+        draw();
+    } else {
         loop();
-    });
-    image.addEventListener("error", function () {
-        canvas.remove();
-    });
-    image.src = SPRITE_SRC;
+    }
 })();

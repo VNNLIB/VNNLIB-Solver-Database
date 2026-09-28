@@ -87,7 +87,18 @@
         operators: "--operators",
         onnx_opset: "--onnx-opset",
         vnnlib_versions: "--vnnlib-version",
+        serialise_assignments: "--serialise-assignments",
     };
+
+    /*
+     * Flags the package declares with `store_true`, so they are written on their
+     * own with no value after them. `--serialise-assignments true` is not a
+     * command that runs, and the banner's whole job is to show one that does.
+     *
+     * The package can therefore only require the capability, never require its
+     * absence, which is why the control offers Any or Required and not No.
+     */
+    const VALUELESS_FLAGS = { serialise_assignments: true };
 
     // Human labels for the filter chips and for the panel button's count.
     const FILTER_LABELS = {
@@ -100,6 +111,7 @@
         operators: "Operators",
         onnx_opset: "ONNX opset",
         vnnlib_versions: "VNN-LIB version",
+        serialise_assignments: "Serialises assignments",
     };
 
     /*
@@ -597,6 +609,10 @@
             }
             // The list-valued flags take several words after one flag, so a
             // comma separated operator list becomes `--operators Conv Relu`.
+            if (VALUELESS_FLAGS[field]) {
+                parts.push(CLI_FLAGS[field]);
+                return;
+            }
             const words = [];
             values.forEach(function (value) {
                 value.split(",").forEach(function (part) {
@@ -1486,7 +1502,13 @@
                 "inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 font-heading text-xs font-semibold text-ink ring-1 ring-ink/10"
             );
             chip.appendChild(el("span", "text-ink-muted", label));
-            chip.appendChild(el("span", "font-mono", entry[1]));
+            // A boolean filter's value is not worth showing as `true`: the chip
+            // already names the capability, so the useful word is what is being
+            // asked of it.
+            const shown = VALUELESS_FLAGS[key] || entry[1] === "true" || entry[1] === "false"
+                ? (entry[1] === "false" ? "not required" : "required")
+                : entry[1];
+            chip.appendChild(el("span", "font-mono", shown));
 
             const remove = el("button", "text-ink-muted transition hover:text-red-600");
             remove.type = "button";

@@ -70,9 +70,9 @@ const config = {
          * The masthead gradient.
          *
          * Dark the whole way down: near black at the top, a deep blue rather
-         * than a bright one at the bottom. A field of coloured neurons is drawn
+         * than a bright one at the bottom. A field of pale blue nodes is drawn
          * over it, and a bright band across the header would sit exactly where
-         * the lightest of them need contrast.
+         * they need contrast most.
          */
         masthead: "linear-gradient(180deg, #01010e 0%, #020024 45%, #052a52 100%)",
       },
