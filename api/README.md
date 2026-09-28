@@ -27,6 +27,7 @@ is no command line there, so `SOLVERS_JSON` does the same job.
 | `GET /solvers` | everything, including releases that failed to install |
 | `GET /solvers/<id>` | one solver, 404 if unknown |
 | `GET /search?...` | filter; returns solvers with only their matching releases, grouped into version ranges |
+| `GET /vocabulary` | every operator name and element type any solver reports, for populating a picker without paging through `/search` |
 
 Every response carries `Access-Control-Allow-Origin: *`, so a page on another
 origin, the Stage 3 search page or anyone's script, can read it. The data
