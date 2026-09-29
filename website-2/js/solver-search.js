@@ -37,23 +37,17 @@
     const status = document.getElementById("search-status");
     const pager = document.getElementById("pagination");
     const pageSizeSelect = document.getElementById("page-size");
-    const commandLine = document.getElementById("command-line");
-    const copyButton = document.getElementById("copy-command");
-    const copyLabel = document.getElementById("copy-command-label");
 
-    const nameInput = document.getElementById("q-name");
-    const nameSearch = document.getElementById("name-search");
     const sortSelect = document.getElementById("sort-by");
-    const filtersToggle = document.getElementById("filters-toggle");
-    const filtersChevron = document.getElementById("filters-chevron");
-    const filterCount = document.getElementById("filter-count");
     const activeFilters = document.getElementById("active-filters");
+
 
     const dialog = document.getElementById("details-dialog");
     const dialogTitle = document.getElementById("details-title");
     const dialogSubtitle = document.getElementById("details-subtitle");
     const dialogBody = document.getElementById("details-body");
     const dialogClose = document.getElementById("details-close");
+
 
     if (!form || !resultsHost) {
         return;
@@ -70,33 +64,12 @@
         onnx_opset: "ONNX opset",
     };
 
-    /*
-     * API query field to the vnnfilter flag that means the same thing. They are
-     * not mechanically derivable from each other: the API takes a list under
-     * `vnnlib_versions` while the package's flag is singular, and the rest
-     * differ by hyphenation. Spelled out so the command shown is one that
-     * actually runs.
-     */
-    const CLI_FLAGS = {
-        hidden_nodes: "--hidden-nodes",
-        multiple_io: "--multiple-io",
-        multiple_networks: "--multiple-networks",
-        node_comparisons: "--node-comparisons",
-        arithmetic: "--arithmetic",
-        element_types: "--element-types",
-        operators: "--operators",
-        onnx_opset: "--onnx-opset",
-        vnnlib_versions: "--vnnlib-version",
-        serialise_assignments: "--serialise-assignments",
-    };
 
     /*
-     * Flags the package declares with `store_true`, so they are written on their
-     * own with no value after them. `--serialise-assignments true` is not a
-     * command that runs, and the banner's whole job is to show one that does.
-     *
-     * The package can therefore only require the capability, never require its
-     * absence, which is why the control offers Any or Required and not No.
+     * Filters the package declares with `store_true`, so it can only ever
+     * require the capability and never require its absence. That is why the
+     * control offers Any or Required and not No, and why the chip for one reads
+     * "required" rather than "true".
      */
     const VALUELESS_FLAGS = { serialise_assignments: true };
 
@@ -174,28 +147,10 @@
 
     /* -------------------------------------------------------------- query -- */
 
-    /*
-     * The advanced filter panel is a mode, not a disclosure.
-     *
-     * Open, the search is by capability. Closed, it is by name. Which one is
-     * showing is which one applies, so a filter the reader cannot see is never
-     * narrowing their results, and neither is a name they cannot see.
-     *
-     * Closing the panel drops the capability filters from the query without
-     * clearing the controls, so reopening it and pressing Search puts them back
-     * exactly as they were. The state is the form's own; only whether it counts
-     * changes.
-     */
-    function filtersOpen() {
-        const panel = document.getElementById("filters-panel");
-        return Boolean(panel && panel.classList.contains("is-open"));
-    }
+    /* -------------------------------------------------------------- query -- */
 
     function currentQuery() {
         const params = new URLSearchParams();
-        if (!filtersOpen()) {
-            return params;
-        }
         new FormData(form).forEach(function (value, key) {
             const trimmed = String(value).trim();
             if (trimmed) {
@@ -305,7 +260,6 @@
                 syncField();
                 renderChips();
                 renderActiveFilters();
-                updateCommand(currentQuery());
             }
             input.value = "";
             input.focus();
@@ -320,7 +274,6 @@
             syncField();
             renderChips();
             renderActiveFilters();
-            updateCommand(currentQuery());
         }
 
         function matching(query) {
@@ -385,7 +338,7 @@
                 list.appendChild(
                     el(
                         "li",
-                        "px-3 py-2 text-base text-ink-muted",
+                        "px-3 py-2 text-sm text-ink-muted",
                         config.candidates("").length ? config.emptyText : config.loadingText
                     )
                 );
@@ -410,7 +363,7 @@
 
                 // Show which part of the name matched, so a substring hit does
                 // not look arbitrary.
-                const label = el("span", "font-mono text-base text-ink");
+                const label = el("span", "font-mono text-sm text-ink");
                 const at = needle ? entry.value.toLowerCase().indexOf(needle.toLowerCase()) : -1;
                 if (at === -1) {
                     label.textContent = entry.value;
@@ -589,271 +542,6 @@
         loadingText: "Loading the element types...",
     });
 
-    /* ------------------------------------------------- the command banner -- */
-
-    /*
-     * Shell-quote a value, but only when it needs it. Everything the filters can
-     * produce is a bare identifier, so quoting unconditionally would make the
-     * command noisier than anything a person would type.
-     */
-    function shellArg(value) {
-        return /^[A-Za-z0-9._\/-]+$/.test(value) ? value : "'" + value.replace(/'/g, "'\\''") + "'";
-    }
-
-    function commandFor(params) {
-        const parts = ["vnnfilter"];
-        Object.keys(CLI_FLAGS).forEach(function (field) {
-            const values = params.getAll(field);
-            if (!values.length) {
-                return;
-            }
-            // The list-valued flags take several words after one flag, so a
-            // comma separated operator list becomes `--operators Conv Relu`.
-            if (VALUELESS_FLAGS[field]) {
-                parts.push(CLI_FLAGS[field]);
-                return;
-            }
-            const words = [];
-            values.forEach(function (value) {
-                value.split(",").forEach(function (part) {
-                    const trimmed = part.trim();
-                    if (trimmed) {
-                        words.push(shellArg(trimmed));
-                    }
-                });
-            });
-            parts.push(CLI_FLAGS[field], words.join(" "));
-        });
-
-        // With nothing selected, `vnnfilter` on its own lists everything, which
-        // is exactly what the results below are showing.
-        return parts.join(" ");
-    }
-
-    /*
-     * Type the command out rather than swapping the text.
-     *
-     * The point is not decoration. The line changes on every filter, and a
-     * wholesale swap gives no sense of what changed: adding a flag reads exactly
-     * like replacing the whole command. Typing shows the edit instead.
-     *
-     * It edits in place. The old and new commands are compared from both ends,
-     * so the shared head and the shared tail both stay on screen untouched and
-     * only the span between them is rewritten. Changing `--arithmetic POLY` to
-     * `LIN` moves four characters; it does not delete and retype the operator
-     * list that follows, which is what a plain prefix comparison would do and
-     * what made this feel like the command was being rebuilt from scratch every
-     * time.
-     */
-    const typeCommand = (function () {
-        /*
-         * One pace for both directions.
-         *
-         * Typing advances a character at a time and deleting a word at a time,
-         * so a single constant would make them wildly different speeds: a flat
-         * 34ms per deletion removed `--arithmetic` five times faster than typing
-         * it put it there, which read as the text being yanked away rather than
-         * edited.
-         *
-         * So deleting is charged per character removed, at the same rate typing
-         * adds them. It still steps by whole words, which is how a person edits
-         * a command line, but a long word now takes a long word's worth of time.
-         */
-        const TYPE_MS = 14;
-
-        // Honour a request for reduced motion by setting the text outright.
-        // Someone who asked for less movement did not ask to wait for it.
-        const reduced =
-            window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-        /*
-         * The line is rendered in three pieces so the caret can sit at the point
-         * being edited rather than at the end of the line. Only the middle one
-         * changes while an edit runs.
-         */
-        const head = document.createTextNode("");
-        const middle = document.createElement("span");
-        const tail = document.createTextNode("");
-        middle.className = "cmd-edit";
-
-        // Read the placeholder before clearing, or it is lost.
-        const initial = commandLine.textContent;
-        clear(commandLine);
-        middle.textContent = initial;
-        commandLine.appendChild(head);
-        commandLine.appendChild(middle);
-        commandLine.appendChild(tail);
-
-        let shown = initial;
-        let target = shown;
-
-        // The unchanging ends of the current edit, and the part still moving.
-        let prefix = "";
-        let suffix = "";
-        let from = shown;
-        let to = shown;
-        let current = shown;
-        let timer = null;
-
-        function render() {
-            head.nodeValue = prefix;
-            middle.textContent = current;
-            tail.nodeValue = suffix;
-        }
-
-        /* Where the previous word starts. Deleting a word at a time reads like
-         * editing; deleting a character at a time is just slow. */
-        function wordStart(text) {
-            let i = text.length;
-            while (i > 0 && text.charAt(i - 1) === " ") {
-                i -= 1;
-            }
-            while (i > 0 && text.charAt(i - 1) !== " ") {
-                i -= 1;
-            }
-            return i;
-        }
-
-        /*
-         * Split the old and new commands into a shared head, a shared tail, and
-         * the differing span between them.
-         *
-         * The tail search stops before it can reach back into the head, so the
-         * two never overlap on a command that repeats itself.
-         */
-        function plan() {
-            let p = 0;
-            while (p < from.length && p < to.length && from.charAt(p) === to.charAt(p)) {
-                p += 1;
-            }
-
-            let s = 0;
-            const room = Math.min(from.length - p, to.length - p);
-            while (
-                s < room &&
-                from.charAt(from.length - 1 - s) === to.charAt(to.length - 1 - s)
-            ) {
-                s += 1;
-            }
-
-            prefix = to.slice(0, p);
-            suffix = to.slice(to.length - s);
-            from = from.slice(p, from.length - s);
-            to = to.slice(p, to.length - s);
-            current = from;
-        }
-
-        function step() {
-            if (current === to) {
-                shown = prefix + current + suffix;
-                if (shown === target) {
-                    timer = null;
-                    middle.classList.remove("is-typing");
-                    return;
-                }
-                // The target moved while this edit was running. Fold what is on
-                // screen back into one string and plan the next edit from there.
-                from = shown;
-                to = target;
-                prefix = "";
-                suffix = "";
-                plan();
-                render();
-                timer = window.setTimeout(step, TYPE_MS);
-                return;
-            }
-
-            let delay;
-            if (current.length && !to.startsWith(current)) {
-                // Still holding characters the new text does not want.
-                const before = current.length;
-                current = current.slice(0, wordStart(current));
-                // Charged per character removed, so a word disappears over the
-                // same span of time it would take to type.
-                delay = TYPE_MS * (before - current.length);
-            } else {
-                current = to.slice(0, current.length + 1);
-                delay = TYPE_MS;
-            }
-
-            render();
-            timer = window.setTimeout(step, delay);
-        }
-
-        /*
-         * The queue holds one destination, not a backlog.
-         *
-         * Changing a select fires several times in a row, and replaying every
-         * intermediate command would fall further behind the controls with each
-         * one. Keeping only the newest target means the animation always ends on
-         * what is currently selected, and an edit already running finishes its
-         * current span before retargeting rather than being cancelled and
-         * restarted.
-         */
-        return function (next) {
-            target = next;
-            if (reduced) {
-                shown = next;
-                prefix = "";
-                suffix = "";
-                current = next;
-                from = next;
-                to = next;
-                render();
-                return;
-            }
-            if (timer) {
-                return;
-            }
-            if (shown === target) {
-                return;
-            }
-            from = shown;
-            to = target;
-            plan();
-            middle.classList.add("is-typing");
-            render();
-            timer = window.setTimeout(step, TYPE_MS);
-        };
-    })();
-
-    // What Copy puts on the clipboard. Kept separately from what is on screen,
-    // because mid-animation the screen holds half a command.
-    let finalCommand = commandLine.textContent;
-
-    function updateCommand(params) {
-        finalCommand = commandFor(params);
-        typeCommand(finalCommand);
-    }
-
-    if (copyButton) {
-        copyButton.addEventListener("click", function () {
-            // The finished command, not whatever the animation has typed so far.
-            const text = finalCommand;
-            const done = function () {
-                copyLabel.textContent = "Copied";
-                window.setTimeout(function () {
-                    copyLabel.textContent = "Copy";
-                }, 1500);
-            };
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(done, function () {
-                    copyLabel.textContent = "Press Ctrl+C";
-                });
-            } else {
-                // Older browsers, and any page not served over https, where the
-                // clipboard API is unavailable. Select the text so the keyboard
-                // shortcut works.
-                const range = document.createRange();
-                range.selectNodeContents(commandLine);
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-                copyLabel.textContent = "Press Ctrl+C";
-            }
-        });
-    }
-
     /* ------------------------------------------------------ detail render -- */
 
     function formatValue(field, value) {
@@ -875,9 +563,9 @@
     }
 
     function capabilityRow(label, field, value) {
-        const row = el("div", "grid gap-1 py-2.5 sm:grid-cols-3 sm:gap-4");
+        const row = el("div", "grid gap-1 py-1.5 sm:grid-cols-3 sm:gap-4");
         row.appendChild(el("dt", "font-heading text-sm font-semibold text-ink-muted", label));
-        row.appendChild(el("dd", "text-base text-ink sm:col-span-2", formatValue(field, value)));
+        row.appendChild(el("dd", "text-sm text-ink sm:col-span-2", formatValue(field, value)));
         return row;
     }
 
@@ -890,7 +578,7 @@
         );
 
         if (!names.length) {
-            wrapper.appendChild(el("p", "mt-1 text-base text-ink", "none reported"));
+            wrapper.appendChild(el("p", "mt-1 text-sm text-ink", "none reported"));
             return wrapper;
         }
 
@@ -977,7 +665,7 @@
         const capabilities = record.capabilities || {};
         clear(host);
 
-        const heading = el("p", "mt-5 text-base text-ink-muted");
+        const heading = el("p", "mt-5 text-sm text-ink-muted");
         heading.appendChild(document.createTextNode("Version "));
         heading.appendChild(el("span", "font-mono font-semibold text-ink", record.version || "unknown"));
         if (record.collected_at) {
@@ -1022,6 +710,92 @@
      * usually "what changed between these two", and that is a comparison the
      * reader makes by flicking back and forth.
      */
+    /* ------------------------------------------------------------ modals -- */
+
+    /*
+     * Both dialogs open and close the same way, so this is written once.
+     *
+     * The class is added a frame after `showModal`, not in the same tick: the
+     * dialog goes from `display: none` to displayed, and setting the class in
+     * the same style recalculation gives the browser one state rather than two,
+     * so nothing animates. Closing is the mirror, and `close()` waits for the
+     * transition to end rather than cutting it off.
+     *
+     * `showModal` is what makes it a modal: the browser supplies the focus trap,
+     * the inert background and the backdrop. The attribute fallback is for a
+     * browser without it, where the dialog is at least still usable.
+     */
+    function openModal(node) {
+        if (!node) {
+            return;
+        }
+        if (typeof node.showModal === "function") {
+            node.showModal();
+        } else {
+            node.setAttribute("open", "");
+        }
+        window.requestAnimationFrame(function () {
+            node.classList.add("is-open");
+        });
+    }
+
+    function closeModal(node) {
+        if (!node) {
+            return;
+        }
+        const hide = function () {
+            if (typeof node.close === "function") {
+                node.close();
+            } else {
+                node.removeAttribute("open");
+            }
+        };
+        if (!node.classList.contains("is-open")) {
+            hide();
+            return;
+        }
+        node.classList.remove("is-open");
+
+        let done = false;
+        function finish() {
+            if (done) {
+                return;
+            }
+            done = true;
+            node.removeEventListener("transitionend", onEnd);
+            hide();
+        }
+        function onEnd(event) {
+            // The dialog's own transition, not one bubbling up from a chip or a
+            // control inside it.
+            if (event.target === node) {
+                finish();
+            }
+        }
+        node.addEventListener("transitionend", onEnd);
+        window.setTimeout(finish, 320);
+    }
+
+    /* Backdrop clicks and Escape, for any modal. */
+    function wireModal(node) {
+        if (!node) {
+            return;
+        }
+        // The dialog's own box is a child, so a click that lands on the element
+        // itself came from outside the content.
+        node.addEventListener("click", function (event) {
+            if (event.target === node) {
+                closeModal(node);
+            }
+        });
+        // Escape closes a <dialog> outright, which would skip the transition.
+        // Take it over and run the same path as every other close.
+        node.addEventListener("cancel", function (event) {
+            event.preventDefault();
+            closeModal(node);
+        });
+    }
+
     function openDetails(card) {
         const records = card.records || [];
 
@@ -1044,11 +818,11 @@
         clear(dialogBody);
 
         if (card.repo) {
-            const link = el("a", "link text-base", card.repo);
+            const link = el("a", "link text-sm", card.repo);
             link.href = card.repo;
             link.target = "_blank";
             link.rel = "noopener";
-            const line = el("p", "text-base text-ink-muted");
+            const line = el("p", "text-sm text-ink-muted");
             line.appendChild(document.createTextNode("Source: "));
             line.appendChild(link);
             dialogBody.appendChild(line);
@@ -1063,19 +837,7 @@
         dialogBody.appendChild(detail);
         showRelease(records[records.length - 1] || {}, detail);
 
-        if (typeof dialog.showModal === "function") {
-            dialog.showModal();
-        } else {
-            dialog.setAttribute("open", "");
-        }
-
-        // One frame later, so the browser has painted the closed state and has
-        // something to transition from. Setting the class in the same tick
-        // would land in the same style recalculation as the open, and nothing
-        // would animate.
-        window.requestAnimationFrame(function () {
-            dialog.classList.add("is-open");
-        });
+        openModal(dialog);
     }
 
     /*
@@ -1086,63 +848,14 @@
      * dialog was never painted, never fires the event, and the dialog would be
      * left open forever.
      */
-    function hideDialog() {
-        // Mirrors the showModal fallback above. A <dialog> without close() is
-        // one without showModal() either, so it was opened by attribute and is
-        // closed the same way.
-        if (typeof dialog.close === "function") {
-            dialog.close();
-        } else {
-            dialog.removeAttribute("open");
-        }
-    }
-
     function closeDetails() {
-        if (!dialog.classList.contains("is-open")) {
-            hideDialog();
-            return;
-        }
-        dialog.classList.remove("is-open");
-
-        let done = false;
-        function finish() {
-            if (done) {
-                return;
-            }
-            done = true;
-            dialog.removeEventListener("transitionend", onEnd);
-            hideDialog();
-        }
-        function onEnd(event) {
-            // Only the dialog's own transition, not one bubbling up from a chip
-            // or a link inside it.
-            if (event.target === dialog) {
-                finish();
-            }
-        }
-        dialog.addEventListener("transitionend", onEnd);
-        window.setTimeout(finish, 320);
+        closeModal(dialog);
     }
 
     if (dialogClose) {
         dialogClose.addEventListener("click", closeDetails);
     }
-    if (dialog) {
-        // Clicking the backdrop closes it. The dialog's own box is a child, so
-        // a click landing on the element itself came from outside the content.
-        dialog.addEventListener("click", function (event) {
-            if (event.target === dialog) {
-                closeDetails();
-            }
-        });
-
-        // Escape closes a <dialog> immediately, which would skip the
-        // transition. Take it over and run the same path as every other close.
-        dialog.addEventListener("cancel", function (event) {
-            event.preventDefault();
-            closeDetails();
-        });
-    }
+    wireModal(dialog);
 
     /* ------------------------------------------------------- list render --- */
 
@@ -1150,7 +863,7 @@
         clear(resultsHost);
         pager.classList.add("hidden");
 
-        const box = el("div", "overflow-hidden rounded-xl border border-ink/10 bg-white shadow-card");
+        const box = el("div", "results-table rounded-xl border border-ink/10 bg-white shadow-card");
         /*
          * A few rows, not a page's worth.
          *
@@ -1163,7 +876,7 @@
         for (let i = 0; i < 3; i += 1) {
             const line = el(
                 "div",
-                "flex items-center gap-4 border-b border-ink/5 px-4 py-4 last:border-b-0"
+                "flex items-center gap-3 border-b border-ink/5 px-4 py-2.5 last:border-b-0"
             );
             line.appendChild(el("div", "h-4 w-40 animate-pulse rounded bg-ink/10"));
             line.appendChild(el("div", "h-4 w-16 animate-pulse rounded bg-ink/10"));
@@ -1178,12 +891,12 @@
         pager.classList.add("hidden");
         releasePinnedHeight();
 
-        const panel = el("div", "rounded-2xl border border-red-200 bg-red-50 p-6");
+        const panel = el("div", "rounded-2xl border border-red-200 bg-red-50 p-5");
         panel.appendChild(el("h3", "font-heading text-lg font-bold text-red-900", message));
         if (detail) {
-            panel.appendChild(el("p", "mt-2 text-base leading-relaxed text-red-800", detail));
+            panel.appendChild(el("p", "mt-2 text-sm leading-relaxed text-red-800", detail));
         }
-        const note = el("p", "mt-4 text-base leading-relaxed text-red-800");
+        const note = el("p", "mt-4 text-sm leading-relaxed text-red-800");
         note.appendChild(
             document.createTextNode("The database itself is unaffected. You can browse it directly in ")
         );
@@ -1202,14 +915,14 @@
         pager.classList.add("hidden");
         releasePinnedHeight();
 
-        const panel = el("div", "rounded-2xl border border-ink/10 bg-white p-8 text-center shadow-card");
+        const panel = el("div", "rounded-2xl border border-ink/10 bg-white p-6 text-center shadow-card");
         panel.appendChild(
             el("h3", "font-heading text-lg font-bold text-ink", "No solver matches every filter")
         );
         panel.appendChild(
             el(
                 "p",
-                "mx-auto mt-2 max-w-prose text-base leading-relaxed text-ink-muted",
+                "mx-auto mt-2 max-w-prose text-sm leading-relaxed text-ink-muted",
                 params.toString()
                     ? "Nothing in the database satisfies all of them at once. Try removing the most specific one."
                     : "The database is empty."
@@ -1224,29 +937,40 @@
         clear(resultsHost);
         releasePinnedHeight();
 
-        const box = el("div", "overflow-hidden rounded-xl border border-ink/10 bg-white shadow-card");
+        const box = el("div", "results-table rounded-xl border border-ink/10 bg-white shadow-card");
         const table = el("table", "w-full text-left");
+        table.setAttribute("role", "table");
 
         const thead = el("thead");
+        thead.setAttribute("role", "rowgroup");
         const headRow = el("tr", "border-b border-ink/10 bg-brand-tint");
-        headRow.appendChild(el("th", "table-th", "Solver"));
-        headRow.appendChild(el("th", "table-th", "Versions"));
-        headRow.appendChild(el("th", "table-th hidden sm:table-cell", "Updated at"));
+        headRow.setAttribute("role", "row");
+        ["Solver", "Versions"].forEach(function (name) {
+            const cell = el("th", "table-th", name);
+            cell.setAttribute("role", "columnheader");
+            headRow.appendChild(cell);
+        });
+        const updatedHead = el("th", "table-th hidden sm:table-cell", "Updated at");
+        updatedHead.setAttribute("role", "columnheader");
+        headRow.appendChild(updatedHead);
         const actions = el("th", "table-th text-right", "");
+        actions.setAttribute("role", "columnheader");
         actions.appendChild(el("span", "sr-only", "Details"));
         headRow.appendChild(actions);
         thead.appendChild(headRow);
         table.appendChild(thead);
 
         const tbody = el("tbody", "divide-y divide-ink/5");
+        tbody.setAttribute("role", "rowgroup");
         rows.forEach(function (row) {
             const tr = el("tr", "transition hover:bg-brand-tint/60");
+            tr.setAttribute("role", "row");
 
             tr.appendChild(el("td", "table-td font-semibold", row.name));
 
             const versionCell = el("td", "table-td");
             versionCell.appendChild(
-                el("span", "font-mono text-base", rangeLabel(row.matches))
+                el("span", "font-mono text-sm", rangeLabel(row.matches))
             );
             /*
              * Only when some releases did not match. "3 of 5" next to a range
@@ -1271,7 +995,7 @@
             const updated = (row.matches.latest || {}).collected_at;
             const updatedCell = el(
                 "td",
-                "table-td hidden text-base text-ink-muted sm:table-cell",
+                "table-td hidden text-sm text-ink-muted sm:table-cell",
                 updated ? String(updated).slice(0, 10) : "unknown"
             );
             // The date belongs to the newest matching release, not to the
@@ -1282,10 +1006,10 @@
             }
             tr.appendChild(updatedCell);
 
-            const cell = el("td", "px-4 py-3 text-right");
+            const cell = el("td", "table-td text-right");
             const button = el(
                 "button",
-                "inline-flex items-center gap-1.5 rounded-lg border border-ink/15 bg-white px-3 py-2 font-heading text-sm font-semibold text-ink transition hover:border-brand hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                "inline-flex items-center gap-1.5 rounded-md border border-ink/15 bg-white px-2 py-0.5 font-heading text-xs font-semibold text-ink transition hover:border-brand hover:text-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand",
                 "Details"
             );
             button.type = "button";
@@ -1297,7 +1021,18 @@
 
             tbody.appendChild(tr);
         });
+        Array.prototype.forEach.call(tbody.querySelectorAll("td"), function (cell) {
+            cell.setAttribute("role", "cell");
+        });
+
         table.appendChild(tbody);
+        /*
+         * A scrollbar appears only when there are more rows than the box is
+         * tall, and the box is exactly ten rows. Saying so in a class lets the
+         * head reserve the same width, so its columns stay over the body's
+         * instead of sitting a scrollbar to the right of them.
+         */
+        box.classList.toggle("is-scrolling", rows.length > 10);
         box.appendChild(table);
         resultsHost.appendChild(box);
 
@@ -1317,7 +1052,7 @@
         pager.appendChild(
             el(
                 "p",
-                "text-base text-ink-muted",
+                "text-sm text-ink-muted",
                 "Showing " + first + " to " + (first + shown - 1) + " of " + total
             )
         );
@@ -1455,16 +1190,10 @@
      * that page, which looks right until you notice the top result is missing
      * because it was on page two.
      *
-     * The same goes for the name box, which is a `name` parameter now. Filtering
-     * a page locally leaves a page of ten minus however many were dropped, and a
-     * total that counts solvers the reader cannot reach.
+     * The API still takes a `name` parameter, and `vnnfilter` still has the
+     * flag; this page no longer offers a box for it. Nothing else changes if one
+     * comes back: it would be one more entry in the query.
      */
-    function currentName() {
-        if (!nameInput || filtersOpen()) {
-            return "";
-        }
-        return nameInput.value.trim();
-    }
 
     /* The chips above the results, one per active filter, each one removable. */
     function renderActiveFilters() {
@@ -1479,23 +1208,13 @@
             entries.push([key, value]);
         });
 
-        if (filterCount) {
-            filterCount.textContent = String(entries.length);
-            filterCount.classList.toggle("hidden", entries.length === 0);
-        }
-
-        const needle = currentName();
-        if (needle) {
-            entries.unshift(["__name", nameInput.value.trim()]);
-        }
-
         if (!entries.length) {
             return;
         }
 
         entries.forEach(function (entry) {
             const key = entry[0];
-            const label = key === "__name" ? "Name" : FILTER_LABELS[key] || key;
+            const label = FILTER_LABELS[key] || key;
 
             const chip = el(
                 "span",
@@ -1515,11 +1234,6 @@
             remove.setAttribute("aria-label", "Remove the " + label + " filter");
             remove.textContent = "×";
             remove.addEventListener("click", function () {
-                if (key === "__name") {
-                    nameInput.value = "";
-                    refresh();
-                    return;
-                }
                 if (pickers[key]) {
                     // The hidden field is a projection of the chips, so clearing
                     // it alone would leave the chips on screen claiming a filter
@@ -1543,22 +1257,6 @@
             activeFilters.appendChild(chip);
         });
 
-        const clearAll = el(
-            "button",
-            "font-heading text-xs font-semibold text-brand-dark underline decoration-brand/30 decoration-2 underline-offset-2 transition hover:decoration-brand",
-            "Clear all"
-        );
-        clearAll.type = "button";
-        clearAll.addEventListener("click", function () {
-            if (nameInput) {
-                nameInput.value = "";
-            }
-            // Only reset. The form's own reset handler reloads, so calling load
-            // here as well would fire two requests, and the first would read the
-            // fields before reset had finished clearing them.
-            form.reset();
-        });
-        activeFilters.appendChild(clearAll);
     }
 
     /*
@@ -1606,10 +1304,6 @@
      */
     function searchUrl(params) {
         const url = new URLSearchParams(params.toString());
-        const name = currentName();
-        if (name) {
-            url.set("name", name);
-        }
         url.set("sort", sortSelect ? sortSelect.value : "date-desc");
         url.set("limit", String(pageSize()));
         url.set("offset", String((page - 1) * pageSize()));
@@ -1625,7 +1319,6 @@
      * just pressed is still where they pressed it.
      */
     function load(params, isFirstLoad, inPlace) {
-        updateCommand(params);
         status.textContent = isFirstLoad ? "Loading the database..." : "Searching...";
         if (inPlace && rows.length) {
             resultsHost.setAttribute("aria-busy", "true");
@@ -1729,74 +1422,18 @@
     /* ------------------------------------------------------------- wiring -- */
 
     /*
-     * The name box is only usable while the panel is closed, and is turned off
-     * rather than hidden: the reader can still see what they typed, and it is
-     * still there when they close the panel again.
-     */
-    function syncNameAvailability() {
-        const off = filtersOpen();
-        [nameInput, nameSearch].forEach(function (control) {
-            if (!control) {
-                return;
-            }
-            control.disabled = off;
-            control.classList.toggle("is-disabled", off);
-            control.title = off
-                ? "Close the advanced filters to search by name"
-                : "";
-        });
-    }
-
-    /* The filter panel, closed to begin with. */
-    if (filtersToggle) {
-        filtersToggle.addEventListener("click", function () {
-            const panel = document.getElementById("filters-panel");
-            const open = !panel.classList.contains("is-open");
-            panel.classList.toggle("is-open", open);
-            filtersToggle.setAttribute("aria-expanded", String(open));
-            if (filtersChevron) {
-                filtersChevron.classList.toggle("rotate-180", open);
-            }
-            syncNameAvailability();
-            /*
-             * Search again, because opening or closing the panel changes which
-             * criteria apply: closing drops the filters, opening drops the name.
-             * Leaving the old results on screen would show an answer to a
-             * question the controls no longer ask.
-             */
-            refresh();
-            if (open) {
-                // Land on the first control rather than leaving focus on the
-                // button that revealed it.
-                const first = form.querySelector("select, input");
-                if (first) {
-                    first.focus();
-                }
-            }
-        });
-    }
-
-    /*
-     * The name is searched when asked for, never as it is typed.
+     * The filters, in a modal.
      *
-     * Searching per keystroke meant a request for every prefix on the way to the
-     * word the reader wanted, results flickering through answers to half-typed
-     * names, and no way to tell a finished thought from a passing one. Enter and
-     * the button are both "now".
+     * Opening one runs no search. The controls say the same thing whether or
+     * not they are on screen, so what is in the table is still the answer to
+     * the question they ask. Only Search runs a search.
      */
-    if (nameInput) {
-        nameInput.addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-                // A bare input outside a form does not submit, but an input
-                // inside one would, and this one may end up in either.
-                event.preventDefault();
-                refresh();
-            }
-        });
-    }
-    if (nameSearch) {
-        nameSearch.addEventListener("click", refresh);
-    }
+    /*
+     * There is no open or close. The rail is beside the table and always on
+     * screen, so the controls and the answer are visible at the same time, and
+     * nothing has to be reopened to see what is applied.
+     */
+
     if (sortSelect) {
         sortSelect.addEventListener("change", refresh);
     }
@@ -1805,16 +1442,7 @@
         event.preventDefault();
         // Back to page one: the old page three may not exist under new filters.
         refresh();
-    });
-
-    // The command banner tracks the filters as they are chosen, without waiting
-    // for a search: it is showing what the current selection means, not what was
-    // last run.
-    form.addEventListener("change", function () {
-        updateCommand(currentQuery());
-    });
-    form.addEventListener("input", function () {
-        updateCommand(currentQuery());
+        // Nothing to dismiss: the rail stays where it is.
     });
 
     // Reset fires before the fields are actually cleared, so wait a tick.
@@ -1853,7 +1481,6 @@
             return;
         }
         started = true;
-        syncNameAvailability();
         load(currentQuery(), true);
     }
 

@@ -111,50 +111,178 @@
                 return entry.section;
             });
 
-        function updateProgress() {
+        /*
+         * How far down the page the reader is, measured once a frame.
+         *
+         * Three things were wrong with doing it per scroll event. A trackpad
+         * reports many small deltas, so the work ran far more often than the
+         * screen refreshes. `scrollHeight` is a layout read, so each event
+         * forced the browser to lay the page out again before it could answer.
+         * And the answer was written to `height`, a layout property, so it had
+         * to lay it out once more afterwards.
+         *
+         * Now: the page's own measurements are cached and only taken again when
+         * something could have changed them, the scroll position is read at most
+         * once a frame, and the fill is scaled rather than resized.
+         */
+        let scrollable = 0;
+
+        function measure() {
+            scrollable = document.documentElement.scrollHeight - window.innerHeight;
+            paint();
+        }
+
+        function paint() {
             if (!fill) {
                 return;
             }
-            const scrollable = document.documentElement.scrollHeight - window.innerHeight;
             // A page shorter than the viewport has no progress to report, and
             // dividing by zero would fill the rail completely.
             const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
-            fill.style.height = Math.max(0, Math.min(1, progress)) * 100 + "%";
+            fill.style.transform =
+                "scaleY(" + Math.max(0, Math.min(1, progress)) + ")";
         }
 
-        window.addEventListener("scroll", updateProgress, { passive: true });
-        window.addEventListener("resize", updateProgress);
-        updateProgress();
+        let ticking = false;
+
+        function onScroll() {
+            if (ticking) {
+                return;
+            }
+            ticking = true;
+            window.requestAnimationFrame(function () {
+                ticking = false;
+                paint();
+            });
+        }
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", measure);
+
+        /*
+         * The page gets taller and shorter without a resize: the panel slides,
+         * a search returns a different number of rows, an image loads. Watching
+         * the document is how the cached height learns about all of them without
+         * this file having to be told by each one.
+         */
+        if ("ResizeObserver" in window) {
+            new ResizeObserver(measure).observe(document.documentElement);
+        }
+
+        measure();
+
+        const visible = new Set();
+
+        /*
+         * Which dot is lit has two claimants, and they have to take turns.
+         *
+         * A click asks the browser to scroll somewhere. That scroll passes
+         * over every section in between, and the observer reports each one
+         * as it goes, so the dot walks down the rail and lands on the right
+         * one only at the end. The reader sees their click apparently
+         * ignored, and for a moment two dots look live: the one they
+         * pressed, which still has focus, and the one the scroll is passing.
+         *
+         * So: a click takes the state and holds it until that scroll
+         * finishes; after that, and at every other time, the scroll has it.
+         * Neither is allowed to write it while the other owns it.
+         */
+        let claimed = null;
+
+        function paintCurrent(section) {
+            targets.forEach(function (entry) {
+                const active = section && entry.section === section;
+                entry.item.classList.toggle("is-current", Boolean(active));
+                if (active) {
+                    entry.item.setAttribute("aria-current", "true");
+                } else if (entry.item.getAttribute("aria-current") === "true") {
+                    // Only clear what this set: `aria-current="page"` on the
+                    // Solvers link is not ours to remove.
+                    entry.item.removeAttribute("aria-current");
+                }
+            });
+        }
+
+        function highlight() {
+            if (claimed) {
+                return;
+            }
+            // Among the sections on screen, the one nearest the top of the
+            // viewport is the one being read.
+            let current = null;
+            let best = Infinity;
+            visible.forEach(function (section) {
+                const top = Math.abs(section.getBoundingClientRect().top);
+                if (top < best) {
+                    best = top;
+                    current = section;
+                }
+            });
+            paintCurrent(current);
+        }
+
+        /*
+         * Handing the state back when the scroll a click started has
+         * stopped.
+         *
+         * `scrollend` says exactly that and is the right answer where it
+         * exists. Where it does not, quiet is the only available signal: a
+         * smooth scroll fires scroll events continuously, so 140ms without
+         * one means it has arrived or the reader has stopped. The timer is
+         * reset by every scroll event, so a long scroll is not cut short.
+         */
+        const release = function () {
+            claimed = null;
+            highlight();
+        };
+
+        let settleTimer = null;
+        const supportsScrollEnd = "onscrollend" in window;
+
+        if (supportsScrollEnd) {
+            window.addEventListener("scrollend", function () {
+                if (claimed) {
+                    release();
+                }
+            }, { passive: true });
+        } else {
+            window.addEventListener("scroll", function () {
+                if (!claimed) {
+                    return;
+                }
+                window.clearTimeout(settleTimer);
+                settleTimer = window.setTimeout(release, 140);
+            }, { passive: true });
+        }
+
+        /*
+         * The click itself. The dot lights at once, before any scrolling,
+         * because the answer to "which one did I press" is not something the
+         * reader should have to wait half a second to see.
+         */
+        rail.addEventListener("click", function (event) {
+            const item = event.target.closest ? event.target.closest(".rail-item") : null;
+            if (!item) {
+                return;
+            }
+            const entry = targets.filter(function (t) {
+                return t.item === item;
+            })[0];
+            if (!entry) {
+                return;
+            }
+            claimed = entry.section;
+            paintCurrent(entry.section);
+            window.clearTimeout(settleTimer);
+            /*
+             * A click on the dot for the section already on screen scrolls
+             * nowhere, so neither `scrollend` nor a quiet timer will ever
+             * arrive to hand the state back. This is the floor.
+             */
+            settleTimer = window.setTimeout(release, 1200);
+        });
 
         if (targets.length && "IntersectionObserver" in window) {
-            const visible = new Set();
-
-            function highlight() {
-                // Among the sections on screen, the one nearest the top of the
-                // viewport is the one being read.
-                let current = null;
-                let best = Infinity;
-                visible.forEach(function (section) {
-                    const top = Math.abs(section.getBoundingClientRect().top);
-                    if (top < best) {
-                        best = top;
-                        current = section;
-                    }
-                });
-
-                targets.forEach(function (entry) {
-                    const active = current && entry.section === current;
-                    entry.item.classList.toggle("is-current", Boolean(active));
-                    if (active) {
-                        entry.item.setAttribute("aria-current", "true");
-                    } else if (entry.item.getAttribute("aria-current") === "true") {
-                        // Only clear what this set: `aria-current="page"` on the
-                        // Solvers link is not ours to remove.
-                        entry.item.removeAttribute("aria-current");
-                    }
-                });
-            }
-
             const observer = new IntersectionObserver(
                 function (entries) {
                     entries.forEach(function (entry) {
@@ -272,11 +400,12 @@
                     example.textContent = "";
                     example.classList.add("is-typing");
 
-                    // A fixed total, not a fixed rate. The example is around 500
-                    // characters; at a plausible per-character delay that would
-                    // run for six seconds, which is a long time to watch a code
-                    // block fill in.
-                    const DURATION_MS = 2200;
+                    // A fixed total, not a fixed rate, so the whole example
+                    // always takes the same time however long it gets. Around
+                    // 500 characters over this duration is around ten
+                    // milliseconds a character, slow enough to read along with
+                    // rather than a block appearing.
+                    const DURATION_MS = 5000;
                     const start = performance.now();
 
                     function frame(now) {
@@ -294,6 +423,99 @@
                 { threshold: 0.25 }
             );
             watcher.observe(example);
+        }
+    }
+
+    /* ------------------------------------------------------ the citations -- */
+
+    /*
+     * Copy a citation when it is clicked.
+     *
+     * What goes on the clipboard is the line on screen, and nothing else. It is
+     * read from the element at click time rather than kept in an attribute, so
+     * there is no second copy of the reference to drift from the one the reader
+     * is looking at.
+     *
+     * The whitespace has to be collapsed. The markup wraps the reference over
+     * three indented lines, and `textContent` returns every one of those
+     * newlines and every run of leading spaces, which pasted into a document is
+     * a reference with the middle of its title on a line of its own.
+     *
+     * The confirmation is a class on the button, which the stylesheet animates.
+     * It is deliberately not an alert: an alert blocks the page and has to be
+     * dismissed to carry on reading, for news the reader can see for themselves.
+     * The class is removed again after a moment so a second copy of the same
+     * reference still animates, and the button never ends up stuck in a state
+     * that claims something is on the clipboard long after it was replaced.
+     *
+     * The screen reader hears it from one shared live region instead, because an
+     * animated badge is not an announcement.
+     */
+    const citations = document.querySelectorAll(".citation");
+    const citationStatus = document.getElementById("citation-status");
+
+    const citationText = function (button) {
+        const source = button.querySelector(".citation-text") || button;
+        return source.textContent.replace(/\s+/g, " ").trim();
+    };
+
+    if (citations.length) {
+        const CONFIRM_MS = 2000;
+        let clearing = null;
+
+        const announce = function (message) {
+            if (citationStatus) {
+                citationStatus.textContent = message;
+            }
+        };
+
+        const settle = function (button, state, message) {
+            citations.forEach(function (other) {
+                other.classList.remove("is-copied", "is-manual");
+            });
+            button.classList.add(state);
+            announce(message);
+
+            window.clearTimeout(clearing);
+            clearing = window.setTimeout(function () {
+                button.classList.remove("is-copied", "is-manual");
+                announce("");
+            }, CONFIRM_MS);
+        };
+
+        citations.forEach(function (button) {
+            button.addEventListener("click", function () {
+                const text = citationText(button);
+                if (!text) {
+                    return;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(
+                        function () {
+                            settle(button, "is-copied", "Citation copied");
+                        },
+                        function () {
+                            selectCitation(button);
+                        }
+                    );
+                } else {
+                    // No clipboard API, which also covers any page not served
+                    // over https. Select the reference so the reader's own copy
+                    // shortcut works on it.
+                    selectCitation(button);
+                }
+            });
+        });
+
+        function selectCitation(button) {
+            const text = button.querySelector(".citation-text") || button;
+            const range = document.createRange();
+            range.selectNodeContents(text);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            settle(button, "is-manual", "Citation selected, press Control and C to copy");
         }
     }
 
@@ -564,12 +786,34 @@
 
     const toTop = document.getElementById("to-top");
     if (toTop) {
-        const onScroll = function () {
-            const shown = window.scrollY > 400;
-            toTop.classList.toggle("opacity-0", !shown);
-            toTop.classList.toggle("pointer-events-none", !shown);
+        /*
+         * Also once a frame. The work itself is two class toggles and costs
+         * almost nothing, but a second listener on the same event is a second
+         * thing the browser has to run before it can scroll, and on a trackpad
+         * that is hundreds of times a second for a button that changes state
+         * twice a page.
+         */
+        let shown = null;
+        let pending = false;
+
+        const update = function () {
+            pending = false;
+            const next = window.scrollY > 400;
+            if (next === shown) {
+                return;
+            }
+            shown = next;
+            toTop.classList.toggle("opacity-0", !next);
+            toTop.classList.toggle("pointer-events-none", !next);
         };
-        window.addEventListener("scroll", onScroll, { passive: true });
-        onScroll();
+
+        window.addEventListener("scroll", function () {
+            if (pending) {
+                return;
+            }
+            pending = true;
+            window.requestAnimationFrame(update);
+        }, { passive: true });
+        update();
     }
 })();
