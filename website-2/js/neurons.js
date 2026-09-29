@@ -70,6 +70,19 @@
      * changed unless something moved.
      */
     const LINK_DISTANCE = 135;
+
+    /*
+     * The cursor's reach, and how quickly it arrives and leaves.
+     *
+     * Shorter than LINK_DISTANCE on purpose: the cursor should pick up the
+     * handful of nodes it is actually among, not rope in half the field, which
+     * looks like a starburst rather than like touching a network.
+     *
+     * The alpha is eased rather than switched, so moving off the banner does not
+     * cut a dozen lines at once. 0.08 a frame is about a fifth of a second.
+     */
+    const CURSOR_DISTANCE = 120;
+    const CURSOR_FADE = 0.08;
     // Past this a held link snaps, however much life it had left.
     const LINK_BREAK_DISTANCE = 190;
     // How long a bond lasts, in frames. Short enough that the web visibly
@@ -229,6 +242,60 @@
      * How visible a node is: it fades in over the first tenth of its life and
      * out over the last quarter, and is fully present in between.
      */
+    /*
+     * The cursor, as a node the reader moves.
+     *
+     * Read from the header rather than the canvas: the canvas is
+     * `pointer-events: none` so that it never intercepts a selection or a click
+     * on the heading, which means it never sees a pointer either. The header
+     * still receives events and is the same box.
+     *
+     * `cursorAlpha` is a separate value from "is the pointer here", so the links
+     * fade in and out instead of appearing and vanishing with the pointer.
+     */
+    const cursor = { clientX: 0, clientY: 0, x: 0, y: 0, here: false, alpha: 0 };
+
+    if (!reduced) {
+        /*
+         * The handler stores the viewport coordinates and nothing else.
+         *
+         * Turning them into canvas coordinates needs the canvas's position,
+         * and `getBoundingClientRect` is a layout read. A pointer reports far
+         * more often than the screen refreshes, so doing it here would force a
+         * layout per move; it is done once a frame in `place()` instead, which
+         * is also the only way it stays right while the page scrolls under a
+         * still pointer.
+         */
+        header.addEventListener("pointermove", function (event) {
+            /*
+             * A coarse pointer is a finger, and a finger on the banner is
+             * usually on its way to scrolling past it. Lighting the field up
+             * under it would be an effect nobody asked for, in the way of the
+             * thing they were doing.
+             */
+            if (event.pointerType === "touch") {
+                return;
+            }
+            cursor.clientX = event.clientX;
+            cursor.clientY = event.clientY;
+            cursor.here = true;
+        }, { passive: true });
+
+        header.addEventListener("pointerleave", function () {
+            cursor.here = false;
+        }, { passive: true });
+    }
+
+    /* One layout read a frame, and only while there is something to draw. */
+    function place() {
+        if (!cursor.here && cursor.alpha <= 0) {
+            return;
+        }
+        const box = canvas.getBoundingClientRect();
+        cursor.x = cursor.clientX - box.left;
+        cursor.y = cursor.clientY - box.top;
+    }
+
     function alphaOf(node) {
         const t = node.life / node.maxLife;
         if (t < 0.1) {
@@ -409,6 +476,37 @@
         formLinks();
     }
 
+    /*
+     * The halo, drawn once into its own canvas and reused.
+     *
+     * It was a `createRadialGradient` per node per frame: at 160 nodes and 60
+     * frames a second that is nearly ten thousand gradient objects a second,
+     * each one built, rasterised and thrown away. The cost is not only the work
+     * but the garbage, and a collection pause in the middle of an animation is
+     * exactly the stutter it looked like.
+     *
+     * Every halo is the same picture at a different size, so one bitmap and a
+     * scaled `drawImage` says the same thing. 64px is comfortably larger than
+     * the biggest halo drawn, which is 3 times the 7px maximum radius, so it is
+     * always scaled down and never blurred by scaling up.
+     */
+    const haloSprite = (function () {
+        const size = 64;
+        const sprite = document.createElement("canvas");
+        sprite.width = size;
+        sprite.height = size;
+        const sctx = sprite.getContext("2d");
+        const r = size / 2;
+        const glow = sctx.createRadialGradient(r, r, 0, r, r, r);
+        glow.addColorStop(0, NODE_COLOUR);
+        glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        sctx.fillStyle = glow;
+        sctx.beginPath();
+        sctx.arc(r, r, r, 0, Math.PI * 2);
+        sctx.fill();
+        return sprite;
+    })();
+
     function draw() {
         ctx.clearRect(0, 0, width, height);
 
@@ -465,14 +563,10 @@
              * glow and the size difference reads at a glance.
              */
             const halo = node.radius * 3;
-            const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, halo);
-            glow.addColorStop(0, NODE_COLOUR);
-            glow.addColorStop(1, "rgba(0, 0, 0, 0)");
             ctx.globalAlpha = alpha * 0.14;
-            ctx.fillStyle = glow;
-            ctx.beginPath();
-            ctx.arc(0, 0, halo, 0, Math.PI * 2);
-            ctx.fill();
+            // The prepared sprite, scaled to this node, rather than a gradient
+            // built here. See haloSprite.
+            ctx.drawImage(haloSprite, -halo, -halo, halo * 2, halo * 2);
 
             ctx.globalCompositeOperation = "lighter";
             ctx.globalAlpha = alpha * 0.9;
@@ -484,6 +578,68 @@
             ctx.globalCompositeOperation = "source-over";
             ctx.restore();
         });
+
+        drawCursor();
+    }
+
+    /*
+     * The nodes near the cursor, joined to it.
+     *
+     * Drawn after the nodes rather than with the links, so these lines read as
+     * something happening on top of the field rather than as part of it.
+     *
+     * Each line fades with distance, so the reach has no edge: a node does not
+     * snap into the web as it crosses a boundary, it arrives. `1 - d / reach`
+     * squared, because linear fading leaves faint lines visible almost to the
+     * edge and the effect looks like a disc rather than like a reach.
+     *
+     * No allocation per frame and no work at all when the cursor is away, which
+     * is the usual case: the whole thing is one loop over the nodes, and the
+     * loop does not run unless a line would be visible.
+     */
+    function drawCursor() {
+        if (cursor.alpha <= 0) {
+            return;
+        }
+
+        const reach = CURSOR_DISTANCE;
+        ctx.strokeStyle = NODE_COLOUR;
+        ctx.lineWidth = 0.9;
+
+        nodes.forEach(function (node) {
+            const dx = node.x - cursor.x;
+            const dy = node.y - cursor.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 > reach * reach) {
+                return;
+            }
+            const near = 1 - Math.sqrt(d2) / reach;
+            const alpha = alphaOf(node) * cursor.alpha * near * near * 0.55;
+            if (alpha <= 0.01) {
+                return;
+            }
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.moveTo(cursor.x, cursor.y);
+            ctx.lineTo(node.x, node.y);
+            ctx.stroke();
+        });
+
+        // A node of its own at the pointer, so the lines have somewhere to meet
+        // rather than converging on nothing.
+        const halo = 9;
+        ctx.globalAlpha = cursor.alpha * 0.18;
+        ctx.drawImage(haloSprite, cursor.x - halo, cursor.y - halo, halo * 2, halo * 2);
+
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = cursor.alpha * 0.9;
+        ctx.fillStyle = NODE_COLOUR;
+        ctx.beginPath();
+        ctx.arc(cursor.x, cursor.y, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = 1;
     }
 
     function loop() {
@@ -492,6 +648,11 @@
             return;
         }
         step();
+        cursor.alpha += ((cursor.here ? 1 : 0) - cursor.alpha) * CURSOR_FADE;
+        if (cursor.alpha < 0.005) {
+            cursor.alpha = 0;
+        }
+        place();
         draw();
     }
 
