@@ -97,46 +97,30 @@
                                 <div id="model-file-status" class="filter-help">Upload an ONNX model or operator list.</div>
                             </div>
                             <div class="col-lg-4 col-md-6 mb-3">
-                                <label for="filter-onnx-opset">Supported ONNX opset versions</label>
+                                <label for="filter-onnx-opset">Required ONNX opset version</label>
                                 <input id="filter-onnx-opset" class="form-control filter-control" type="number" min="1" placeholder="16">
                             </div>
                         </div>
                     </div>
 
-                    <div class="filter-block-row">
-                        <div class="filter-block">
-                            <div class="filter-block-heading">
-                                <span class="filter-accent filter-accent-amber"></span>
-                                <h3>Version requirements</h3>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3 mb-md-0">
-                                    <label for="filter-vnnlib-version">Supported VNN-LIB versions</label>
-                                    <input id="filter-vnnlib-version" class="form-control filter-control" type="text" placeholder="2.0">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="filter-serialise-assignments">Serialise assignments</label>
-                                    <select id="filter-serialise-assignments" class="form-control filter-control">
-                                        <option value="">Any</option>
-                                        <option value="true">Yes</option>
-                                        <option value="false">No</option>
-                                    </select>
-                                </div>
-                            </div>
+                    <div class="filter-block">
+                        <div class="filter-block-heading">
+                            <span class="filter-accent filter-accent-amber"></span>
+                            <h3>Version and output requirements</h3>
                         </div>
-
-                        <div class="filter-block">
-                            <div class="filter-block-heading">
-                                <span class="filter-accent filter-accent-plum"></span>
-                                <h3>Add a solver</h3>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label for="filter-vnnlib-version">Required VNN-LIB version</label>
+                                <input id="filter-vnnlib-version" class="form-control filter-control" type="text" placeholder="2.0">
                             </div>
-                            <p class="filter-help mb-3">
-                                To add a solver or a new solver version, follow the repository submission instructions.
-                            </p>
-                            <a class="btn btn-outline-secondary btn-block" target="_blank" rel="noopener"
-                                href="https://github.com/VNNLIB/VNNLIB-Solver-Database/blob/main/docs/SUBMITTING.md">
-                                Add your own solver
-                            </a>
+                            <div class="col-md-6">
+                                <label for="filter-serialise-assignments">Serialise assignments</label>
+                                <select id="filter-serialise-assignments" class="form-control filter-control">
+                                    <option value="">Any</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -195,6 +179,22 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div class="filter-block solver-submit-callout">
+                    <div class="solver-submit-copy">
+                        <div class="filter-block-heading mb-2">
+                            <span class="filter-accent filter-accent-plum"></span>
+                            <h3>Add a solver</h3>
+                        </div>
+                        <p class="filter-help mb-0">
+                            To add a solver or a new solver version, follow the repository submission instructions.
+                        </p>
+                    </div>
+                    <a class="btn btn-outline-secondary solver-submit-button" target="_blank" rel="noopener"
+                        href="https://github.com/VNNLIB/VNNLIB-Solver-Database/blob/main/docs/SUBMITTING.md">
+                        Add your own solver
+                    </a>
                 </div>
 
                 <div id="active-filters" class="active-filters" aria-live="polite"></div>

@@ -39,8 +39,8 @@
         operators: "ONNX operators",
         element_types: "Element types",
         serialise_assignments: "Serialise assignments",
-        onnx_opset: "Supported ONNX opset versions",
-        vnnlib_version: "Supported VNN-LIB versions"
+        onnx_opset: "Required ONNX opset version",
+        vnnlib_version: "Required VNN-LIB version"
     };
 
     var VALUE_LABELS = {

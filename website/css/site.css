@@ -848,6 +848,22 @@ a {
     margin-top: 1rem;
 }
 
+.solver-submit-callout {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.solver-submit-copy {
+    min-width: 0;
+}
+
+.solver-submit-button {
+    flex: 0 0 auto;
+    min-width: 13rem;
+}
+
 .solver-filter-panel .filter-chip-select {
     min-height: 6.3rem;
 }
@@ -1191,6 +1207,16 @@ a {
 
     .filter-block-row {
         display: block;
+    }
+
+    .solver-submit-callout {
+        align-items: stretch;
+        display: block;
+    }
+
+    .solver-submit-button {
+        margin-top: 1rem;
+        width: 100%;
     }
 
     .filter-title {
