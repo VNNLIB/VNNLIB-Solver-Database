@@ -1,41 +1,38 @@
-# vnnfilter — developer notes
+# `_data/`
 
-This package is what `README.md` at the repo root calls "the Python
-package." It exposes:
+This folder holds the bundled offline copy of the solver database, shipped inside the
+`vnnfilter` package itself.
 
-- a `vnnfilter` CLI (`src/vnnfilter/cli.py`)
-- a small Python API (`vnnfilter.search`, `vnnfilter.Query`, `vnnfilter.load_database`)
+## `solvers.json`
 
-## Data flow
+The last-known-good snapshot of the solver registry, packaged with `vnnfilter` so the
+tool still works with no internet connection.
 
-- `data/solvers.json` at the repo root is the database the collection
-  pipeline writes. It is the source of truth.
-- `src/vnnfilter/_data/solvers.json` is a bundled copy, so an installed
-  package works offline. Run `python scripts/sync_package_data.py` to
-  refresh it before cutting a release; CI should run
-  `python scripts/sync_package_data.py --check` to catch a stale copy.
-- At runtime, `vnnfilter.load_database()` reads (in order) an explicit
-  path, the `VNNFILTER_DATA_FILE` environment variable, then the bundled
-  copy. Point it at a local checkout's `data/solvers.json` while
-  developing so you don't have to keep re-syncing.
+### How it's used
 
-## Working on it
+`load_database()` (in `data.py`) tries these sources in order:
 
-```bash
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"
-pytest
-```
+1. An explicit path passed by the caller
+2. The `VNNFILTER_DATA_FILE` environment variable, if set
+3. A live fetch from the hosted API (`DEFAULT_API_URL`)
+4. This bundled file, as the last-resort fallback
 
-`tests/` runs against `tests/fixtures/solvers.sample.json`, the hand-written
-fixture, not the real database — see its three solvers
-(`vibecheck`: `ok`, `brokennn`: `incomplete`, `deadsolver`: `install_failed`)
-for the edge cases the query logic has to handle.
+### How it stays current
 
-## Design notes
+Every time step 3 succeeds, `_refresh_bundle()` writes the freshly fetched data back
+over this file. So the bundle is a write-through cache: it updates itself whenever a
+user has a working connection, and only goes stale for users who are offline for a
+long stretch.
 
-See the module docstrings in `vnnfilter/data.py` and `vnnfilter/query.py`
-for the matching rules; they follow `docs/SCHEMA.md` directly (theory
-fields match against `satisfies`, not raw `capabilities`; an absent or
-`null` field never matches; every criterion is optional and requires-all
-rather than requires-any except each single-value theory flag).
+### Do not edit by hand
+
+This file is overwritten automatically by `_refresh_bundle()`. Manual edits will be
+lost the next time someone with an internet connection runs the package. To update the
+canonical data, publish a new version through the live API
+(`https://12er90.pythonanywhere.com/solvers`) instead.
+
+### Testing note
+
+Tests that mock the live fetch (e.g. `test_no_args_fetches_live_api`) must also mock
+`_refresh_bundle`, otherwise a "successful" mocked fetch will silently overwrite this
+file with the mock's contents during `pytest` runs.
