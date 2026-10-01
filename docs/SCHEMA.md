@@ -6,6 +6,19 @@ package and the website fetches it.
 Every field traces back to a specific command in Section 5 of the VNN-LIB 2.0
 standard. Nothing here is invented.
 
+## Schema history
+
+| Version | Change |
+|---|---|
+| `2.0` | The solver field `repo` is now `url`. A rename is a breaking change for anything reading the file by name, so the major version moved with it |
+| `1.0` | First published schema |
+
+`build.py` compares the file against `schema.SCHEMA_VERSION` and refuses to
+merge into one whose major version it does not know. That guard is the point of
+the version: a reader that does not understand the file says so instead of
+half-reading it. A consumer written against 1.0 will refuse this file, which is
+the intended outcome and how it is told to update.
+
 ---
 
 ## Top level
@@ -22,7 +35,7 @@ standard. Nothing here is invented.
 |---|---|---|
 | `id` | string | Directory name under `solvers/`. Lowercase, alphanumeric and hyphens. Appears in URLs and citations, so it never changes once assigned |
 | `name` | string | Display name, from `solver.toml` or failing that from `--name` |
-| `repo` | string | Canonical source URL, normalised. The uniqueness key for detecting the same solver submitted twice |
+| `url` | string | The solver's own page: its repository, project site or documentation. The uniqueness key for detecting the same solver submitted twice |
 | `versions` | array | One entry per release collected, **sorted ascending**. Consumers rely on the ordering to compute ranges without parsing versions, so it is part of the contract |
 
 There is no `latest_version`. It is the last element of `versions`.
@@ -57,17 +70,17 @@ be in.
 
 ### Retirement
 
-Submissions are never deleted from this repository, but a retired release is
-removed from this file. A release is retired by setting `withdrawn = true` in
+A retired release is removed from this file while its submission stays in the
+repository. A release is retired by setting `withdrawn = true` in
 its `solver.toml`, or every release of a solver at once by setting it in
 `solvers/<id>/solver.toml`. The database then describes only what can be used
 today.
 
 This is the one place the database is not append-only. It is safe because the
 submission survives: `solvers/<id>/<version>/` still holds the install script,
-so setting the flag back to `false` and re-collecting reproduces the record
-exactly. Nothing measured becomes unrecoverable, it only stops being
-published.
+so setting the flag back to `false`, or deleting the line, and re-collecting
+reproduces the record exactly. Nothing measured becomes unrecoverable, it only
+stops being published.
 
 A release whose directory has gone is dropped the same way, so the file can
 never describe a submission that no longer exists.

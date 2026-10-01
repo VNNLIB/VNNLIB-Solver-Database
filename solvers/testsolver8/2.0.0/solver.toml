@@ -1,5 +1,4 @@
-name      = "TestSolver Eight"
-repo      = "https://github.com/vnnlib-test/testsolver8"
-license   = "MIT"
-contact   = "nobody@example.invalid"
-withdrawn = false
+name    = "TestSolver Eight"
+url     = "https://github.com/vnnlib-test/testsolver8"
+license = "MIT"
+contact = "nobody@example.invalid"

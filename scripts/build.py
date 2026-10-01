@@ -2,29 +2,16 @@
 """
 build.py: fold the records register.py produced into data/solvers.json.
 
-register.py writes one Solver entry per line to results.jsonl; this merges
-those into the database on disk. It never installs or queries anything.
-
-A merge, never a regeneration. The database on disk is the starting point and
-a run only adds to it or replaces the exact versions it collected, per
-SUBMITTING.md's "Updating":
+A merge, never a regeneration. The database on disk is the starting point:
 
   - re-collecting a version OVERWRITES it, it does not duplicate
   - a solver absent from results.jsonl is left exactly as it was
   - unrecognised top-level fields are carried through
-  - if nothing changed, the file is not rewritten, so a no-op leaves no diff
+  - if nothing changed, the file is not rewritten
 
-Only releases that collected cleanly are published. A release that could not
-be installed, or answered only some of the eleven queries, has nothing to
-advertise, so its record is dropped; the author still sees exactly what
-happened in the pull request comment.
-
-Submissions are never deleted from this repository. A release is retired by
-setting `withdrawn = true` in its solver.toml, or every release of a solver at
-once by setting it in `solvers/<id>/solver.toml`. Its record is then removed
-too, so what is published describes only what can be used today. The
-submission itself stays, so clearing the line and re-collecting brings the
-record back.
+Only clean collections are published. A release retired with `withdrawn = true`
+has its record removed while the submission stays, so clearing the line and
+re-collecting brings the record back.
 
 Testing: see tests/README.md.
 """
@@ -140,9 +127,9 @@ def merge_solver(existing, incoming):
 
     merged = dict(existing)
     # Incoming wins on display fields, but only when it actually has a value:
-    # repo is still empty out of register.py (known gap), and an empty string
-    # must not wipe a repo someone filled in by hand.
-    for field in ("name", "repo"):
+    # url is still empty out of register.py (known gap), and an empty
+    # string must not wipe a url someone filled in by hand.
+    for field in ("name", "url"):
         if incoming.get(field):
             merged[field] = incoming[field]
         else:
@@ -157,21 +144,12 @@ def offered_versions(solvers_dir):
     {(id, version)} for every release still on offer, or None if solvers/ is
     not there at all.
 
-    A release is on offer when its directory exists and neither its own
-    solver.toml nor the one beside it at `solvers/<id>/solver.toml` says
-    `withdrawn = true`. Submissions are never deleted from this repository, so
-    the flag in the file is the mechanism; a directory that has gone anyway is
-    treated as withdrawn too, which costs nothing and stops a record claiming a
-    solver is available when its submission has vanished.
-
-    The solver-level file retires every release at once, for a project that has
-    been abandoned rather than a single release being superseded. Either file
-    saying so is enough: they are two ways to answer the same question, not two
-    conditions to satisfy.
+    On offer means the directory exists and neither its own solver.toml nor
+    `solvers/<id>/solver.toml` says `withdrawn = true`.
 
     None and "empty" are kept apart on purpose: a missing solvers/ means the
-    caller cannot tell us what is registered, and emptying the entire database
-    on that basis would be a disaster dressed as a feature.
+    caller cannot say what is registered, and emptying the whole database on
+    that basis would be a disaster dressed as a feature.
     """
     solvers_dir = Path(solvers_dir)
     if not solvers_dir.is_dir():
@@ -181,9 +159,6 @@ def offered_versions(solvers_dir):
     for solver in sorted(solvers_dir.iterdir()):
         if not solver.is_dir():
             continue
-        # A solver.toml beside the version directories retires every release
-        # at once, for a project that has been abandoned rather than one
-        # release being superseded.
         if validate.is_withdrawn(solver):
             continue
         for version in sorted(solver.iterdir()):
@@ -197,11 +172,8 @@ def retire_failures(results, solvers_dir):
     Mark every release in `results` that did not collect cleanly as withdrawn,
     by writing the flag into its own solver.toml.
 
-    A release that fails to install on main was merged in error, and without
-    this the pipeline reinstalls it on every push that touches it, half an hour
-    at a time, to reach the same conclusion. Writing the flag into the
-    repository also makes the state reviewable: it shows up as a commit and can
-    be undone by deleting the line.
+    Without it the pipeline reinstalls a known-broken release on every push,
+    half an hour at a time, to reach the same conclusion.
 
     Returns the directories it changed.
     """
@@ -221,14 +193,9 @@ def drop_incomplete(by_id):
     Remove every release that did not collect cleanly, and any solver left
     with none.
 
-    The database advertises what a solver can do, so a release that could not
-    be installed, or answered only some of the eleven queries, has nothing to
-    advertise. Publishing it would invite a reader to draw conclusions from a
-    partial measurement.
-
-    The author still finds out: the pull request comment reports exactly what
-    happened, errors and all, which is where that information is useful. It is
-    feedback, not a catalogue entry.
+    A release that could not be installed, or answered only some of the eleven
+    queries, has nothing to advertise. The author still finds out: the pull
+    request comment reports what happened.
     """
     kept = {}
     for solver_id, solver in by_id.items():
@@ -246,14 +213,10 @@ def drop_withdrawn(by_id, offered):
     Remove every release that is no longer on offer, and any solver left with
     no releases at all.
 
-    The client wants a retired release gone from the database rather than
-    flagged, so what is published describes only what can be used today.
-
-    This is the one place the database is not append-only, and it is safe
-    because the submission itself is not deleted: `solvers/<id>/<version>/`
-    still holds the install script, so clearing the `withdrawn` line and
-    re-collecting reproduces the record. Nothing that took half an hour to
-    measure becomes unrecoverable, it only stops being published.
+    A retired release is gone from the database rather than flagged, so what is
+    published describes only what can be used today. The one place this is not
+    append-only, and safe because the install script stays: clearing the line
+    and re-collecting reproduces the record.
 
     Pass None for `offered` to leave the database alone.
     """
@@ -275,7 +238,7 @@ def drop_withdrawn(by_id, offered):
 def build(database, results, offered=None):
     """
     A new database with every entry in results merged in, keyed by id (the
-    directory name, which never changes). repo is SCHEMA.md's key for
+    directory name, which never changes). url is SCHEMA.md's key for
     detecting the same solver submitted twice, which is warned about below.
 
     `offered` is the set of (id, version) pairs still on offer. Anything in the
@@ -307,13 +270,13 @@ def build(database, results, offered=None):
     by_id = drop_withdrawn(by_id, offered)
     by_id = drop_incomplete(by_id)
 
-    # Two ids sharing one repo is the duplicate-submission case SCHEMA.md
+    # Two ids sharing one url is the duplicate-submission case SCHEMA.md
     # wants caught. A warning, not a failure: it needs a human to decide which
     # id is the real one, and dropping either silently would be worse.
-    duplicates = _duplicate_repos(by_id.values())
-    for repo, ids in duplicates.items():
-        print(f"warning: {repo} is registered under {len(ids)} ids: {', '.join(ids)}",
-              file=sys.stderr)
+    duplicates = _duplicate_urls(by_id.values())
+    for url, ids in duplicates.items():
+        print(f"warning: {url} is registered under {len(ids)} ids: "
+              f"{', '.join(ids)}", file=sys.stderr)
 
     # Starts from the existing file, so any top-level field this script does
     # not know about survives instead of being dropped on the next run.
@@ -357,14 +320,14 @@ def is_unchanged(before, after):
     return strip(before) == strip(after)
 
 
-def _duplicate_repos(solvers):
-    """{repo: [id, ...]} for every non-empty repo claimed by more than one id."""
+def _duplicate_urls(solvers):
+    """{url: [id, ...]} for every non-empty url claimed by more than one id."""
     seen = {}
     for solver in solvers:
-        repo = solver.get("repo") or ""
-        if repo:
-            seen.setdefault(repo, []).append(solver["id"])
-    return {repo: ids for repo, ids in seen.items() if len(ids) > 1}
+        url = solver.get("url") or ""
+        if url:
+            seen.setdefault(url, []).append(solver["id"])
+    return {url: ids for url, ids in seen.items() if len(ids) > 1}
 
 
 def write_database(database, path):

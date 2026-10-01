@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 """
-validate.py: check a submission before anything is installed.
-
-Everything here is a static check on the files in solvers/<id>/<version>/.
-A failure means the pull request cannot be collected as submitted and the
-author has to push a fix; nothing is written to the database either way.
+validate.py: static checks on solvers/<id>/<version>/, before anything is
+installed.
 
 Exits non-zero if any submission has problems, so a workflow step can gate on
-it. Deliberately runs before register.py: these take milliseconds, and an
-install can take half an hour.
+it. Runs before register.py: these take milliseconds, an install can take half
+an hour.
 
     python3 scripts/validate.py solvers/*/*/
 
@@ -127,35 +124,33 @@ def check_solver_toml(path):
             ]
         return ["solver.toml is not readable as TOML"]
 
-    repo = data.get("repo")
-    if not repo:
-        return ["solver.toml has no 'repo', which SUBMITTING.md requires"]
+    url = data.get("url")
+    if not url:
+        return ["solver.toml has no 'url', which SUBMITTING.md requires"]
     # Typed explicitly, because the two readers disagree otherwise: tomllib
-    # returns `repo = 12345` as an int, while the regex fallback used on
+    # returns `url = 12345` as an int, while the regex fallback used on
     # Python 3.10 sees no quoted string and reports it missing. Same
     # submission, different verdict depending on the interpreter.
-    if not isinstance(repo, str):
-        return [f"solver.toml 'repo' must be a quoted URL, got {type(repo).__name__}"]
-    if not repo.startswith(("http://", "https://")):
-        return [f"solver.toml 'repo' should be a URL, got {repo!r}"]
-
-    if "withdrawn" not in data:
-        # Required rather than defaulted, so the line exists to be flipped.
-        # Retiring a release is then a one-character diff a reviewer can read
-        # at a glance, instead of a new key appearing in a file, and the
-        # pipeline never has to add the key itself to a submission it is
-        # retiring, which is how a duplicate key gets into a TOML file.
+    if not isinstance(url, str):
         return [
-            "solver.toml has no 'withdrawn', which SUBMITTING.md requires. "
-            "Add `withdrawn = false`"
+            f"solver.toml 'url' must be a quoted URL, "
+            f"got {type(url).__name__}"
         ]
+    if not url.startswith(("http://", "https://")):
+        return [f"solver.toml 'url' should be a URL, got {url!r}"]
 
-    withdrawn = data["withdrawn"]
-    if not isinstance(withdrawn, bool):
-        # A string "true" would be truthy here and falsy in a TOML reader that
-        # types it properly, so the two could disagree about whether a solver
-        # is still offered. Better to reject it.
-        return [f"solver.toml 'withdrawn' must be true or false, got {withdrawn!r}"]
+    if "withdrawn" in data:
+        withdrawn = data["withdrawn"]
+        if not isinstance(withdrawn, bool):
+            # A string "true" would be truthy here and falsy in a TOML reader
+            # that types it properly, so the two could disagree about whether a
+            # solver is still offered. Better to reject it.
+            return [
+                f"solver.toml 'withdrawn' must be true or false, "
+                f"got {withdrawn!r}"
+            ]
+    # Absent is false: a submission is an offer to install the solver, so the
+    # default is the state every new one is in.
     return []
 
 
@@ -163,9 +158,12 @@ def is_withdrawn(directory):
     """
     Whether the solver.toml in this directory retires what it covers.
 
-    Works at either level. In `solvers/<id>/<version>/` it retires that one
-    release; in `solvers/<id>/` it retires every release of that solver, for a
-    project that has been abandoned rather than a release superseded.
+    Works at either level: in `solvers/<id>/<version>/` it retires that one
+    release, in `solvers/<id>/` every release of that solver.
+
+    Absent means false, and so does an unreadable or missing file. That is the
+    safe direction: treating an unparseable file as retired would silently
+    remove a solver that is only misspelled. `validate` reports it as broken.
     """
     data = read_solver_toml(Path(directory) / "solver.toml") or {}
     return data.get("withdrawn") is True
@@ -194,21 +192,13 @@ def retire(solver_dir):
     """
     Write `withdrawn = true` into this submission's solver.toml.
 
-    Used when a release that was merged turns out not to install: it stops the
-    pipeline reinstalling something already known to be broken, half an hour at
-    a time, and makes the state visible in the repository rather than only in a
-    workflow log.
+    Used when a merged release turns out not to install, so the pipeline stops
+    reinstalling something already known to be broken.
 
     Returns True if the file changed, and does nothing if the flag is already
-    true, so a re-run does not keep editing.
-
-    An existing `withdrawn` line is replaced in place rather than appended to.
-    SUBMITTING.md shows `withdrawn = false` in the template, so most files have
-    one already, and appending would leave the key twice. TOML forbids that:
-    tomllib refuses the whole file, `read_solver_toml` returns None, and the
-    release the pipeline just tried to retire would read as not retired and be
-    reinstalled on the next push. Everything else in the file is left alone, so
-    the author's comments and field order survive.
+    true. Any existing `withdrawn` line is removed before the new one is
+    written, never appended to: a key twice is not valid TOML, the file would
+    stop parsing, and the release just retired would read as live again.
     """
     solver_dir = Path(solver_dir)
     path = solver_dir / "solver.toml"

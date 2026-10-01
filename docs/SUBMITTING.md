@@ -74,7 +74,8 @@ and a release nobody can install or measure has nothing to advertise.
 On the main branch, failing also retires the release: the workflow sets
 `withdrawn = true` in its `solver.toml` and commits that, so the pipeline stops
 spending half an hour per push to reach a conclusion it already has. Fix the
-problem, **set `withdrawn` back to `false` yourself**, and the next collection
+problem, **set `withdrawn` back to `false` yourself, or delete the line**, and
+the next collection
 picks the release up. It does not resume on its own, because a retired release
 is skipped before anything is installed: a fixed `install.sh` alone changes
 nothing.
@@ -104,20 +105,19 @@ automatically on every commit.
 ## solver.toml
 
 ```toml
-name      = "MySolver"
-repo      = "https://github.com/example/mysolver"
-license   = "MIT"
-contact   = "you@example.edu"
-withdrawn = false
+name    = "MySolver"
+url     = "https://github.com/example/mysolver"
+license = "MIT"
+contact = "you@example.edu"
 ```
 
 | Field | Required | Notes |
 |---|---|---|
 | `name` | no | Display name. Defaults to what `<solver> --name` reports |
-| `repo` | yes | Canonical source URL. Used to detect the same solver submitted twice |
+| `url` | yes | Where to find the solver: its repository, project page or documentation. Used to detect the same solver submitted twice |
 | `license` | no | SPDX identifier |
 | `contact` | no | Who to ask when collection fails |
-| `withdrawn` | yes | `false` on a live release, so that [retiring](#retiring-a-solver) one is a change to a line already there rather than a new key |
+| `withdrawn` | no | Leave it out on a live release. Absent means `false`. Write it only to [retire](#retiring-a-solver) the release |
 
 ---
 
@@ -133,7 +133,7 @@ withdrawn = false
 4. A second workflow installs it again on the main branch, records the
    capabilities, and commits them.
 
-The solver is deleted after each collection. Nothing about it is kept except
+The solver installation is deleted after each collection. Nothing about it is kept except
 the capability record.
 
 ---
@@ -160,8 +160,6 @@ the standard makes mandatory:
 <solver> supports --serialise-assignments
 ```
 
-`verify` is never called. Your solver is never asked to solve anything.
-
 If a query fails or returns a value outside the permitted set, the comment on
 your pull request names the flag and what it printed. All eleven have to work
 before the release is published, so one bad flag is worth fixing rather than
@@ -171,20 +169,19 @@ ignoring.
 
 ## Retiring a solver
 
-Submissions are never deleted from this repository. To retire a release, flip
-the `withdrawn` line in its `solver.toml` and open a pull request:
+Retiring takes a release out of the database while leaving the submission in the
+repository, which is almost always what you want. To retire a release, add a
+`withdrawn` line to its `solver.toml` and open a pull request:
 
 ```toml
 withdrawn = true
 ```
 
-Lowercase `true`. TOML booleans are not capitalised, so `True` is a syntax
-error rather than a value, and the submission is rejected with that message.
+Lowercase `true` is required.
 
-Change the line that is already there rather than adding a second one. That is
-why the field is required in the first place: a key twice in one TOML file is
-an error, not a later value winning, so the file stops being readable and the
-retirement does not take effect.
+If the file already has a `withdrawn` line, change that one rather than adding a
+second. A key twice in one TOML file is an error, not a later value winning, so
+the file stops being readable and the retirement does not take effect.
 
 To retire **every** release at once, when the project itself is no longer
 maintained rather than one release being superseded, put the same line in a
@@ -202,7 +199,7 @@ question, not two conditions to satisfy.
 
 Your record is then **removed from the database**, so what is published
 describes only what can be used today. Your submission stays in the repository,
-which is what makes this reversible: setting the flag back to `false` and
+which is what makes this reversible: setting the flag back to `false` or simply remove the withdrawn field and
 letting the next collection run reproduces the record exactly.
 
 A retired release is never installed again, so the usual checks are skipped
@@ -212,17 +209,15 @@ release in the first place.
 
 ### Deleting a submission outright
 
-Retiring is what authors do. Deleting is a maintainer action, and it is not the
-normal way to take a solver out of the database. Retiring already does that, and
-it keeps the install script, so the record can be reproduced later. Deletion
-throws that away: the capabilities were measured by installing software that may
-no longer exist anywhere, and once the script is gone, nothing in this
-repository can produce that record again.
+You can delete a submission the same way you do anything else here: remove the
+files and open a pull request.
 
-Reasons that do justify it are about the submission rather than the solver: a
-licensing or legal complaint, credentials or private data committed by mistake,
-or an entry that should never have been accepted. "This solver is dead" is not
-one of them.
+**Retiring is usually the better choice, though.** It takes the records out of
+the database just as deletion does, and it keeps the install script, so the
+record can be reproduced later. Deletion throws that away. The capabilities were
+measured by installing software that may no longer exist anywhere, and once the
+script is gone, nothing in this repository can produce that record again. So if
+what you want is for the solver to stop being listed, retire it.
 
 ```bash
 git rm -r solvers/<id>              # every release

@@ -1,15 +1,13 @@
 # vnnlib.org
 
-The VNN-LIB website. Static files, served by GitHub Pages from `www.vnnlib.org`
-(see `CNAME`). There is nothing to install to work on it: open `index.html` in a
-browser.
+The VNN-LIB website. Static files, with nothing to install to work on them:
+open `index.html` in a browser.
 
 ## Layout
 
 ```
 index.html              the whole site: anchored sections, and the solver
                         search as a panel that slides in over one of them
-bibtex.html             the 1.0 citation, linked from elsewhere
 tailwind.config.js      the design tokens: palette, fonts, shadows
 build.js                compiles css/tailwind.css, to drop the CDN
 css/
@@ -588,9 +586,6 @@ region announces the result for anyone who cannot see it. Where the clipboard AP
 is unavailable, which includes any copy of this page not served over https, the
 reference is selected instead and the announcement says to press Control and C.
 
-`bibtex.html` still holds the 1.0 entry as BibTeX and is reached from off-site;
-these buttons have nothing to do with it.
-
 ## The footer crest
 
 The UniGE crest is drawn in black and dark grey inside `assets/svg/unige.svg`,
@@ -614,10 +609,9 @@ External links, anchors on the current page, downloads and modifier-clicks are
 all left to the browser.
 
 **Dormant, as it stands.** The site became one page when the solver search
-stopped being `solvers.html`, and `bibtex.html` is reached from off-site rather
-than linked from here, so nothing currently triggers this. It is kept because it
-costs nothing while idle and a second page would want it, but it is the first
-thing to delete if the site stays as one.
+stopped being `solvers.html`, so nothing currently triggers this. It is kept
+because it costs nothing while idle and a second page would want it, but it is
+the first thing to delete if the site stays as one.
 
 ## The rail
 
@@ -789,10 +783,10 @@ the deletions above, `assets/` went from 8.8 MB to 1.1 MB.
 Both rows of the Documents table link to the GitHub releases, which are the
 authoritative copies and always match their tag.
 
-`assets/doc/` keeps local copies, currently unreferenced. One thing to know
-before relying on them: **`standard-v2.0.pdf` is the wrong file.** It is byte
-for byte identical to `standard-v1.0.pdf`: 14 pages, dated November 11th 2022,
-titled *The VNN-LIB standard for benchmarks*. The real 2.0 document is
-*VNN-LIB 2.0: Rigorous Foundations for Neural Network Verification*, from
-December 2025. Anything served from that path would hand a reader the 1.0
-document under a 2.0 name.
+Local copies were kept in `assets/doc/` for a while and have been removed.
+Nothing referenced them, and the file named `standard-v2.0.pdf` was byte for byte
+identical to `standard-v1.0.pdf`: 14 pages, dated November 11th 2022, titled
+*The VNN-LIB standard for benchmarks*. The real 2.0 document is *VNN-LIB 2.0:
+Rigorous Foundations for Neural Network Verification*, from December 2025, so
+anything served from that path would have handed a reader the 1.0 document under
+a 2.0 name. If local copies come back, that is the thing to check first.

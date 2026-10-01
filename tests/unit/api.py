@@ -38,11 +38,11 @@ def _release(version, arithmetic):
 
 # One release of each shape the filter has to handle.
 DATABASE = {
-    "schema_version": "1.0",
+    "schema_version": "2.0",
     "generated_at": "2026-08-17T00:00:00Z",
     "solvers": [
         {
-            "id": "strong", "name": "Strong", "repo": "https://e/strong",
+            "id": "strong", "name": "Strong", "url": "https://e/strong",
             "versions": [{
                 "version": "1.0.0", "status": "ok",
                 "capabilities": {
@@ -61,7 +61,7 @@ DATABASE = {
             }],
         },
         {
-            "id": "weak", "name": "Weak", "repo": "https://e/weak",
+            "id": "weak", "name": "Weak", "url": "https://e/weak",
             "versions": [{
                 "version": "0.1.0", "status": "ok",
                 "capabilities": {
@@ -80,7 +80,7 @@ DATABASE = {
             # Five releases, and LIN comes and goes: 1.0.0 and 1.1.0 have it,
             # 1.2.0 and 2.0.0 lose it, 2.1.0 has it again. A LIN search must
             # therefore come back as two ranges, not one span across the hole.
-            "id": "multi", "name": "Multi", "repo": "https://e/multi",
+            "id": "multi", "name": "Multi", "url": "https://e/multi",
             "versions": [
                 _release("1.0.0", ["BND", "OUTC", "LIN"]),
                 _release("1.1.0", ["BND", "OUTC", "LIN"]),
@@ -90,7 +90,7 @@ DATABASE = {
             ],
         },
         {
-            "id": "broken", "name": "Broken", "repo": "https://e/broken",
+            "id": "broken", "name": "Broken", "url": "https://e/broken",
             # install_failed: no capabilities at all.
             "versions": [{"version": "1.0.0", "status": "install_failed",
                           "errors": ["install script exited 1: boom"]}],
@@ -135,7 +135,7 @@ def main():
         check("health", status == 200 and body["ok"])
 
         response = client.get("/search?arithmetic=BND")
-        check("cross-origin allowed, or a browser cannot read this at all",
+        check("cross-origin allowed, or no other origin can read this",
               response.headers.get("Access-Control-Allow-Origin") == "*",
               dict(response.headers))
 
@@ -145,6 +145,25 @@ def main():
 
         status, body = run(client, "/solvers")
         check("list every solver", status == 200 and len(body["solvers"]) == 4)
+
+        # `url` is the field SCHEMA.md 2.0 renamed from `repo`. The API passes
+        # the record through rather than reading it, so without these a rename
+        # would reach every consumer with nothing here failing first.
+        check("every solver carries url",
+              all("url" in s for s in body["solvers"]),
+              [sorted(s) for s in body["solvers"]])
+        check("and none still carries the old name",
+              not any("repo" in s for s in body["solvers"]))
+        check("url survives the trip unaltered",
+              {s["id"]: s["url"] for s in body["solvers"]}["strong"] == "https://e/strong")
+
+        status, body = run(client, "/search?arithmetic=BND")
+        check("url is on a search result too, not only on /solvers",
+              all("url" in s for s in body["solvers"]) and body["solvers"])
+
+        status, body = run(client, "/solvers/strong")
+        check("and on a single solver",
+              status == 200 and body.get("url") == "https://e/strong", body)
 
         status, body = run(client, "/solvers/strong")
         check("one solver", status == 200 and body["name"] == "Strong")
@@ -319,17 +338,13 @@ def main():
               body["operators"]["Relu"] == ["float32", "real"], body["operators"].get("Relu"))
 
         # ------------------------------- paging, sorting and the name ----
-        #
-        # All three are the API's job because they cannot be split: a page of
-        # ten filtered or sorted in the browser is a page of the wrong ten, and
-        # a total counted from one page is not a total.
 
         # Twelve solvers, so the default page size of ten leaves a second page.
         many = {
-            "schema_version": "1.0", "generated_at": "2026-09-25T00:00:00Z",
+            "schema_version": "2.0", "generated_at": "2026-09-25T00:00:00Z",
             "solvers": [
                 {"id": f"s{n:02d}", "name": f"Solver {n:02d}",
-                 "repo": f"https://e/s{n}",
+                 "url": f"https://e/s{n}",
                  "versions": [_release(f"{n}.0.0", ["BND"])]}
                 for n in range(1, 13)
             ],
@@ -380,7 +395,7 @@ def main():
         check("and the case does not matter", ids(body) == ["s07"], ids(body))
 
         status, body = run(client, "/search?name=s0&sort=name-asc&limit=3")
-        check("the name narrows the total, so the pager counts what is reachable",
+        check("the name narrows the total, not just the page",
               body["total"] == 9 and len(body["solvers"]) == 3, (body["total"], len(body["solvers"])))
 
         status, body = run(client, "/search?name=nothinglikethis")
