@@ -89,10 +89,8 @@ neither value: nothing was established about it, so it cannot satisfy a question
 about it either way. Anything other than `true` or `false` is a 400 rather than
 being coerced.
 
-`vnnfilter` declares the flag with `store_true`, so the package can only require
-the capability, never require its absence. The API answers both, since asking
-which solvers cannot serialise assignments is a legitimate question even if the
-command line has no way to spell it.
+Both values are answerable: `?serialise_assignments=false` asks which solvers do
+not have the capability, which is as valid a question as the other way round.
 
 **Ranges take a single value.** `onnx_opset` and `vnnlib_versions` are stored
 as inclusive `[min, max]` pairs, so `?onnx_opset=16` asks "does 16 fall in
@@ -114,18 +112,12 @@ rather than which solvers it contains:
 /search?arithmetic=POLY&sort=name-asc&limit=10&offset=20
 ```
 
-The response carries `total`, the whole result set, alongside `solvers`, which
-is the page. A pager cannot say "1 to 10 of 34" from the ten it was given.
+The response carries `solvers`, which is the requested page, and `total`, which
+is the size of the whole result set before `limit` and `offset` were applied.
 
-**The three travel together on purpose.** Sorting or filtering a page in the
-browser sorts or filters that page only, which looks right until the reader
-notices the top result is missing because it was on page two, and a total
-counted from one page is not a total. Whoever slices has to be whoever orders
-and filters, so all of it is here.
-
-That is also why `name` is here despite not being a capability. It has no
-`vnnfilter` flag and is not part of the command the page displays; it is a
-parameter of the request and nothing more.
+`name` is not a capability. It narrows the result set like the filters do, but
+it is matched against the record's own `name` and `id` rather than against
+anything a solver reported.
 
 An unknown `sort` is a 400, like an unknown filter: quietly substituting the
 default would answer a different question and look like it had worked. A `limit`
@@ -138,25 +130,19 @@ are a caller's arithmetic rather than a name they might have misspelled.
 GET /vocabulary
 {
   "operators": { "Conv": ["float32", "float64"], "MatMul": ["real"], ... },
-  "element_types": ["bfloat16", "float16", "float32", ...]
+  "element_types": ["float16", "float32", ...],
+  "generated_at": "2026-09-25T15:30:28Z"
 }
 ```
 
 Every element type any solver reports, and every operator mapped to the types it
-can usefully be asked for. The search page builds its two pickers from this
-rather than from hard-coded lists that would drift as solvers are added.
+can usefully be asked for. 
 
 **The types beside an operator are not just the ones printed next to it.** The
 empty-list rule above applies here too, so the union is the explicit lists plus,
 for any solver that listed the operator bare, that solver's whole
 `element_types`. Reading the empty list as "no types" would offer nothing for
 exactly the operators that are supported most widely.
-
-It exists because of paging. The page used to read those lists off the first
-search response; a response is now ten solvers, so the picker would offer
-whatever those ten happened to support and silently omit everything else.
-Working out the real answer means reading every release in the database, which
-is the one thing the browser does not have.
 
 ## What a search result carries
 
@@ -180,25 +166,19 @@ that matched, and an extra `matches` object describing them as a whole:
 }
 ```
 
-This exists so a consumer can show one row per solver instead of one per
-release. It is computed here rather than in the browser for a reason that is
-not obvious: **whether two matching releases are consecutive depends on the
-releases between them, and a caller never receives those.** Given only
-`["1.0.0", "1.1.0", "2.1.0"]`, nothing tells you that a 1.2.0 and a 2.0.0 exist
-and did not match. A page that drew "1.0.0 to 2.1.0" from that would be
-claiming a measurement it does not have.
+`matches` summarises which of a solver's releases met the query, so a consumer
+can show one row per solver instead of one per release.
 
-`ranges` is therefore a list of **consecutive runs**, not one span. Two
-releases are consecutive when they are adjacent in the solver's `versions`
+`ranges` is a list of **consecutive runs**, not one span. Two releases are
+consecutive when they are adjacent in the solver's `versions`
 array, which SCHEMA.md makes a sorted list, so no version string is ever
 parsed here: "does 1.10.0 come after 1.9.0" is a question the build already
 answered, and answering it a second time with a different rule is how two
 orderings end up disagreeing.
 
-A run of one has `from` equal to `to`, so a single-release solver needs no
-special case. `latest` is the newest **matching** release, which is what a row
-should sort and date itself on, and `matched` / `total` say how much of the
-solver qualified.
+A run of one has `from` equal to `to`. `latest` is the newest **matching**
+release, and `matched` / `total` say how many of the solver's releases qualified
+out of how many it has.
 
 **Releases that never installed never match**, not even an empty query. Search
 answers "what can do this", and nothing was measured about them: they are

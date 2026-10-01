@@ -27,8 +27,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
-`tests/` runs against `data/solvers.sample.json`, the hand-written fixture,
-not the real (currently empty) database — see its three solvers
+`tests/` runs against `tests/fixtures/solvers.sample.json`, the hand-written
+fixture, not the real database — see its three solvers
 (`vibecheck`: `ok`, `brokennn`: `incomplete`, `deadsolver`: `install_failed`)
 for the edge cases the query logic has to handle.
 

@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """
-schema.py: the handful of constants docs/SCHEMA.md defines as a contract,
-in one place so the other scripts cannot disagree about them.
-
-Nothing here parses or produces records; it is only the things they all have
-to spell identically.
+schema.py: the constants docs/SCHEMA.md defines as a contract, in one place so
+the other scripts cannot disagree about them.
 """
 
-# The version this project is developed and run against, everywhere: the
-# workflows, the WSL machine that collects, and the API host. register.py
-# builds each solver's venv by cloning the interpreter running it, so the
-# version here is the version solvers get installed under.
+# Everywhere: the workflows, the collecting machine, the API host. register.py
+# clones the running interpreter to build each venv, so this is the version
+# solvers get installed under.
 PYTHON_VERSION = "3.12"
 
 # Below this, a solver pinning a recent dependency cannot be installed at all:
@@ -19,7 +15,7 @@ MINIMUM_PYTHON = (3, 11)
 
 # Bumped on any change that could break a reader. MAJOR.MINOR: a reader may
 # refuse a file whose MAJOR it does not understand, rather than half-read it.
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "2.0"
 
 # The one timestamp format the database uses, everywhere.
 ISO_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

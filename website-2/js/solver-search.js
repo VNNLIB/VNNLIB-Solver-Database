@@ -817,9 +817,9 @@
 
         clear(dialogBody);
 
-        if (card.repo) {
-            const link = el("a", "link text-sm", card.repo);
-            link.href = card.repo;
+        if (card.url) {
+            const link = el("a", "link text-sm", card.url);
+            link.href = card.url;
             link.target = "_blank";
             link.rel = "noopener";
             const line = el("p", "text-sm text-ink-muted");
@@ -1131,7 +1131,7 @@
             return {
                 id: solver.id,
                 name: solver.name || solver.id,
-                repo: solver.repo,
+                url: solver.url,
                 records: records,
                 matches: matches,
                 // The record the row sorts and dates itself on.

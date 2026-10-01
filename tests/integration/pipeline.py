@@ -3,18 +3,15 @@
 End-to-end test of the whole pipeline: register.py -> results.jsonl ->
 build.py -> solvers.json, driven by the fixtures in tests/fixtures.
 
-Unlike tests/unit/collect.py this one is real: it builds a venv per solver,
-executes the submitted install.sh, runs the installed binary, and writes a
-database. That makes it slow (a few seconds per fixture) and platform-bound,
-so it skips rather than fails where it cannot run.
+Real: a venv per solver, the submitted install.sh executed, the binary run, a
+database written. Slow and platform-bound, so it skips rather than fails where
+it cannot run.
 
     python3 tests/integration/pipeline.py           # fakes only, ~8s, offline
     python3 tests/integration/pipeline.py --slow    # also the real solvers
 
-Without --slow only the fixtures in EXPECTED run: fakes that install in
-milliseconds and whose outcome depends on nothing but this repo. --slow adds
-SLOW, which reaches PyPI and pulls torch, so it can go red for reasons that
-have nothing to do with the code here.
+--slow reaches PyPI and pulls torch, so it can go red for reasons that have
+nothing to do with the code here.
 
 Nothing outside a temporary directory is written, and data/solvers.json is never
 touched.
@@ -48,14 +45,12 @@ EXPECTED = {
     "ghostsolver": ("1.0.0", "install_failed", False),
 }
 
-# Real solvers: network, minutes, and an outcome that depends on PyPI rather
-# than on this repo. Only run under --slow, so a normal run cannot go red
-# because someone else's package broke.
+# Real solvers: network, minutes, and an outcome that depends on PyPI. Only
+# under --slow.
 #
-# vibecheck expects install_failed because it currently IS uninstallable:
-# both releases pin onnxruntime==1.26.0, which is not published. When that is
-# fixed upstream, change this to "ok", because a failure here is then a real signal
-# rather than noise.
+# vibecheck expects install_failed because it currently IS uninstallable: both
+# releases pin onnxruntime==1.26.0, which is not published. Change to "ok" when
+# that is fixed upstream.
 SLOW = {
     "vibecheck": ("1.1.0", "ok", True),
 }
@@ -106,11 +101,9 @@ def run_register(fixture_dir, workdir, timeout=TIMEOUT):
 
 
 def run_build(results_path, database_path, *extra, solvers_dir=FIXTURES):
-    # --solvers-dir points at the fixtures, because in this test they are the
-    # submissions. Without it build.py drops nothing, which is the safe
-    # default; with the repository's own solvers/ it would drop every fixture
-    # that is not registered there. A test that invents a release has to pass
-    # its own submissions tree, or the release is dropped for having none.
+    # --solvers-dir points at the fixtures, because here they are the
+    # submissions. A test that invents a release must pass its own tree, or the
+    # release is dropped for having no submission.
     completed = subprocess.run(
         [sys.executable, str(BUILD), str(results_path), "--database", str(database_path),
          "--solvers-dir", str(solvers_dir), *extra],
@@ -146,9 +139,9 @@ def test_register_every_fixture(state):
         record = solver["versions"][0]
 
         assert solver["id"] == solver_id
-        # repo comes from solver.toml, so it is filled even when the install
+        # url comes from solver.toml, so it is filled even when the install
         # failed and nothing was ever queried.
-        assert solver["repo"] == f"https://github.com/example/{solver_id}", solver["repo"]
+        assert solver["url"] == f"https://github.com/example/{solver_id}", solver["url"]
         assert record["version"] == version, "directory name is the authority on version"
         assert record["status"] == status, f"{solver_id}: {record}"
         assert ("capabilities" in record) is has_capabilities
@@ -222,7 +215,7 @@ def test_build_publishes_only_clean_collections(state):
     run_build(results, database)
 
     built = json.loads(database.read_text(encoding="utf-8"))
-    assert built["schema_version"] == "1.0"
+    assert built["schema_version"] == "2.0"
     assert [s["id"] for s in built["solvers"]] == PUBLISHED, (
         "incomplete and install_failed fixtures must not be published"
     )
@@ -298,8 +291,9 @@ def test_a_failed_release_is_retired_in_place(state):
     shutil.copytree(FIXTURES / "deadsolver", submissions / "deadsolver")
     toml = submissions / "deadsolver" / "1.0.0" / "solver.toml"
     assert "withdrawn = false" in toml.read_text(encoding="utf-8"), (
-        "the fixture starts as a live submission, with the field every "
-        "submission is required to carry"
+        "this fixture deliberately carries the optional field, so the test "
+        "exercises retire replacing an existing line rather than adding one. "
+        "The other fixtures leave it out, which is the normal case now"
     )
 
     failed = next(s for s in state["solvers"] if s["id"] == "deadsolver")
@@ -344,7 +338,7 @@ def test_hand_written_fields_survive(state):
     for solver in built["solvers"]:
         if solver["id"] == "testsolver":
             solver["maintainer_note"] = "unknown solver field"
-            solver["repo"] = "https://example.invalid/edited-by-hand"
+            solver["url"] = "https://example.invalid/edited-by-hand"
     state["database"].write_text(json.dumps(built, indent=2) + "\n", encoding="utf-8")
 
     run_build(state["results"], state["database"])
@@ -353,9 +347,9 @@ def test_hand_written_fields_survive(state):
     testsolver = next(s for s in built["solvers"] if s["id"] == "testsolver")
     assert built["house_keeping"] == "unknown top-level field"
     assert testsolver["maintainer_note"] == "unknown solver field"
-    # repo now has a source, solver.toml, so the collected value wins over
+    # url now has a source, solver.toml, so the collected value wins over
     # a hand edit rather than being overwritten by an empty string.
-    assert testsolver["repo"] == "https://github.com/example/testsolver"
+    assert testsolver["url"] == "https://github.com/example/testsolver"
 
 
 def test_no_environments_left_behind(state):

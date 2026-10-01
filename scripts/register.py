@@ -169,12 +169,12 @@ def _reported_name(binary, fallback):
 
 def _declared(solver_dir):
     """
-    (name, repo) from solver.toml. Both empty if the file is missing or
+    (name, url) from solver.toml. Both empty if the file is missing or
     unreadable: validate.py rejects such a submission before it reaches here,
     so this only has to avoid crashing, not to enforce anything.
     """
     data = validate.read_solver_toml(solver_dir / "solver.toml") or {}
-    return str(data.get("name") or ""), str(data.get("repo") or "")
+    return str(data.get("name") or ""), str(data.get("url") or "")
 
 
 def register(solver_dir, timeout_seconds=DEFAULT_TIMEOUT_SECONDS):
@@ -189,9 +189,9 @@ def register(solver_dir, timeout_seconds=DEFAULT_TIMEOUT_SECONDS):
     version = solver_dir.name
 
     # SUBMITTING.md: name defaults to what --name reports, so solver.toml wins
-    # where it has one. repo has no other source at all, since the standard
-    # has no --repo, so it is whatever the submission declared.
-    declared_name, repo = _declared(solver_dir)
+    # where it has one. url has no other source at all, since the standard
+    # has no command for it, so it is whatever the submission declared.
+    declared_name, url = _declared(solver_dir)
     name = declared_name or solver_id
 
     work_dir = tempfile.mkdtemp(prefix=f"register-{solver_id}-")
@@ -220,7 +220,7 @@ def register(solver_dir, timeout_seconds=DEFAULT_TIMEOUT_SECONDS):
     return {
         "id": solver_id,
         "name": name,
-        "repo": repo,
+        "url": url,
         "versions": [record],
     }
 

@@ -1,34 +1,12 @@
 #!/usr/bin/env python3
 """
-collect.py: ask an already-running solver binary what it supports, and turn
-its answers into the shapes defined in docs/SCHEMA.md.
+collect.py: ask an already-running solver binary what it supports, and turn its
+answers into the shapes defined in docs/SCHEMA.md.
 
-This module never touches installation, venvs, or subprocesses that install
-anything. It only ever calls an executable that already exists on PATH and
-parses what it prints. register.py is the only caller that needs to know
-anything about how that binary got there.
+Never installs anything. It calls an executable already on PATH and parses what
+it prints; register.py owns how that binary got there.
 
-HOW TO TEST
------------
-1. Unit tests. No solver, no venv, no network, because run_query is stubbed out.
-
-       python3 tests/unit/collect.py
-
-2. Against a fake solver, end to end. Needs bash, so WSL or Linux; Windows
-   Python cannot exec a shebang script through subprocess.
-
-       mkdir -p /tmp/solverbin
-       SOLVER_BIN_DIR=/tmp/solverbin tests/fixtures/testsolver/1.0.0/install.sh
-       cd scripts
-       PATH=/tmp/solverbin:$PATH python3 -c "import collect, json; \
-           print(json.dumps(collect.collect('testsolver', 'testsolver', '1.0.0'), indent=2))"
-
-   testsolver answers everything correctly and should collect as "ok". Swap in
-   tests/fixtures/brokensolver/0.9.0 (id brokensolver, version 0.9.0) for the
-   "incomplete" path: it breaks five flags in five different ways.
-
-3. Against a real solver, once register.py exists. vibecheck pulls torch and
-   takes minutes per run, so leave it until 1 and 2 both pass.
+Testing: see tests/README.md.
 """
 
 import subprocess
@@ -271,13 +249,10 @@ def parse_operators(raw_text):
         'Conv float64 float32'  ->  {'Conv': ['float64', 'float32']}
         'Relu'                  ->  {'Relu': []}
 
-    The empty list is stored as printed, NOT expanded. Section 5.4.1 says an
-    empty type list means every type in element_types, not none, but that is
-    a reading, and SCHEMA.md's rule is that capabilities holds exactly what
-    the solver printed. Expanding here would also freeze today's element_types
-    into a record whose solver actually said "all of them".
-
-    Consumers do the expansion; api/app.py's operator_matches is the example.
+    The empty list is stored as printed, NOT expanded. Section 5.4.1 reads an
+    empty type list as every type the solver reports, but capabilities holds
+    exactly what was printed; expanding here would freeze today's
+    element_types into a record that said "all of them". Consumers expand.
     """
     operators = {}
     for line in raw_text.splitlines():
@@ -294,10 +269,8 @@ def parse_boolean(raw_text):
     Returns True, False, or None if it is neither.
 
     Exactly 'true' or 'false', case-sensitive. A solver printing 'Yes' is not
-    conforming, and the caller records that as an error rather than guessing,
-    the same treatment a theory field gets for an identifier outside its
-    permitted set. Guessing would silently record False for any spelling not
-    anticipated, which is a wrong answer dressed as a real one.
+    conforming and the caller records an error rather than guessing: guessing
+    would record False for any spelling not anticipated.
     """
     text = raw_text.strip()
     if text == "true":
