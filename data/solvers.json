@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "generated_at": "2026-09-25T15:30:28Z",
+  "generated_at": "2026-10-01T04:42:06Z",
   "solvers": [
     {
       "id": "testsolver",
@@ -9,7 +9,7 @@
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-23T13:53:53Z",
+          "collected_at": "2026-10-01T04:39:10Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -116,7 +116,7 @@
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-24T13:13:42Z",
+          "collected_at": "2026-10-01T04:39:12Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -179,7 +179,7 @@
       "versions": [
         {
           "version": "0.5.0",
-          "collected_at": "2026-09-24T13:13:44Z",
+          "collected_at": "2026-10-01T04:39:15Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -248,7 +248,7 @@
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-24T13:13:47Z",
+          "collected_at": "2026-10-01T04:39:17Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -304,7 +304,7 @@
         },
         {
           "version": "1.1.0",
-          "collected_at": "2026-09-24T13:13:49Z",
+          "collected_at": "2026-10-01T04:39:20Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -364,7 +364,7 @@
         },
         {
           "version": "2.0.0",
-          "collected_at": "2026-09-24T13:13:51Z",
+          "collected_at": "2026-10-01T04:39:22Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -444,7 +444,7 @@
       "versions": [
         {
           "version": "0.8.0",
-          "collected_at": "2026-09-24T13:13:54Z",
+          "collected_at": "2026-10-01T04:39:25Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -502,7 +502,7 @@
         },
         {
           "version": "0.9.0",
-          "collected_at": "2026-09-24T13:13:56Z",
+          "collected_at": "2026-10-01T04:39:28Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -573,7 +573,7 @@
       "versions": [
         {
           "version": "2.1.0",
-          "collected_at": "2026-09-24T13:13:58Z",
+          "collected_at": "2026-10-01T04:39:30Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -639,7 +639,7 @@
         },
         {
           "version": "2.2.0",
-          "collected_at": "2026-09-24T13:14:00Z",
+          "collected_at": "2026-10-01T04:39:33Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -725,7 +725,7 @@
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-25T15:30:28Z",
+          "collected_at": "2026-10-01T04:39:35Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -781,7 +781,7 @@
         },
         {
           "version": "1.5.0",
-          "collected_at": "2026-09-24T13:14:04Z",
+          "collected_at": "2026-10-01T04:39:38Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -840,7 +840,7 @@
         },
         {
           "version": "2.0.0",
-          "collected_at": "2026-09-24T13:14:06Z",
+          "collected_at": "2026-10-01T04:39:40Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -926,7 +926,7 @@
       "versions": [
         {
           "version": "3.2.0",
-          "collected_at": "2026-09-24T13:14:08Z",
+          "collected_at": "2026-10-01T04:39:43Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -987,7 +987,7 @@
         },
         {
           "version": "3.3.0",
-          "collected_at": "2026-09-24T13:14:11Z",
+          "collected_at": "2026-10-01T04:39:45Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1060,7 +1060,7 @@
       "versions": [
         {
           "version": "0.3.1",
-          "collected_at": "2026-09-24T13:14:13Z",
+          "collected_at": "2026-10-01T04:39:48Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1132,7 +1132,7 @@
       "versions": [
         {
           "version": "4.0.0",
-          "collected_at": "2026-09-24T13:14:15Z",
+          "collected_at": "2026-10-01T04:39:51Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1212,7 +1212,7 @@
       "versions": [
         {
           "version": "1.7.3",
-          "collected_at": "2026-09-24T13:14:17Z",
+          "collected_at": "2026-10-01T04:39:53Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1286,7 +1286,7 @@
       "versions": [
         {
           "version": "2.5.0",
-          "collected_at": "2026-09-24T13:14:19Z",
+          "collected_at": "2026-10-01T04:39:56Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1374,7 +1374,7 @@
       "versions": [
         {
           "version": "2.3.1",
-          "collected_at": "2026-09-24T13:14:21Z",
+          "collected_at": "2026-10-01T04:39:58Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1474,7 +1474,7 @@
       "versions": [
         {
           "version": "0.9.9",
-          "collected_at": "2026-09-24T13:14:23Z",
+          "collected_at": "2026-10-01T04:40:01Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1551,7 +1551,7 @@
       "versions": [
         {
           "version": "0.9.0",
-          "collected_at": "2026-09-24T13:14:25Z",
+          "collected_at": "2026-10-01T04:40:04Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1630,7 +1630,7 @@
       "versions": [
         {
           "version": "1.2.0",
-          "collected_at": "2026-09-24T13:14:28Z",
+          "collected_at": "2026-10-01T04:40:06Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1699,7 +1699,7 @@
       "versions": [
         {
           "version": "3.0.0",
-          "collected_at": "2026-09-24T13:14:30Z",
+          "collected_at": "2026-10-01T04:40:09Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1786,7 +1786,7 @@
       "versions": [
         {
           "version": "0.1.0",
-          "collected_at": "2026-09-24T13:14:32Z",
+          "collected_at": "2026-10-01T04:40:11Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1850,7 +1850,7 @@
       "versions": [
         {
           "version": "1.4.2",
-          "collected_at": "2026-09-24T13:14:34Z",
+          "collected_at": "2026-10-01T04:40:14Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1923,7 +1923,7 @@
       "versions": [
         {
           "version": "2.0.0",
-          "collected_at": "2026-09-24T13:14:36Z",
+          "collected_at": "2026-10-01T04:40:16Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -2008,7 +2008,7 @@
       "versions": [
         {
           "version": "1.1.0",
-          "collected_at": "2026-09-24T13:14:38Z",
+          "collected_at": "2026-10-01T04:40:19Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -2105,7 +2105,7 @@
       "versions": [
         {
           "version": "1.1.0",
-          "collected_at": "2026-09-23T13:55:36Z",
+          "collected_at": "2026-10-01T04:42:02Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
