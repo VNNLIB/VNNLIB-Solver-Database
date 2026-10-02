@@ -905,22 +905,43 @@ a {
         padding: .85rem;
     }
 
+    .filter-block {
+        margin-bottom: 1.25rem;
+        padding: 1rem;
+    }
+
+    .filter-status {
+        width: 100%;
+    }
+
     .filter-status .solver-summary {
+        line-height: 1.4;
         max-width: 100%;
+        overflow-wrap: anywhere;
         white-space: normal;
+        width: 100%;
     }
 
     .solver-filter-panel .filter-control {
         font-size: 16px;
-        min-height: 44px;
+        min-height: 48px;
+        width: 100%;
     }
 
     .solver-filter-panel .filter-chip-select {
         min-height: 7rem;
     }
 
+    .solver-filter-panel .row > div {
+        margin-bottom: 1rem;
+    }
+
+    .solver-actions {
+        width: 100%;
+    }
+
     .solver-actions .btn {
-        min-height: 44px;
+        min-height: 48px;
         width: 100%;
     }
 }
