@@ -1,0 +1,62 @@
+name: tests
+
+# The unit tests, on every push and every pull request.
+#
+# Nothing ran them before this. The suites existed and were run by hand, which
+# means a change could reach main having broken one and nobody would know until
+# the next person happened to run it.
+#
+# Only the fast suites are here: no venvs, no installs, no network, no port.
+# The integration test is deliberately left out, because `--slow` reaches PyPI
+# and pulls torch, so it can go red for reasons that have nothing to do with the
+# change being tested. `tests/README.md` says how to run that one.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Reads the code and nothing else. These tests write to temporary directories
+# and never to data/solvers.json.
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: pipeline and API
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # The same version the collection workflows use. A test passing on one
+          # and failing on the other would be a difference nobody would think to
+          # look for.
+          python-version: "3.12"
+
+      # Flask, and nothing else. The pipeline scripts are standard library
+      # only, and api/app.py is the one thing here with a dependency. The
+      # package in src/ is a different stage and is not installed.
+      - name: Install the API's dependency
+        run: pip install -r api/requirements.txt
+
+      # Run as scripts rather than through pytest, because that is how they are
+      # written: each file loads the module it tests by path, since
+      # tests/unit/collect.py cannot `import collect` without importing itself.
+      - name: Unit tests
+        run: |
+          python3 tests/unit/collect.py
+          python3 tests/unit/validate.py
+          python3 tests/unit/build.py
+          python3 tests/unit/api.py
+
+      # Every submission in the repository must still pass the checks a new one
+      # would, or main is carrying a submission that could not be submitted.
+      - name: Every submission still validates
+        run: python3 scripts/validate.py solvers/*/*/

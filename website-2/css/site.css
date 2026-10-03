@@ -14,6 +14,482 @@ html {
     }
 }
 
+/* ------------------------------------------------------- the scrollbars --- */
+
+/*
+ * One scrollbar for every box on the page that scrolls.
+ *
+ * The two ways of styling a scrollbar cannot be mixed, and that is the whole
+ * reason this is written the way it is. `::-webkit-scrollbar` draws the bar
+ * from scratch; `scrollbar-width` and `scrollbar-color` ask the engine for its
+ * own bar, thinner and in given colours. Setting both in Chrome does not give
+ * the first and fall back to the second, it makes Chrome take the standard
+ * path and ignore every `::-webkit-scrollbar` rule on that element, which is
+ * why the bar stayed Chrome's own, only narrower.
+ *
+ * So: the pseudo-elements where they exist, and the standard properties only
+ * where they do not, which today means Firefox.
+ *
+ * Applied to a named list rather than to everything, so the page's own scrollbar
+ * stays the one the reader's system gave them.
+ */
+@supports not selector(::-webkit-scrollbar) {
+    .scroll-area,
+    .results-table tbody,
+    .filters-rail,
+    .dialog-scroll,
+    .select__panel,
+    .suggestions {
+        scrollbar-width: thin;
+        /* thumb, then track. */
+        scrollbar-color: rgba(2, 0, 36, 0.25) transparent;
+    }
+
+    .code-box {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(77, 184, 255, 0.35) transparent;
+    }
+}
+
+.scroll-area::-webkit-scrollbar,
+.results-table tbody::-webkit-scrollbar,
+.filters-rail::-webkit-scrollbar,
+.dialog-scroll::-webkit-scrollbar,
+.select__panel::-webkit-scrollbar,
+.suggestions::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+}
+
+.scroll-area::-webkit-scrollbar-track,
+.results-table tbody::-webkit-scrollbar-track,
+.filters-rail::-webkit-scrollbar-track,
+.dialog-scroll::-webkit-scrollbar-track,
+.select__panel::-webkit-scrollbar-track,
+.suggestions::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scroll-area::-webkit-scrollbar-thumb,
+.results-table tbody::-webkit-scrollbar-thumb,
+.filters-rail::-webkit-scrollbar-thumb,
+.dialog-scroll::-webkit-scrollbar-thumb,
+.select__panel::-webkit-scrollbar-thumb,
+.suggestions::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: rgba(2, 0, 36, 0.2);
+    /*
+     * A transparent border with `background-clip: padding-box` is how a webkit
+     * thumb is inset from its track: there is no margin on a scrollbar part.
+     */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.scroll-area:hover::-webkit-scrollbar-thumb,
+.results-table tbody:hover::-webkit-scrollbar-thumb,
+.filters-rail:hover::-webkit-scrollbar-thumb,
+.dialog-scroll:hover::-webkit-scrollbar-thumb,
+.select__panel:hover::-webkit-scrollbar-thumb,
+.suggestions:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 138, 230, 0.55);
+}
+
+.scroll-area::-webkit-scrollbar-corner,
+.results-table tbody::-webkit-scrollbar-corner,
+.filters-rail::-webkit-scrollbar-corner,
+.dialog-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/*
+ * The code example, which is dark. The same bar in ink on navy would be
+ * invisible, so it is the brand blue at low alpha instead.
+ */
+.code-box::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+}
+
+.code-box::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.code-box::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: rgba(77, 184, 255, 0.3);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.code-box:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(77, 184, 255, 0.55);
+}
+
+/* -------------------------------------------------- the results table --- */
+
+/*
+ * Ten rows tall, always.
+ *
+ * `height`, not `max-height`: the box is the same size whether the answer is
+ * three solvers or fifty, so paging does not move the pagination under the
+ * reader's cursor and the filter rail beside it does not have the section
+ * changing length around it. More than ten scroll inside.
+ *
+ * The numbers are the rules above rather than a measurement. A row is
+ * `.table-td`'s 0.625rem of padding twice around a 1.25rem line box, so 2.5rem,
+ * and 1px of divider. The head is `.table-th`'s same padding around a 1rem line
+ * box, so 2.25rem. Change either rule and change these with it.
+ */
+.results-table {
+    --table-row: 2.5rem;
+    --table-head: 2.25rem;
+    --table-rows: 10;
+    /* The scrollbar's own width, and the space the head reserves for it. */
+    --table-bar: 0.5rem;
+    height: calc(var(--table-head) + (var(--table-row) + 1px) * var(--table-rows));
+    overflow: hidden;
+}
+
+/*
+ * The body scrolls, the head does not.
+ *
+ * A sticky head inside a scrolling box stays put, but the box's scrollbar is the
+ * box's, so it runs the full height and ends up beside the head as well as the
+ * rows. The scrollbar has to belong to the rows, which means the rows have to be
+ * the scrolling element, which means giving up `display: table` on the parts.
+ *
+ * What that costs, and how each cost is paid:
+ *
+ *   The automatic column widths. Each row becomes its own `display: table`, so
+ *   nothing lines one row's columns up with the next. `table-layout: fixed` and
+ *   a stated width per column do it instead.
+ *
+ *   The table roles. `display: block` on a `<table>`, `<thead>` or `<tr>` takes
+ *   its role with it, and a screen reader is left with a stack of text. The
+ *   roles are put back explicitly in js/solver-search.js.
+ */
+.results-table table {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.results-table thead {
+    display: block;
+    flex: none;
+}
+
+.results-table tbody {
+    display: block;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.results-table tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+/*
+ * The head is not inside the scrolling element any more, so it is a scrollbar's
+ * width wider than the rows whenever there is one. It gives that width back.
+ */
+.results-table.is-scrolling thead {
+    padding-right: var(--table-bar);
+}
+
+.results-table thead th {
+    background-color: #f2f9ff;
+}
+
+/*
+ * The columns, stated because `table-layout: fixed` needs them stated. They add
+ * up to 100 with "Updated at" showing; below `sm` that column is `display: none`
+ * and fixed layout shares its share out among the rest.
+ */
+.results-table th:nth-child(1),
+.results-table td:nth-child(1) {
+    width: 36%;
+}
+
+.results-table th:nth-child(2),
+.results-table td:nth-child(2) {
+    width: 28%;
+}
+
+.results-table th:nth-child(3),
+.results-table td:nth-child(3) {
+    width: 20%;
+}
+
+.results-table th:nth-child(4),
+.results-table td:nth-child(4) {
+    width: 16%;
+}
+
+/* ------------------------------------------------- the results layout --- */
+
+/*
+ * The filter rail and the table, side by side.
+ *
+ * `minmax(0, 1fr)` for the second column, not `1fr`: a grid track's default
+ * minimum is `auto`, which is the content's own minimum, and a table will not go
+ * below the width of its widest cell. Without the zero minimum a long solver
+ * name pushes the track wider than the column and the whole layout overflows to
+ * the right.
+ *
+ * One column below `lg`, where there is not enough width for both and the rail
+ * goes above the table.
+ */
+.results-layout {
+    display: grid;
+    gap: 1.5rem;
+}
+
+/*
+ * Two columns from 1024, which is where there is room for both. At 80% the shell
+ * is 819px there, so a 17rem rail and a 24px gap still leave the table 523px for
+ * four columns; at 70% it would have been 424 and this had to wait until 1180.
+ *
+ * 17rem is what the rail needs. The longest option, "OUTC, hidden or output
+ * comparisons", is about 18rem of text, so the closed control ellipsises it and
+ * the popup is allowed to outgrow the control (see `.select__panel`) rather than
+ * clipping the same words twice.
+ */
+@media (min-width: 1024px) {
+    .results-layout {
+        grid-template-columns: 17rem minmax(0, 1fr);
+        align-items: start;
+    }
+}
+
+/*
+ * The rail stays put while the table scrolls, so the filters are reachable from
+ * anywhere in a long list rather than only from the top of it. It scrolls itself
+ * if it is ever taller than the viewport.
+ */
+.filters-rail {
+    align-self: start;
+    padding: 0.85rem;
+    border: 1px solid rgba(2, 0, 36, 0.1);
+    border-radius: 0.75rem;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(2, 0, 36, 0.06), 0 8px 24px -12px rgba(2, 0, 36, 0.18);
+}
+
+@media (min-width: 1024px) {
+    .filters-rail {
+        position: sticky;
+        top: 1.5rem;
+        max-height: calc(100vh - 3rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+}
+
+/*
+ * The three groups inside the rail.
+ *
+ * Stacked while it is a rail, because the rail is one control wide. Below 1024
+ * the rail is a full-width band above the table instead, and three groups in a
+ * column there would be a very tall ribbon for the reader to scroll past to
+ * reach the results, so they go side by side and use the width they have.
+ */
+.filter-groups {
+    display: grid;
+    gap: 1.25rem;
+}
+
+@media (min-width: 640px) and (max-width: 1023.98px) {
+    .filter-groups {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+    }
+}
+
+/*
+ * The rail's own scale.
+ *
+ * Sized to a total rather than to taste: ten controls, their labels, the gaps
+ * between them and the two buttons have to come to less than the viewport, or
+ * the rail grows its own scrollbar beside a table that has none and the two read
+ * as separate pages. At these numbers a control costs about 48px and the rail
+ * comes to roughly 560, which clears a 768-tall laptop with room over.
+ *
+ * `.field` itself is untouched, because the sort and page size on the results
+ * line share it and are not in the rail.
+ */
+.filters-rail .field {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+}
+
+.filters-rail .field-label {
+    margin-bottom: 0.15rem;
+    font-size: 0.6875rem;
+    line-height: 1.2;
+}
+
+.filters-rail .select__panel {
+    font-size: 0.8125rem;
+}
+
+.filters-rail .select__option {
+    padding: 0.25rem 0.6rem;
+}
+
+.filters-rail .select__sizer {
+    display: none;
+}
+
+.filters-rail .select__chevron {
+    width: 0.85rem;
+    height: 0.85rem;
+}
+
+.filters-rail .filter-grid {
+    gap: 0.35rem 0.6rem;
+}
+
+/* The three groups, with no visible legend to separate them any more. */
+.filters-rail .filter-groups {
+    gap: 0.6rem;
+}
+
+.filters-rail__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(2, 0, 36, 0.1);
+}
+
+/* ------------------------------------------------------ the filter grid --- */
+
+/*
+ * The controls inside one group of the advanced filters.
+ *
+ * Plain CSS rather than `sm:grid-cols-2 lg:grid-cols-1`, because that pair only
+ * gives the right answer if the `lg` rule is emitted after the `sm` rule. The
+ * CLI sorts its output by breakpoint and does; the Play CDN compiles in the
+ * browser and orders by what it finds, so `sm:grid-cols-2` can win above 1024
+ * and the group stays two across when it should have gone to one. A range
+ * rather than an override has no order to get wrong.
+ *
+ * One column is the default. Two only between `sm` and `lg`, which is the band
+ * where the two groups are stacked and each has the full width to spend. From
+ * `lg` the groups sit side by side, so a group is half the column and each
+ * control wants all of it.
+ */
+.filter-grid {
+    display: grid;
+    gap: 0.5rem 0.75rem;
+}
+
+/*
+ * One column, at every width. The box is 30rem wide at most, so two columns
+ * would be 14rem each, narrower than the longest option, "OUTC, hidden or
+ * output comparisons", which needs about 18rem.
+ */
+
+/*
+ * Name, order and page size: the band at the top of the panel.
+ *
+ * Its own rule rather than `.filter-grid` plus `sm:grid-cols-3`, because mixing
+ * the two would put a utility and a plain rule on the same property in the same
+ * range, and which one won would again be a question about output order. Three
+ * across from `sm` up, one below.
+ */
+.search-grid {
+    display: grid;
+    gap: 0.5rem 0.75rem;
+}
+
+@media (min-width: 640px) {
+    .search-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* --------------------------------------------------- the content column --- */
+
+/*
+ * The column every section puts its contents in.
+ *
+ * Plain CSS, not an `@apply` rule with the rest of the components, and
+ * deliberately so. The width is `max(70%, 45rem)`, and an arbitrary Tailwind
+ * value holding a comma inside `@apply` is compiled in the browser by the Play
+ * CDN; when that trips, it is not this rule that is lost but the whole
+ * components layer, which takes `.field`, `.field-label`, `.card` and
+ * `.table-td` with it. The advanced filters are the densest user of those, so
+ * the failure shows up there first as a wall of unstyled native controls. There
+ * is no compiler between this file and the browser.
+ *
+ * A share of the viewport rather than a fixed width, because a fixed 1152px
+ * column is most of a 1280 laptop and reads as edge to edge. The floor matters
+ * as much as the share: 70% of 1024 is 717px, about as narrow as the filter grid
+ * and the results table can work in. The cap stops the lines growing unreadably
+ * long on a wide monitor.
+ */
+.shell {
+    width: 100%;
+    max-width: 76rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .shell {
+        width: max(70%, 45rem);
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /*
+     * The solver search, and nothing else, goes to 80%.
+     *
+     * 70% is a reading measure and the right one for prose; this section is a
+     * filter rail, a table and a command line side by side, and it is the only
+     * place on the page that has to fit three things across. Widening the shell
+     * itself would stretch every paragraph on the page to match.
+     *
+     * `:has` rather than a class toggled in js/site.js, because the condition is
+     * already in the DOM: `slide()` sets `data-showing`, and a second thing to
+     * keep in step with it is a second thing to get wrong.
+     *
+     * The width is not transitioned. Animating the width of a box holding a
+     * table and a filter rail lays both of them out again on every frame for the
+     * length of the transition, and that is the one moment the panel is already
+     * animating and has no frames to spare.
+     */
+    #news .shell:has(#solver-swap[data-showing="search"]) {
+        width: max(80%, 45rem);
+    }
+}
+
+/* A single column of prose, held to a readable measure. The masthead heading. */
+.shell--narrow {
+    max-width: 48rem;
+}
+
+/* The team, five portraits abreast, the one section that wants the room. */
+.shell--wide {
+    max-width: 88rem;
+}
+
+@media (min-width: 1024px) {
+    .shell--wide {
+        width: max(90%, 45rem);
+    }
+}
+
 section[id],
 [id^="page-"],
 /*
@@ -22,8 +498,8 @@ section[id],
  * sit flush against the top of the viewport.
  */
 .anchor-target {
-    /* Enough to clear the fixed wordmark in the corner. The rail is at the
-     * side and covers nothing. */
+    /* Nothing is pinned across the top of the page, so this is breathing room
+     * rather than clearance. The rail is at the side and covers nothing. */
     scroll-margin-top: 1.5rem;
 }
 
@@ -33,12 +509,18 @@ section[id],
 .code-box {
     background-color: #020024;
     color: #e6f4ea;
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     border-radius: 0.5rem;
     overflow: auto;
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
         "Courier New", monospace;
-    font-size: 0.95rem;
+    /*
+     * Held down with the rest of the page. The example is fixed-width text in a
+     * column that is now 70% of the viewport, so it has to fit its longest line
+     * without scrolling sideways.
+     */
+    font-size: 0.8rem;
+    line-height: 1.55;
 }
 
 .code-box pre {
@@ -100,17 +582,27 @@ section[id],
     overflow: hidden;
 }
 
+/*
+ * The fill is scaled, not resized.
+ *
+ * It used to be `height: n%` with a 120ms transition, written on every scroll
+ * event. Height is a layout property, so each write laid the rail out again,
+ * and a transition on it meant a layout animation permanently in flight, being
+ * re-targeted by the next scroll event before it had finished. `transform` is
+ * composited: the browser scales a box it has already painted and never touches
+ * layout, so no transition is needed to smooth it either.
+ *
+ * Full height, scaled from the top, so `scaleY(0.4)` is 40% read.
+ */
 .rail-fill {
     display: block;
     width: 100%;
-    height: 0;
+    height: 100%;
     background: #008ae6;
     border-radius: 2px;
-    /*
-     * Eased, because the height is written on every scroll event. Without it
-     * the fill judders on a trackpad, which reports many small deltas.
-     */
-    transition: height 120ms linear;
+    transform: scaleY(0);
+    transform-origin: top center;
+    will-change: transform;
 }
 
 .rail-list {
@@ -206,6 +698,20 @@ section[id],
 }
 
 /*
+ * One label at a time.
+ *
+ * A clicked dot keeps focus, and some browsers count a click as focus-visible,
+ * so its label stays up while the pointer moves to another dot and shows a
+ * second one. Two labels side by side read as two current sections. The pointer
+ * is the more recent of the two intentions, so while anything is hovered the
+ * focused dot's label stands down, unless they are the same dot.
+ */
+.rail:has(.rail-item:hover) .rail-item:focus-visible:not(:hover) .rail-label {
+    opacity: 0;
+    transform: translateX(0.35rem);
+}
+
+/*
  * Touch screens have no hover, so the dots would be six unlabelled circles.
  * The current one names itself instead, which is the piece of information a
  * reader actually wants from a progress rail.
@@ -231,31 +737,28 @@ section[id],
 
 @media (prefers-reduced-motion: reduce) {
     .rail-dot,
-    .rail-label,
-    .rail-fill {
+    .rail-label {
         transition: none;
     }
 }
 
 /*
- * The wordmark. Fixed in the corner rather than in the rail: it is the way back
- * to the top and to the home page, not a section, and putting it on the rail
- * would imply it was one.
+ * The wordmark. It sits in the masthead and scrolls away with it, rather than
+ * being pinned over the page: the way back to the top is the button in the
+ * bottom corner, so a fixed wordmark was a second control for the same job,
+ * permanently covering a strip of whatever the reader was looking at.
+ *
+ * Absolute within the masthead, which is the `relative` element, so it is
+ * centred on the banner and takes no space from the heading below it. The
+ * neuron canvas is at `z-index: 0`, so anything above that clears it.
  */
-.rail-brand {
-    position: fixed;
+.masthead-brand {
+    position: absolute;
     top: 1.25rem;
-    /*
-     * Centred on the viewport, not on the content column. `left: 50%` with a
-     * translate rather than `margin: auto`, because the element is fixed and
-     * has no containing block to be centred within.
-     */
     left: 50%;
     transform: translateX(-50%);
-    z-index: 40;
-    padding: 0.35rem 0.85rem;
-    border-radius: 0.6rem;
-    background: rgba(2, 0, 36, 0.55);
+    z-index: 10;
+    margin: 0;
     font-family: "SB Heading", Montserrat, system-ui, sans-serif;
     font-size: 1.15rem;
     font-weight: 700;
@@ -265,16 +768,11 @@ section[id],
 }
 
 /*
- * The wordmark's colour, stated here rather than as a utility class so that the
- * scrollspy cannot take it away when the reader scrolls past the masthead.
+ * The wordmark's colour, stated here rather than as a utility class to keep it
+ * with the rest of the rule.
  */
 .wordmark {
     color: #ffffff;
-}
-
-.wordmark:hover,
-.wordmark:focus-visible {
-    color: #4db8ff;
 }
 
 /* ------------------------------------------------------- the node field --- */
@@ -301,48 +799,168 @@ section[id],
     z-index: 0;
 }
 
-/* ------------------------------------------------- the command terminal --- */
+/* ------------------------------------------------------- the citations --- */
 
 /*
- * The caret, shown only while the command is being edited.
+ * A citation that copies itself.
  *
- * It hangs off the span holding the part that is changing, not off the whole
- * line, so it sits at the point of the edit. Changing a flag in the middle of a
- * long command puts the caret there, with the untouched tail still to its right,
- * which is what makes the edit read as an edit rather than as a rewrite.
+ * It is a <button> reset back to looking like the paragraph it replaced: the
+ * reader is meant to read it as a reference and discover that it copies, not to
+ * meet a control where a sentence should be. Hence the inherited font and the
+ * left rule the list had before, with only the hover state and the cursor
+ * saying it does something.
  *
- * A pseudo-element rather than a character in the text, so it is never picked up
- * by Copy, by a text selection, or by a screen reader reading the command.
+ * `overflow: hidden` is what keeps the sweep inside the row.
  */
-.cmd-edit.is-typing::after {
-    content: "";
-    display: inline-block;
-    width: 0.5em;
-    height: 1.1em;
-    margin-left: 0.1em;
-    vertical-align: text-bottom;
-    background: #008ae6;
-    animation: command-caret 900ms steps(1, end) infinite;
+.citation {
+    position: relative;
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    padding: 0.35rem 0 0.35rem 1rem;
+    border: 0;
+    border-left: 2px solid rgba(0, 138, 230, 0.4);
+    border-radius: 0 0.35rem 0.35rem 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 200ms ease, background-color 200ms ease;
 }
 
-@keyframes command-caret {
-    0%,
-    50% {
-        opacity: 1;
+.citation:hover,
+.citation:focus-visible {
+    border-left-color: #008ae6;
+    background-color: rgba(0, 138, 230, 0.06);
+}
+
+.citation:focus-visible {
+    outline: 2px solid #008ae6;
+    outline-offset: 2px;
+}
+
+/*
+ * The icon, and the whole of the affordance. It sits in the flow after the last
+ * word rather than being positioned, so on a reference that wraps it follows the
+ * final line instead of floating over it, and it never overlaps the text at a
+ * narrow width.
+ *
+ * Both glyphs occupy the same square, one on top of the other, so the swap does
+ * not move anything around it.
+ */
+.citation-icon {
+    position: relative;
+    display: inline-block;
+    width: 1.05em;
+    height: 1.05em;
+    margin-left: 0.45rem;
+    vertical-align: -0.15em;
+    color: rgba(51, 51, 51, 0.35);
+    transition: color 200ms ease, transform 200ms ease;
+}
+
+.citation:hover .citation-icon,
+.citation:focus-visible .citation-icon {
+    color: #008ae6;
+    transform: translateY(-1px);
+}
+
+.citation-icon svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 180ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The tick waits underneath, slightly small, and springs up to full size. */
+.citation-icon__done {
+    opacity: 0;
+    transform: scale(0.4);
+}
+
+.citation.is-copied .citation-icon {
+    color: #008ae6;
+}
+
+.citation.is-copied .citation-icon__copy {
+    opacity: 0;
+    transform: scale(0.6);
+}
+
+.citation.is-copied .citation-icon__done {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/*
+ * The fallback, when there is no clipboard to write to and the reference has
+ * been selected for the keyboard instead. Amber rather than the brand blue,
+ * because it is asking for something rather than confirming something, and the
+ * copy glyph stays: nothing has been copied yet.
+ */
+.citation.is-manual .citation-icon {
+    color: #b45309;
+}
+
+.citation.is-manual .citation-icon__copy {
+    opacity: 1;
+    transform: none;
+}
+
+.citation.is-manual .citation-icon__done {
+    opacity: 0;
+}
+
+/*
+ * The row itself acknowledges the click. A single pass of colour left to right,
+ * which reads as the text having been taken rather than as the row changing
+ * state, and it finishes on its own so nothing has to be cleaned up.
+ */
+.citation.is-copied {
+    border-left-color: #008ae6;
+    animation: citation-sweep 620ms ease-out;
+}
+
+@keyframes citation-sweep {
+    from {
+        background-image: linear-gradient(
+            to right,
+            rgba(0, 138, 230, 0.22),
+            rgba(0, 138, 230, 0)
+        );
+        background-size: 0% 100%;
+        background-repeat: no-repeat;
     }
-    50.01%,
-    100% {
-        opacity: 0;
+    to {
+        background-image: linear-gradient(
+            to right,
+            rgba(0, 138, 230, 0.22),
+            rgba(0, 138, 230, 0)
+        );
+        background-size: 140% 100%;
+        background-repeat: no-repeat;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .citation,
+    .citation-icon,
+    .citation-icon svg {
+        transition: none;
+    }
+
+    .citation.is-copied {
+        animation: none;
+    }
+
     /*
-     * With reduced motion the command is set outright and never enters the
-     * typing state, so this only guards against the class being left behind.
+     * With the animation gone the swap still has to happen, or the tick would
+     * never arrive and there would be no confirmation at all.
      */
-    .cmd-edit.is-typing::after {
-        display: none;
+    .citation-icon__done {
+        transform: none;
     }
 }
 
@@ -360,7 +978,12 @@ section[id],
  * list hits its end, which is both smoother and what a modal should do.
  */
 .dialog-scroll {
-    max-height: 70vh;
+    /*
+     * 70vh was right when the dialog was a header and this box. The filters one
+     * has a header and an action bar as well, so the two together would take it
+     * past the viewport and the bar with Search on it would be off screen.
+     */
+    max-height: min(70vh, calc(100vh - 12rem));
     overflow-y: auto;
     overscroll-behavior: contain;
     contain: paint;
@@ -378,23 +1001,31 @@ section[id],
  * needs a recent browser in every engine and gains nothing here: the script is
  * already managing focus and the Escape key.
  */
-#details-dialog {
+/*
+ * Both modals, the filters and the release details.
+ *
+ * A <dialog> goes from `display: none` to displayed in one step, so there is
+ * nothing for it to animate from. The class is added a frame after showModal
+ * and removed a frame before close, which gives each end of the transition a
+ * painted state to move between.
+ */
+.modal {
     opacity: 0;
     transform: translateY(1rem) scale(0.98);
     transition: opacity 220ms ease, transform 220ms ease;
 }
 
-#details-dialog.is-open {
+.modal.is-open {
     opacity: 1;
     transform: none;
 }
 
-#details-dialog::backdrop {
+.modal::backdrop {
     opacity: 0;
     transition: opacity 220ms ease;
 }
 
-#details-dialog.is-open::backdrop {
+.modal.is-open::backdrop {
     opacity: 1;
 }
 
@@ -410,50 +1041,11 @@ section[id],
  *
  * A darker opaque backdrop separates the layers just as well and costs nothing.
  */
-#details-dialog::backdrop {
+.modal::backdrop {
     background: rgba(2, 0, 36, 0.7);
 }
 
 /* ------------------------------------------------------ the dropdowns --- */
-
-/*
- * The advanced filter panel.
- *
- * Animating to a height nobody measured is the whole difficulty. `height: auto`
- * cannot be transitioned, and a fixed `max-height` either clips the panel or
- * eases toward a number much larger than the content, which shows up as a pause
- * before anything appears to move.
- *
- * A grid row of `0fr` to `1fr` transitions cleanly and needs no measurement:
- * the row resolves to the content's own height at each step. The inner element
- * must hide its overflow, or the content spills out while the row is still
- * smaller than it.
- */
-.filters-panel {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.filters-panel.is-open {
-    grid-template-rows: 1fr;
-}
-
-.filters-panel__inner {
-    overflow: hidden;
-}
-
-/*
- * A control that is off because the other search mode is showing.
- *
- * Dimmed rather than hidden, so what the reader typed is still there when they
- * close the advanced filters and it becomes live again. `disabled` on the
- * elements is what actually stops them; this only says so.
- */
-.is-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
 
 /*
  * The results while the next page is on its way.
@@ -581,6 +1173,44 @@ section[id],
     clip-path: inset(50%);
 }
 
+/*
+ * A control that is as wide as its widest option, rather than a width someone
+ * measured by eye.
+ *
+ * `width: max-content` on the wrapper, and the wrapper's content is the sizer
+ * that js/select.js fills with the longest option. It cannot be the button:
+ * the button shows whichever option is selected, so the control would change
+ * width every time the reader changed the sort.
+ *
+ * The button is `width: 100%` from `.field`, and a percentage width is treated
+ * as `auto` while the parent's intrinsic size is being worked out, so the
+ * button does not feed its own width back into the calculation.
+ */
+.select-auto {
+    width: max-content;
+    max-width: 100%;
+}
+
+/*
+ * In the flow so it counts towards the wrapper's width, and nowhere near the
+ * reader: no height, hidden, and `aria-hidden` on the element itself.
+ *
+ * It carries the button's own furniture so the wrapper ends up the width the
+ * button needs, not the width of the text alone: the same font and horizontal
+ * padding, plus the chevron and the gap before it.
+ */
+.select__sizer {
+    display: block;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    white-space: nowrap;
+    font: inherit;
+    padding-left: 0.75rem;
+    /* 0.75rem of padding, a 0.5rem gap, a 1rem chevron. */
+    padding-right: 2.25rem;
+}
+
 .select__button {
     display: flex;
     align-items: center;
@@ -613,12 +1243,34 @@ section[id],
     transform: rotate(180deg);
 }
 
+/*
+ * The panel carries the type size for the whole list, and it has to be the size
+ * `.field` gives the button that opened it. The wrapper deliberately does not
+ * take the `field` class (see js/select.js), so there is nothing here to inherit
+ * from and the size has to be stated: left at 1rem it made every dropdown a step
+ * larger than the control above it and than the rest of the panel.
+ *
+ * It mirrors `.field`, 16px on a phone so focusing a control does not make iOS
+ * zoom the page, 0.875rem from `sm` up. If `.field` changes, this changes.
+ */
 .select__panel {
     position: absolute;
     left: 0;
+    /*
+     * `right: 0` made the list exactly as wide as the control. In the filter
+     * rail the control is 17rem and the longest option is about 18rem, so the
+     * list clipped every row that the closed button was already clipping. It
+     * grows to its widest row instead, from the control's left edge, which is
+     * what a native select's popup does. `right` is left in as the fallback
+     * for a browser without `max-content`; an explicit width wins over it.
+     */
     right: 0;
+    width: max-content;
+    min-width: 100%;
+    max-width: min(22rem, calc(100vw - 2rem));
     top: calc(100% + 0.35rem);
     z-index: 30;
+    font-size: 1rem;
     max-height: 15rem;
     overflow-y: auto;
     overflow-x: hidden;
@@ -642,9 +1294,16 @@ section[id],
     transform: none;
 }
 
+@media (min-width: 640px) {
+    .select__panel {
+        font-size: 0.875rem;
+    }
+}
+
 .select__option {
-    padding: 0.4rem 0.85rem;
-    font-size: 1rem;
+    padding: 0.35rem 0.75rem;
+    /* From the panel, so there is one place to change the size. */
+    font-size: inherit;
     color: #020024;
     cursor: pointer;
     transition: background-color 120ms ease;
@@ -681,9 +1340,8 @@ section[id],
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #details-dialog,
-    #details-dialog::backdrop,
-    .filters-panel,
+    .modal,
+    .modal::backdrop,
     .suggestions,
     .select__panel,
     .select__chevron {
@@ -897,7 +1555,6 @@ html:not(.js) [data-reveal] {
 
 @media print {
     .rail,
-    .rail-brand,
     #to-top,
     #solver-search-form {
         display: none !important;

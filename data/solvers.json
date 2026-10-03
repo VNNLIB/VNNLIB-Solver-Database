@@ -1,15 +1,15 @@
 {
-  "schema_version": "1.0",
-  "generated_at": "2026-09-25T15:30:28Z",
+  "schema_version": "2.0",
+  "generated_at": "2026-10-01T04:42:06Z",
   "solvers": [
     {
       "id": "testsolver",
       "name": "TestSolver",
-      "repo": "https://github.com/example/testsolver",
+      "url": "https://github.com/example/testsolver",
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-23T13:53:53Z",
+          "collected_at": "2026-10-01T04:39:10Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -112,11 +112,11 @@
     {
       "id": "testsolver1",
       "name": "TestSolver One",
-      "repo": "https://github.com/vnnlib-test/testsolver1",
+      "url": "https://github.com/vnnlib-test/testsolver1",
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-24T13:13:42Z",
+          "collected_at": "2026-10-01T04:39:12Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -175,11 +175,11 @@
     {
       "id": "testsolver10",
       "name": "TestSolver Ten",
-      "repo": "https://github.com/vnnlib-test/testsolver10",
+      "url": "https://github.com/vnnlib-test/testsolver10",
       "versions": [
         {
           "version": "0.5.0",
-          "collected_at": "2026-09-24T13:13:44Z",
+          "collected_at": "2026-10-01T04:39:15Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -244,11 +244,11 @@
     {
       "id": "testsolver11",
       "name": "TestSolver Eleven",
-      "repo": "https://github.com/vnnlib-test/testsolver11",
+      "url": "https://github.com/vnnlib-test/testsolver11",
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-24T13:13:47Z",
+          "collected_at": "2026-10-01T04:39:17Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -304,7 +304,7 @@
         },
         {
           "version": "1.1.0",
-          "collected_at": "2026-09-24T13:13:49Z",
+          "collected_at": "2026-10-01T04:39:20Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -364,7 +364,7 @@
         },
         {
           "version": "2.0.0",
-          "collected_at": "2026-09-24T13:13:51Z",
+          "collected_at": "2026-10-01T04:39:22Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -440,11 +440,11 @@
     {
       "id": "testsolver12",
       "name": "TestSolver Twelve",
-      "repo": "https://github.com/vnnlib-test/testsolver12",
+      "url": "https://github.com/vnnlib-test/testsolver12",
       "versions": [
         {
           "version": "0.8.0",
-          "collected_at": "2026-09-24T13:13:54Z",
+          "collected_at": "2026-10-01T04:39:25Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -502,7 +502,7 @@
         },
         {
           "version": "0.9.0",
-          "collected_at": "2026-09-24T13:13:56Z",
+          "collected_at": "2026-10-01T04:39:28Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -569,11 +569,11 @@
     {
       "id": "testsolver13",
       "name": "TestSolver Thirteen",
-      "repo": "https://github.com/vnnlib-test/testsolver13",
+      "url": "https://github.com/vnnlib-test/testsolver13",
       "versions": [
         {
           "version": "2.1.0",
-          "collected_at": "2026-09-24T13:13:58Z",
+          "collected_at": "2026-10-01T04:39:30Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -639,7 +639,7 @@
         },
         {
           "version": "2.2.0",
-          "collected_at": "2026-09-24T13:14:00Z",
+          "collected_at": "2026-10-01T04:39:33Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -721,11 +721,11 @@
     {
       "id": "testsolver14",
       "name": "TestSolver Fourteen",
-      "repo": "https://github.com/vnnlib-test/testsolver14",
+      "url": "https://github.com/vnnlib-test/testsolver14",
       "versions": [
         {
           "version": "1.0.0",
-          "collected_at": "2026-09-25T15:30:28Z",
+          "collected_at": "2026-10-01T04:39:35Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -781,7 +781,7 @@
         },
         {
           "version": "1.5.0",
-          "collected_at": "2026-09-24T13:14:04Z",
+          "collected_at": "2026-10-01T04:39:38Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -840,7 +840,7 @@
         },
         {
           "version": "2.0.0",
-          "collected_at": "2026-09-24T13:14:06Z",
+          "collected_at": "2026-10-01T04:39:40Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -922,11 +922,11 @@
     {
       "id": "testsolver15",
       "name": "TestSolver Fifteen",
-      "repo": "https://github.com/vnnlib-test/testsolver15",
+      "url": "https://github.com/vnnlib-test/testsolver15",
       "versions": [
         {
           "version": "3.2.0",
-          "collected_at": "2026-09-24T13:14:08Z",
+          "collected_at": "2026-10-01T04:39:43Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -987,7 +987,7 @@
         },
         {
           "version": "3.3.0",
-          "collected_at": "2026-09-24T13:14:11Z",
+          "collected_at": "2026-10-01T04:39:45Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1056,11 +1056,11 @@
     {
       "id": "testsolver16",
       "name": "TestSolver Sixteen",
-      "repo": "https://github.com/vnnlib-test/testsolver16",
+      "url": "https://github.com/vnnlib-test/testsolver16",
       "versions": [
         {
           "version": "0.3.1",
-          "collected_at": "2026-09-24T13:14:13Z",
+          "collected_at": "2026-10-01T04:39:48Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1128,11 +1128,11 @@
     {
       "id": "testsolver17",
       "name": "TestSolver Seventeen",
-      "repo": "https://github.com/vnnlib-test/testsolver17",
+      "url": "https://github.com/vnnlib-test/testsolver17",
       "versions": [
         {
           "version": "4.0.0",
-          "collected_at": "2026-09-24T13:14:15Z",
+          "collected_at": "2026-10-01T04:39:51Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1208,11 +1208,11 @@
     {
       "id": "testsolver18",
       "name": "TestSolver Eighteen",
-      "repo": "https://github.com/vnnlib-test/testsolver18",
+      "url": "https://github.com/vnnlib-test/testsolver18",
       "versions": [
         {
           "version": "1.7.3",
-          "collected_at": "2026-09-24T13:14:17Z",
+          "collected_at": "2026-10-01T04:39:53Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1282,11 +1282,11 @@
     {
       "id": "testsolver19",
       "name": "TestSolver Nineteen",
-      "repo": "https://github.com/vnnlib-test/testsolver19",
+      "url": "https://github.com/vnnlib-test/testsolver19",
       "versions": [
         {
           "version": "2.5.0",
-          "collected_at": "2026-09-24T13:14:19Z",
+          "collected_at": "2026-10-01T04:39:56Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1370,11 +1370,11 @@
     {
       "id": "testsolver2",
       "name": "TestSolver Two",
-      "repo": "https://github.com/vnnlib-test/testsolver2",
+      "url": "https://github.com/vnnlib-test/testsolver2",
       "versions": [
         {
           "version": "2.3.1",
-          "collected_at": "2026-09-24T13:14:21Z",
+          "collected_at": "2026-10-01T04:39:58Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1470,11 +1470,11 @@
     {
       "id": "testsolver20",
       "name": "TestSolver Twenty",
-      "repo": "https://github.com/vnnlib-test/testsolver20",
+      "url": "https://github.com/vnnlib-test/testsolver20",
       "versions": [
         {
           "version": "0.9.9",
-          "collected_at": "2026-09-24T13:14:23Z",
+          "collected_at": "2026-10-01T04:40:01Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1547,11 +1547,11 @@
     {
       "id": "testsolver3",
       "name": "TestSolver Three",
-      "repo": "https://github.com/vnnlib-test/testsolver3",
+      "url": "https://github.com/vnnlib-test/testsolver3",
       "versions": [
         {
           "version": "0.9.0",
-          "collected_at": "2026-09-24T13:14:25Z",
+          "collected_at": "2026-10-01T04:40:04Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1626,11 +1626,11 @@
     {
       "id": "testsolver4",
       "name": "TestSolver Four",
-      "repo": "https://github.com/vnnlib-test/testsolver4",
+      "url": "https://github.com/vnnlib-test/testsolver4",
       "versions": [
         {
           "version": "1.2.0",
-          "collected_at": "2026-09-24T13:14:28Z",
+          "collected_at": "2026-10-01T04:40:06Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1695,11 +1695,11 @@
     {
       "id": "testsolver5",
       "name": "TestSolver Five",
-      "repo": "https://github.com/vnnlib-test/testsolver5",
+      "url": "https://github.com/vnnlib-test/testsolver5",
       "versions": [
         {
           "version": "3.0.0",
-          "collected_at": "2026-09-24T13:14:30Z",
+          "collected_at": "2026-10-01T04:40:09Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1782,11 +1782,11 @@
     {
       "id": "testsolver6",
       "name": "TestSolver Six",
-      "repo": "https://github.com/vnnlib-test/testsolver6",
+      "url": "https://github.com/vnnlib-test/testsolver6",
       "versions": [
         {
           "version": "0.1.0",
-          "collected_at": "2026-09-24T13:14:32Z",
+          "collected_at": "2026-10-01T04:40:11Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1846,11 +1846,11 @@
     {
       "id": "testsolver7",
       "name": "TestSolver Seven",
-      "repo": "https://github.com/vnnlib-test/testsolver7",
+      "url": "https://github.com/vnnlib-test/testsolver7",
       "versions": [
         {
           "version": "1.4.2",
-          "collected_at": "2026-09-24T13:14:34Z",
+          "collected_at": "2026-10-01T04:40:14Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -1919,11 +1919,11 @@
     {
       "id": "testsolver8",
       "name": "TestSolver Eight",
-      "repo": "https://github.com/vnnlib-test/testsolver8",
+      "url": "https://github.com/vnnlib-test/testsolver8",
       "versions": [
         {
           "version": "2.0.0",
-          "collected_at": "2026-09-24T13:14:36Z",
+          "collected_at": "2026-10-01T04:40:16Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -2004,11 +2004,11 @@
     {
       "id": "testsolver9",
       "name": "TestSolver Nine",
-      "repo": "https://github.com/vnnlib-test/testsolver9",
+      "url": "https://github.com/vnnlib-test/testsolver9",
       "versions": [
         {
           "version": "1.1.0",
-          "collected_at": "2026-09-24T13:14:38Z",
+          "collected_at": "2026-10-01T04:40:19Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [
@@ -2101,11 +2101,11 @@
     {
       "id": "vibecheck",
       "name": "vibecheck",
-      "repo": "https://github.com/stanleybak/vibecheck-nn",
+      "url": "https://github.com/stanleybak/vibecheck-nn",
       "versions": [
         {
           "version": "1.1.0",
-          "collected_at": "2026-09-23T13:55:36Z",
+          "collected_at": "2026-10-01T04:42:02Z",
           "status": "ok",
           "capabilities": {
             "onnx_opset": [

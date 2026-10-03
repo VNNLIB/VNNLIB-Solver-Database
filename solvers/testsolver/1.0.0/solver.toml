@@ -1,5 +1,4 @@
-name      = "TestSolver"
-repo      = "https://github.com/example/testsolver"
-license   = "MIT"
-contact   = "nobody@example.invalid"
-withdrawn = false
+name    = "TestSolver"
+url     = "https://github.com/example/testsolver"
+license = "MIT"
+contact = "nobody@example.invalid"

@@ -1,5 +1,4 @@
-name      = "BrokenSolver"
-repo      = "https://github.com/example/brokensolver"
-license   = "MIT"
-contact   = "nobody@example.invalid"
-withdrawn = false
+name    = "BrokenSolver"
+url     = "https://github.com/example/brokensolver"
+license = "MIT"
+contact = "nobody@example.invalid"

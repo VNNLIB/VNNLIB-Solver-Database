@@ -22,10 +22,10 @@ _spec.loader.exec_module(solver_validate)
 validate = solver_validate.validate
 
 GOOD_SCRIPT = '#!/usr/bin/env bash\nset -euo pipefail\npip install thesolver==1.2.0\n'
-# Split, because `withdrawn` is required but several tests need to supply their
+# Split, because `withdrawn` is optional and several tests need to supply their
 # own value for it, and appending a second one would be a duplicate key rather
 # than an override.
-BARE_TOML = 'name = "TheSolver"\nrepo = "https://github.com/example/thesolver"\n'
+BARE_TOML = 'name = "TheSolver"\nurl = "https://github.com/example/thesolver"\n'
 GOOD_TOML = BARE_TOML + "withdrawn = false\n"
 
 
@@ -80,7 +80,7 @@ def test_missing_pieces():
     with tempfile.TemporaryDirectory() as tmp:
         assert any("solver.toml is missing" in p for p in validate(make_submission(tmp, toml=None)))
     with tempfile.TemporaryDirectory() as tmp:
-        assert any("no 'repo'" in p for p in validate(make_submission(tmp, toml='name = "X"\n')))
+        assert any("no 'url'" in p for p in validate(make_submission(tmp, toml='name = "X"\n')))
     with tempfile.TemporaryDirectory() as tmp:
         assert any("not executable" in p for p in validate(make_submission(tmp, executable=False)))
 
@@ -104,17 +104,17 @@ def test_install_script_that_is_not_a_file():
 def test_repo_must_be_a_quoted_url():
     """
     Typed explicitly because the two TOML readers disagree otherwise: tomllib
-    returns `repo = 12345` as an int, the 3.10 regex fallback sees no quoted
+    returns `url = 12345` as an int, the 3.10 regex fallback sees no quoted
     string at all. Same submission, different verdict per interpreter.
     """
     def problems_for(toml):
         with tempfile.TemporaryDirectory() as tmp:
             return validate(make_submission(tmp, toml=toml))
 
-    assert problems_for("repo = 'https://github.com/example/x'\nwithdrawn = false\n") == []
-    assert any("must be a quoted URL" in p or "no 'repo'" in p
-               for p in problems_for("repo = 12345\n"))
-    assert any("should be a URL" in p for p in problems_for('repo = "example.com"\n'))
+    assert problems_for("url = 'https://github.com/example/x'\nwithdrawn = false\n") == []
+    assert any("must be a quoted URL" in p or "no 'url'" in p
+               for p in problems_for("url = 12345\n"))
+    assert any("should be a URL" in p for p in problems_for('url = "example.com"\n'))
 
 
 def test_withdrawn_submissions_skip_the_checks():
@@ -145,6 +145,51 @@ def test_a_retired_solver_takes_its_versions_out_of_scope():
             BARE_TOML + "withdrawn = true\n", encoding="utf-8"
         )
         assert solver_validate.is_offered(directory) is False
+
+
+def test_withdrawn_may_be_left_out_and_then_means_false():
+    """
+    A submission is an offer to have the solver installed, so absent has to mean
+    still offered. The alternative, rejecting the file, made every author write
+    a line that says what the directory already said.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = make_submission(tmp, toml=BARE_TOML)
+        assert validate(directory) == [], validate(directory)
+        assert solver_validate.is_withdrawn(directory) is False
+        assert solver_validate.is_offered(directory) is True
+
+
+def test_retire_adds_the_key_when_the_author_left_it_out():
+    """
+    The pipeline retires a release that will not install, and now it cannot
+    assume the line is there to flip. Either way the key must end up in the file
+    exactly once: twice is not valid TOML, the file then reads as unparseable,
+    and a release the pipeline just retired would come back as still offered.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = make_submission(tmp, toml=BARE_TOML)
+        assert solver_validate.retire(directory) is True
+
+        text = (directory / "solver.toml").read_text(encoding="utf-8")
+        assert text.count("withdrawn") == 1, text
+        assert solver_validate.is_withdrawn(directory) is True
+        # And the file is still readable, which is the failure mode that matters.
+        assert validate(directory) == [], validate(directory)
+
+        # A second run changes nothing, so a re-run does not keep editing.
+        assert solver_validate.retire(directory) is False
+
+
+def test_retire_replaces_the_key_when_the_author_wrote_it():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = make_submission(tmp, toml=GOOD_TOML)
+        assert solver_validate.retire(directory) is True
+
+        text = (directory / "solver.toml").read_text(encoding="utf-8")
+        assert text.count("withdrawn") == 1, text
+        assert "withdrawn = false" not in text
+        assert solver_validate.is_withdrawn(directory) is True
 
 
 def test_withdrawn_must_be_a_boolean():
@@ -204,7 +249,7 @@ def test_retire_replaces_the_template_line_instead_of_duplicating_it():
         assert solver_validate.is_offered(directory) is False
 
         # The author's other fields are not collateral damage.
-        assert 'repo = "https://github.com/example/thesolver"' in text
+        assert 'url = "https://github.com/example/thesolver"' in text
 
         # And a second pass is a no-op rather than another line.
         assert solver_validate.retire(directory) is False
@@ -222,17 +267,6 @@ def test_retire_appends_when_the_key_is_absent():
         directory = make_submission(tmp, toml=BARE_TOML)
         assert solver_validate.retire(directory) is True
         assert solver_validate.is_withdrawn(directory) is True
-
-
-def test_withdrawn_is_required_not_defaulted():
-    """
-    The field has to be present so retiring a release is a one-character diff
-    on a line a reviewer can already see, rather than a new key appearing.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        problems = validate(make_submission(tmp, toml=BARE_TOML))
-    assert any("no 'withdrawn'" in p for p in problems), problems
-    assert any("withdrawn = false" in p for p in problems), problems
 
 
 def test_missing_directory_is_reported_not_raised():

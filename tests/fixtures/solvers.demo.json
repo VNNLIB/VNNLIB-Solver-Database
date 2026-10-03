@@ -1,11 +1,11 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "generated_at": "2026-08-20T02:33:11Z",
   "solvers": [
     {
       "id": "brokensolver",
       "name": "BrokenSolver",
-      "repo": "https://github.com/example/brokensolver",
+      "url": "https://github.com/example/brokensolver",
       "versions": [
         {
           "version": "0.9.0",
@@ -61,7 +61,7 @@
     {
       "id": "deadsolver",
       "name": "deadsolver",
-      "repo": "https://github.com/example/deadsolver",
+      "url": "https://github.com/example/deadsolver",
       "versions": [
         {
           "version": "1.0.0",
@@ -76,7 +76,7 @@
     {
       "id": "ghostsolver",
       "name": "GhostSolver",
-      "repo": "https://github.com/example/ghostsolver",
+      "url": "https://github.com/example/ghostsolver",
       "versions": [
         {
           "version": "1.0.0",
@@ -91,7 +91,7 @@
     {
       "id": "testsolver",
       "name": "TestSolver",
-      "repo": "https://github.com/example/testsolver",
+      "url": "https://github.com/example/testsolver",
       "versions": [
         {
           "version": "1.0.0",
@@ -198,7 +198,7 @@
     {
       "id": "vibecheck",
       "name": "vibecheck",
-      "repo": "",
+      "url": "",
       "versions": [
         {
           "version": "1.1.0",

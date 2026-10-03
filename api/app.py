@@ -2,12 +2,8 @@
 """
 app.py: read-only HTTP API over data/solvers.json.
 
-Where a solver's `supports` command reports what it can do, this answers the
-opposite question: given what you need, which solvers can do it. Same idea as
-the vnnfilter package, over HTTP.
-
-Nothing here writes. The database is produced by scripts/build.py and updated
-by a workflow; this process only reads the file back.
+Answers "given what I need, which solvers can do it". Nothing here writes; the
+database is produced by scripts/build.py.
 
     pip install -r api/requirements.txt
 
@@ -15,8 +11,8 @@ by a workflow; this process only reads the file back.
     python3 api/app.py --dev            # tests/fixtures/solvers.demo.json
     python3 api/app.py --database PATH  # anything else
 
-A WSGI host imports this module instead of running it, so there is no command
-line there, so SOLVERS_JSON does the same job.
+A WSGI host imports this module rather than running it, so there is no command
+line there; SOLVERS_JSON does the same job.
 """
 
 import argparse
@@ -29,21 +25,18 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Anchored to this file, not to the working directory. A WSGI server imports
-# the module from wherever it happens to be running, so a relative path would
-# resolve to nothing and every request would report an empty database.
+# Anchored to this file, not the working directory: a WSGI server imports the
+# module from wherever it happens to be running.
 REPO = Path(__file__).resolve().parent.parent
 
-# What the collection pipeline writes, and what a deployment serves.
 LIVE_DATABASE = REPO / "data" / "solvers.json"
 
-# Fixture data: every status in one file, including releases that failed to
-# install. Useful precisely because the real database may hold only successes.
+# Fixture data: every status in one file, including failures the real database
+# does not carry.
 DEMO_DATABASE = REPO / "tests" / "fixtures" / "solvers.demo.json"
 
-# Module level so a WSGI host, which imports this file rather than running it
-# and so never reaches __main__, can still be pointed somewhere else. The
-# command line below overrides it.
+# Module level so a WSGI host, which never reaches __main__, can still point
+# this somewhere else. The command line below overrides it.
 DATABASE = Path(os.environ.get("SOLVERS_JSON", LIVE_DATABASE))
 
 # Theory fields are matched against `satisfies`, not `capabilities`: the
@@ -60,21 +53,14 @@ THEORY_FIELDS = [
 # Asked for as a single value, checked against an inclusive [min, max] pair.
 RANGE_FIELDS = ["onnx_opset", "vnnlib_versions"]
 
-# Asked for as "true" or "false", compared to a boolean the solver reported.
-#
-# Section 5.4.3 of the standard calls these "other": they are neither a theory
-# nor an ONNX fact. `vnnfilter` exposes them as store_true flags, so the package
-# can only ever require one, but the API answers either way, since asking which
-# solvers cannot serialise assignments is a legitimate question even if the
-# command line has no way to spell it.
+# Asked for as "true" or "false". Section 5.4.3 of the standard calls these
+# "other": neither a theory nor an ONNX fact. Both values are answerable.
 BOOLEAN_FIELDS = ["serialise_assignments"]
 
-# Everything that narrows which solvers come back.
 FILTERS = THEORY_FIELDS + RANGE_FIELDS + BOOLEAN_FIELDS + ["operators", "element_types"]
 
-# Everything that changes how they are presented rather than which they are.
-# Kept apart from FILTERS so a typo in either is still rejected, and so the
-# /search response can echo the filters back without the paging noise in them.
+# Presentation rather than selection. Kept apart from FILTERS so a typo in
+# either is still rejected, and so /search can echo the filters back alone.
 CONTROLS = ["name", "sort", "limit", "offset"]
 
 _cache = {"mtime": None, "data": None}
@@ -87,13 +73,9 @@ def database():
     """
     The database, re-read when the file changes on disk.
 
-    Cached on mtime so a workflow committing a new file is picked up without
-    a restart, but a busy endpoint does not re-parse JSON on every request.
-
-    A missing, corrupt or wrongly shaped file yields the empty database and an
-    "error" field rather than a 500 on every endpoint. A half-written upload
-    should degrade to "no solvers, here is why", not take the site down until
-    someone reads the server log.
+    Cached on mtime, so a new file is picked up without a restart. A missing or
+    corrupt file yields the empty database and an "error" field rather than a
+    500 on every endpoint.
     """
     if not DATABASE.exists():
         return dict(EMPTY)
@@ -238,14 +220,11 @@ def group_ranges(versions, matching_indices):
     Matching releases as consecutive runs: [{"from": ..., "to": ..., "versions": [...]}].
 
     Two releases are consecutive when they are adjacent in `versions`, which
-    SCHEMA.md makes a sorted array, so this never parses a version string. That
-    matters: "is 1.10.0 next after 1.9.0" is a question about the ordering the
-    build already committed to, and answering it again here with a second
-    comparison rule would eventually disagree with the first.
+    SCHEMA.md makes a sorted array, so this never parses a version string: a
+    second comparison rule here would eventually disagree with the build's.
 
-    A run of one has `from` equal to `to`. A solver that matched on 1.0.0 and
-    2.0.0 but not on the 1.1.0 between them gets two runs, not one span, so a
-    caller never has to guess whether the middle of a span was measured.
+    A run of one has `from` equal to `to`. Matching 1.0.0 and 2.0.0 but not the
+    1.1.0 between them gives two runs, not one span.
     """
     runs = []
     for index in matching_indices:
@@ -272,11 +251,8 @@ def match_summary(solver, matching_indices):
     """
     What a consumer needs to show one solver as a single row.
 
-    `ranges` is the grouping above. `latest` is the newest matching release,
-    meaning the last one in the sorted array, which is what a row sorts and
-    dates itself on: a solver is as current as its newest usable release.
-    `matched` and `total` are counts, so a reader can see at a glance that 2
-    of 5 releases qualified without reading the ranges.
+    `ranges` is the grouping above, `latest` is the newest matching release, and
+    `matched` / `total` are counts.
     """
     versions = solver_versions(solver)
     latest = versions[matching_indices[-1]]
@@ -296,11 +272,8 @@ def search(query, name=""):
     Solvers with at least one release matching, carrying only those releases.
 
     Each result also carries `matches`, which groups those releases into
-    consecutive ranges. It is computed here rather than by each caller because
-    it depends on the position of a release within the solver's full version
-    list, and a caller only ever receives the matching subset: from `versions`
-    alone there is no way to tell a solid run of three from three releases with
-    gaps between them.
+    consecutive ranges. That grouping needs each release's position in the
+    solver's full version list, which only this side has.
     """
     results = []
     for solver in database()["solvers"]:
@@ -326,11 +299,9 @@ def natural_key(version):
     Ordering for a version string: digit runs compare as numbers, so 1.10.0
     sorts after 1.9.0 rather than before it.
 
-    The same rule as `version_sort_key` in scripts/build.py, which is what
-    ordered the array this reads. Stated again rather than imported because the
-    API is deployed on its own and importing the build script would pull the
-    whole collection pipeline into a web process; if one of the two ever
-    changes, the other has to change with it.
+    The same rule as `version_sort_key` in scripts/build.py, duplicated rather
+    than imported so deploying the API does not pull in the collection pipeline.
+    Change one and change the other.
     """
     parts = []
     for chunk in re.split(r"(\d+)", str(version)):
@@ -355,8 +326,6 @@ SORTS = {
 
 DEFAULT_SORT = "date-desc"
 
-# What one page holds when the caller does not say. Ten, because the rows are
-# read rather than scanned.
 DEFAULT_LIMIT = 10
 
 # A ceiling, so one request cannot ask for the whole database by accident.
@@ -367,13 +336,7 @@ def matches_name(solver, needle):
     """
     Whether a solver's display name or its id contains `needle`, case-insensitively.
 
-    The id is matched as well as the name because the id is what appears in URLs
-    and in `vnnfilter` output, so it is what someone may have been given.
-
-    This is not a capability, and it lives here for one reason only: paging.
-    Narrowing a page of ten in the browser gives ten minus however many were
-    dropped, and a total that counts solvers the reader cannot see. Whoever
-    slices has to be whoever filters.
+    The id is matched as well as the name because the id is what appears in URLs.
     """
     if not needle:
         return True
@@ -399,11 +362,9 @@ def positive_int(raw, default, maximum=None):
 @app.after_request
 def allow_cross_origin(response):
     """
-    Let a page on another origin read this.
+    Let a caller on another origin read this.
 
-    Without it a browser blocks the response, so the Stage 3 search page, and
-    anyone else's script, would see an empty result and no explanation. Safe
-    to open to everyone: the data is public, read-only, and there is no
+    Safe to open to everyone: the data is public and read-only, and there is no
     session or credential to steal.
     """
     response.headers["Access-Control-Allow-Origin"] = "*"
@@ -417,8 +378,8 @@ def index():
         {
             "schema_version": data["schema_version"],
             "generated_at": data["generated_at"],
-            # Says out loud whether this is collected data or the fixture, so
-            # nobody builds against demo numbers thinking they are real.
+            # Collected data or the fixture, so nobody builds against demo
+            # numbers thinking they are real.
             "source": "demo" if DATABASE == DEMO_DATABASE else "collected",
             "solvers": len(data["solvers"]),
             "endpoints": {
@@ -476,25 +437,14 @@ def solver(solver_id):
 @app.get("/vocabulary")
 def vocabulary():
     """
-    Every operator name and element type any solver reports.
+    Every operator name and element type any solver reports, read from the whole
+    database rather than from one page of results.
 
-    This exists because of paging. The search page fills its operator picker and
-    its element type list from the data rather than from a hard-coded list that
-    would drift as solvers are added, and it used to read them off the first
-    search response. A response is now one page of ten, so that list would be
-    whatever ten solvers happened to come back first: the picker would offer a
-    fraction of the operators and silently omit the rest.
-
-    Small enough to be one request on first open: names, not records.
-
-    `operators` maps each name to the element types it can usefully be asked
-    for, which is not simply the types printed beside it. Section 5.4.1 says an
-    operator listed with no types supports *every* type that solver reports, so
-    a solver printing a bare `Relu` alongside `real` and `float32` does support
-    `Relu` at both. The union is therefore the explicit lists plus, for any
-    solver that listed the operator bare, that solver's whole `element_types`.
-    Reading the empty list as "no types" would offer nothing for exactly the
-    operators that are supported most widely.
+    `operators` maps each name to the types it can usefully be asked for, which
+    is not simply the types printed beside it. Section 5.4.1 says an operator
+    listed with no types supports *every* type that solver reports, so the union
+    is the explicit lists plus, for any solver that listed the operator bare,
+    that solver's whole `element_types`.
     """
     operators = {}
     element_types = set()
@@ -552,8 +502,7 @@ def search_endpoint():
     key, reverse = SORTS[sort]
     results.sort(key=key, reverse=reverse)
 
-    # `total` is the whole result set, `solvers` is one page of it. Both are
-    # needed: a pager cannot say "page 3 of 7" from the page it is showing.
+    # `total` is the whole result set, `solvers` is one page of it.
     page = results[offset : offset + limit] if limit else results
 
     return jsonify(

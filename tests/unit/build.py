@@ -28,13 +28,13 @@ offered_versions = solver_build.offered_versions
 def database_with(*entries):
     """A database holding the given (id, version) releases, all collected ok."""
     return {
-        "schema_version": "1.0",
+        "schema_version": "2.0",
         "generated_at": "2026-01-01T00:00:00Z",
         "solvers": [
             {
                 "id": solver_id,
                 "name": solver_id,
-                "repo": f"https://example.invalid/{solver_id}",
+                "url": f"https://example.invalid/{solver_id}",
                 "versions": [
                     {
                         "version": version,
@@ -61,7 +61,7 @@ def ids(database):
     return sorted(s["id"] for s in database["solvers"])
 
 
-TOML = 'name = "x"\nrepo = "https://example.invalid/x"\n'
+TOML = 'name = "x"\nurl = "https://example.invalid/x"\n'
 
 
 def submission(root, solver_id, version, withdrawn=False):
@@ -167,7 +167,7 @@ def test_a_dropped_record_is_recoverable_by_re_collecting():
         assert ids(dropped) == []
 
         (directory / "solver.toml").write_text(TOML, encoding="utf-8")
-        collected = [{"id": "alpha", "name": "alpha", "repo": "https://example.invalid/alpha",
+        collected = [{"id": "alpha", "name": "alpha", "url": "https://example.invalid/alpha",
                       "versions": [{"version": "1.0.0", "status": "ok", "capabilities": {}}]}]
         restored = build(dropped, collected, offered=offered_versions(root))
         assert ids(restored) == ["alpha"]
@@ -182,7 +182,7 @@ def test_only_clean_collections_are_published():
         record = {"version": "1.0.0", "collected_at": "x", "status": status}
         if status != "install_failed":
             record["capabilities"] = {"element_types": ["real"]}
-        return {"id": solver_id, "name": solver_id, "repo": f"https://e/{solver_id}",
+        return {"id": solver_id, "name": solver_id, "url": f"https://e/{solver_id}",
                 "versions": [record]}
 
     built = build({"solvers": []},
@@ -193,7 +193,7 @@ def test_only_clean_collections_are_published():
 
 def test_a_failed_version_does_not_take_its_siblings():
     database = database_with(("alpha", "1.0.0"))
-    incoming = [{"id": "alpha", "name": "alpha", "repo": "https://e/alpha", "versions": [
+    incoming = [{"id": "alpha", "name": "alpha", "url": "https://e/alpha", "versions": [
         {"version": "2.0.0", "collected_at": "x", "status": "install_failed",
          "errors": ["boom"]}]}]
 
@@ -221,7 +221,7 @@ def test_retire_failures_writes_the_flag_once():
         assert text.count("withdrawn") == 1, text
 
         # The author's own fields survive; the flag is appended, not rewritten.
-        assert 'repo = "https://example.invalid/x"' in text
+        assert 'url = "https://example.invalid/x"' in text
 
 
 def test_retire_failures_leaves_clean_collections_alone():
@@ -270,7 +270,7 @@ def test_a_release_collected_in_this_run_is_never_dropped():
         {
             "id": "gamma",
             "name": "gamma",
-            "repo": "",
+            "url": "",
             "versions": [{"version": "1.0.0", "status": "ok", "capabilities": {}}],
         }
     ]

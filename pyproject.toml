@@ -32,9 +32,17 @@ Repository = "https://github.com/VNNLIB/VNNLIB-Solver-Database"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+# The tests live beside the code they test, but they are not part of what gets
+# installed. Without this, auto-discovery ships `vnnfilter/tests/` inside the
+# wheel, and ships it broken: the fixture JSON beside them is not package data,
+# so the installed tests reference a file that is not there.
+exclude = ["vnnfilter.tests", "vnnfilter.tests.*"]
 
 [tool.setuptools.package-data]
 vnnfilter = ["_data/*.json", "py.typed"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# This file describes the vnnfilter distribution, so pytest's target is this
+# package's own tests. The collection pipeline and the API in this repository
+# are tested by scripts rather than by pytest; tests/README.md says how.
+testpaths = ["src/vnnfilter/tests"]

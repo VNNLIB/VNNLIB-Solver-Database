@@ -1,5 +1,5 @@
 name      = "deadsolver"
-repo      = "https://github.com/example/deadsolver"
+url       = "https://github.com/example/deadsolver"
 license   = "MIT"
 contact   = "nobody@example.invalid"
 withdrawn = false

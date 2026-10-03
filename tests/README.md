@@ -1,7 +1,7 @@
 # Running the tests
 
-Everything here needs Python 3.12 and, apart from the unit tests, bash.
-Nothing writes to `data/solvers.json`.
+Everything here covers the collection pipeline and the API. It needs Python 3.12
+and, apart from the unit tests, bash. Nothing writes to `data/solvers.json`.
 
 ## Unit tests: `tests/unit/`
 
@@ -144,3 +144,16 @@ Enabling the repository's hook once per clone fixes it at commit time:
 ```bash
 git config core.hooksPath .githooks
 ```
+
+## In CI
+
+`.github/workflows/tests.yml` runs the four unit suites and re-validates every
+submission in `solvers/`, on every push to main and every pull request.
+
+The integration test is deliberately not in it: `--slow` reaches PyPI and pulls
+torch, so it can go red for reasons that have nothing to do with the change being
+tested. See above for how to run it.
+
+The job installs `api/requirements.txt` and nothing else. The pipeline scripts
+are standard library only, and `api/app.py` is the one thing here with a
+dependency.

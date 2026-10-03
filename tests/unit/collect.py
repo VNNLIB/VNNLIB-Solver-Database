@@ -2,17 +2,11 @@
 """
 Unit tests for scripts/collect.py.
 
-No install, no venv, no network: run_query is the only thing in collect.py
-that touches the outside world, and the one test that needs it swaps it for a
-lookup table. Everything else is a pure function over a string, so hand-typed
-solver output is enough.
+No install, no venv, no network: `run_query` is the only thing in collect.py
+that touches the outside world, and the one test needing it swaps in a lookup
+table.
 
     python3 tests/unit/collect.py
-
-pytest does not pick this file up by default (its default pattern is
-test_*.py). To run it under pytest, point it at the file explicitly:
-
-    pytest tests/unit/collect.py -p no:cacheprovider
 """
 
 import importlib.util

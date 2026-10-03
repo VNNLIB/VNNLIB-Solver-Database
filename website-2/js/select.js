@@ -93,7 +93,26 @@
             list.setAttribute("aria-label", label.textContent.trim());
         }
 
+        /*
+         * The sizer, for a control that wants to be as wide as its widest
+         * option rather than a width someone guessed.
+         *
+         * The button shows whichever option is selected, so sizing the wrapper
+         * to its content would make the control change width every time the
+         * reader changes the sort. This is an inert copy of the longest option,
+         * in the flow so it counts towards the wrapper's max-content width, but
+         * zero height and hidden so it is neither seen nor read out. The
+         * wrapper is what has `width: max-content`; see `.select-auto`.
+         *
+         * Rebuilt by `build()`, because a select filled in from the database
+         * later has different options than the one in the markup.
+         */
+        const sizer = document.createElement("span");
+        sizer.className = "select__sizer";
+        sizer.setAttribute("aria-hidden", "true");
+
         wrapper.appendChild(button);
+        wrapper.appendChild(sizer);
         wrapper.appendChild(list);
 
         let active = -1;
@@ -124,6 +143,18 @@
                 });
                 list.appendChild(item);
             });
+
+            // The longest by rendered width is not knowable here, so the longest
+            // by character count stands in for it. The two differ only for
+            // strings of much the same length, where the gap is a pixel or two.
+            let longest = "";
+            Array.prototype.forEach.call(select.options, function (option) {
+                if (option.textContent.length > longest.length) {
+                    longest = option.textContent;
+                }
+            });
+            sizer.textContent = longest;
+
             syncText();
         }
 
