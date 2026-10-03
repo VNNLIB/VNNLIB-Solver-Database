@@ -384,7 +384,183 @@ a {
 }
 
 .documents-heading {
+    margin-top: 0;
+}
+
+.documents-heading h2 {
+    font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.standard-table-shell {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96)),
+        #ffffff;
+    border: 1px solid rgba(15,118,110,0.16);
+    border-top: 4px solid var(--brand-cyan);
+    border-radius: 8px;
+    box-shadow: 0 18px 44px rgba(23,32,51,0.11);
+    margin-bottom: 2rem;
+    overflow-x: auto;
+}
+
+.standard-table {
+    margin-bottom: 0;
+    min-width: 680px;
+}
+
+.standard-table th {
+    background: #f1f5f9;
+    border-top: 0;
+    color: var(--brand-navy);
+    font-size: .95rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    padding: 1rem 1.15rem;
+    text-transform: uppercase;
+}
+
+.standard-table td {
+    border-color: rgba(17,24,39,0.08);
+    color: #334155;
+    font-size: 1rem;
+    padding: 1.1rem 1.15rem;
+    vertical-align: middle;
+}
+
+.standard-table tbody tr {
+    transition: background-color .16s ease;
+}
+
+.standard-table tbody tr:hover {
+    background: rgba(15,118,110,0.04);
+}
+
+.standard-table td:first-child a {
+    color: var(--brand-navy);
+    font-size: 1.12rem;
+    font-weight: 800;
+}
+
+.standard-table td:first-child a:hover,
+.standard-table td:first-child a:focus {
+    color: var(--brand-blue);
+}
+
+.standard-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+}
+
+.standard-table-actions a {
+    background: #ffffff;
+    border: 1px solid rgba(37,99,235,0.20);
+    border-radius: 999px;
+    color: var(--brand-blue);
+    font-weight: 700;
+    padding: .35rem .7rem;
+    transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+
+.standard-table-actions a:hover,
+.standard-table-actions a:focus {
+    background: var(--brand-blue);
+    border-color: var(--brand-blue);
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.citation-block {
+    background: #ffffff;
+    border: 1px solid rgba(17,24,39,0.08);
+    border-left: 4px solid var(--brand-amber);
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(23,32,51,0.07);
+    margin-bottom: 2.5rem;
+    max-width: 68rem;
+    padding: 1.35rem 1.5rem;
+}
+
+.citation-block h3 {
+    color: var(--brand-navy);
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+}
+
+.citation-block ul {
+    color: #334155;
+    font-size: .98rem;
+    line-height: 1.65;
+    margin-bottom: 0;
+    padding-left: 1.4rem;
+}
+
+.citation-block li + li {
+    margin-top: .55rem;
+}
+
+.repository-resources {
+    background:
+        linear-gradient(135deg, rgba(15,118,110,0.04), rgba(217,119,6,0.035)),
+        rgba(255,255,255,0.82);
+    border: 1px solid rgba(17,24,39,0.08);
+    border-left: 3px solid rgba(15,118,110,0.58);
+    border-radius: 8px;
+    box-shadow: 0 10px 26px rgba(23,32,51,0.055);
+    display: grid;
+    gap: 1.2rem;
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr);
     margin-top: 2.5rem;
+    padding: 1.25rem;
+}
+
+.repository-resources h2 {
+    color: var(--brand-navy);
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: .6rem;
+}
+
+.repository-resources p {
+    color: #4b5563;
+    font-size: .96rem;
+    line-height: 1.65;
+    margin-bottom: 0;
+}
+
+.repository-resource-links {
+    align-content: center;
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    justify-content: flex-end;
+}
+
+.repository-resource-links a {
+    background: linear-gradient(135deg, var(--brand-cyan), var(--brand-blue));
+    border: 1px solid rgba(15,118,110,0.24);
+    border-radius: 8px;
+    box-shadow: 0 10px 24px rgba(15,118,110,0.16);
+    color: #ffffff;
+    font-size: .95rem;
+    font-weight: 700;
+    min-width: 15rem;
+    padding: .8rem 1rem;
+    text-align: center;
+    transition: box-shadow .16s ease, filter .16s ease, transform .16s ease;
+}
+
+.repository-resource-links a:hover,
+.repository-resource-links a:focus {
+    background: linear-gradient(135deg, var(--brand-amber), var(--brand-cyan));
+    border-color: rgba(217,119,6,0.38);
+    color: #ffffff;
+    box-shadow: 0 14px 30px rgba(217,119,6,0.20);
+    text-decoration: none;
+    transform: translateY(-1px);
 }
 
 .document-grid {
@@ -1301,6 +1477,10 @@ a {
 
     .solver-actions {
         justify-content: flex-start;
+    }
+
+    .repository-resources {
+        grid-template-columns: 1fr;
     }
 }
 
