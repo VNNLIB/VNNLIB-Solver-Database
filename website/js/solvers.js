@@ -30,17 +30,17 @@
     ];
 
     var FILTER_LABELS = {
-        text: "Search",
+        text: "Name",
         arithmetic: "Arithmetic",
-        hidden_nodes: "Hidden nodes",
-        multiple_io: "Input/output",
+        hidden_nodes: "Hidden",
+        multiple_io: "I/O",
         multiple_networks: "Networks",
-        node_comparisons: "Node comparisons",
-        operators: "ONNX operators",
-        element_types: "Element types",
-        serialise_assignments: "Serialise assignments",
-        onnx_opset: "Required ONNX opset version",
-        vnnlib_version: "Required VNN-LIB version"
+        node_comparisons: "Nodes",
+        operators: "ONNX",
+        element_types: "Elements",
+        serialise_assignments: "Assignments",
+        onnx_opset: "ONNX opset",
+        vnnlib_version: "VNN-LIB"
     };
 
     var VALUE_LABELS = {
@@ -426,6 +426,16 @@
         }).join(", ");
     }
 
+    function theorySection(title, items, limit) {
+        if (!items || !items.length) {
+            return "";
+        }
+        return '<div class="solver-detail-group"><div class="solver-detail-label">' + escapeHtml(title)
+            + '</div><div class="solver-badges">'
+            + badges(items.map(function (item) { return VALUE_LABELS[item] || item; }), limit || 8)
+            + "</div></div>";
+    }
+
     function allOperators(solvers) {
         var seen = {};
         solvers.forEach(function (solver) {
@@ -560,25 +570,28 @@
         return [
             '<div class="solver-detail-panel">',
             '<div class="solver-section-title">Supported theories</div>',
-            '<div class="solver-badges">',
-            badges((capabilities.arithmetic || []).map(function (item) { return VALUE_LABELS[item] || item; }), 6),
-            badges((capabilities.hidden_nodes || []).map(function (item) { return VALUE_LABELS[item] || item; }), 4),
-            badges((capabilities.multiple_io || []).map(function (item) { return VALUE_LABELS[item] || item; }), 4),
-            badges((capabilities.multiple_networks || []).map(function (item) { return VALUE_LABELS[item] || item; }), 6),
-            badges((capabilities.node_comparisons || []).map(function (item) { return VALUE_LABELS[item] || item; }), 4),
+            '<div class="solver-detail-grid">',
+            theorySection("Arithmetic theories", capabilities.arithmetic, 6),
+            theorySection("Hidden nodes", capabilities.hidden_nodes, 4),
+            theorySection("Input/output", capabilities.multiple_io, 4),
+            theorySection("Networks", capabilities.multiple_networks, 6),
+            theorySection("Node comparisons", capabilities.node_comparisons, 4),
             "</div>",
-            '<div class="solver-section-title">Element types and assignments</div>',
+            '<div class="solver-section-title">Element types</div>',
             '<div class="solver-badges">',
-            badges((capabilities.element_types || []).map(function (item) { return "Type " + item; }), 6),
-            capabilities.serialise_assignments === undefined ? "" : badges(["Serialise assignments " + capabilities.serialise_assignments], 1),
+            badges((capabilities.element_types || []), 6),
+            "</div>",
+            '<div class="solver-section-title">Serialised assignments</div>',
+            '<div class="solver-badges">',
+            capabilities.serialise_assignments === undefined ? '<span class="solver-badge">Unknown</span>' : badges([String(capabilities.serialise_assignments)], 1),
             "</div>",
             '<div class="solver-section-title">Supported versions</div>',
             '<div class="solver-badges">',
             capabilities.vnnlib_versions ? '<span class="solver-badge">VNN-LIB ' + rangeText(capabilities.vnnlib_versions) + "</span>" : "",
             capabilities.onnx_opset ? '<span class="solver-badge">ONNX opset ' + rangeText(capabilities.onnx_opset) + "</span>" : "",
             "</div>",
-            '<div class="solver-section-title">Operators</div>',
-            '<div class="solver-operators"><div class="solver-badges">' + badges(operators, 40) + "</div></div>",
+            '<div class="solver-section-title">ONNX operators</div>',
+            '<div class="solver-badges solver-operators-list">' + badges(operators, 40) + "</div>",
             notes ? '<div class="solver-section-title">Notes</div><ul>' + notes + "</ul>" : "",
             errors ? '<div class="solver-section-title">Errors</div><ul>' + errors + "</ul>" : "",
             "</div>"
@@ -675,7 +688,6 @@
             state.solvers = data.solvers || [];
             populateOperatorSuggestions(state.solvers);
             applyQueryFromUrl();
-            $("database-meta").textContent = "Database generated at " + (data.generated_at || "unknown time");
             search();
         }).catch(function (error) {
             $("solver-results").innerHTML = '<div class="solver-error">Could not load solver data: ' + error.message + "</div>";
@@ -725,7 +737,7 @@
             var file = event.target.files && event.target.files[0];
             var status = $("model-file-status");
             if (!file) {
-                status.textContent = "Upload an ONNX model or operator list.";
+                status.textContent = "Optional: upload an ONNX model or operator list to add detected operators to the filters.";
                 return;
             }
             file.arrayBuffer().then(function (buffer) {
@@ -752,7 +764,7 @@
             document.querySelectorAll(".solver-filter-panel input").forEach(function (input) {
                 input.value = "";
             });
-            $("model-file-status").textContent = "Upload an ONNX model or operator list.";
+            $("model-file-status").textContent = "Optional: upload an ONNX model or operator list to add detected operators to the filters.";
             search();
         });
     }

@@ -1001,6 +1001,10 @@ a {
     padding: .75rem 1rem;
 }
 
+.solver-workspace {
+    display: block;
+}
+
 .solver-filter-panel {
     background:
         linear-gradient(135deg, rgba(15,118,110,0.08), rgba(217,119,6,0.08) 42%, rgba(124,58,237,0.07)),
@@ -1008,9 +1012,52 @@ a {
     border: 1px solid var(--brand-border);
     border-radius: 8px;
     box-shadow: var(--brand-shadow);
-    overflow: hidden;
+    overflow: visible;
     padding: 1.35rem;
     position: relative;
+}
+
+.solver-filter-layout {
+    align-items: start;
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .65fr);
+}
+
+.solver-filter-controls {
+    min-width: 0;
+}
+
+.active-filter-panel {
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(15,118,110,0.14);
+    border-radius: 8px;
+    box-shadow: 0 16px 38px rgba(23,32,51,0.12);
+    max-height: calc(100vh - 7.4rem);
+    overflow: auto;
+    padding: 1rem;
+    position: sticky;
+    top: 6.4rem;
+    z-index: 2;
+}
+
+.solver-workspace .solver-filter-controls .row > [class*="col-"] {
+    flex: 0 0 50%;
+    max-width: 50%;
+}
+
+.solver-workspace .solver-filter-controls .filter-block-primary .row > [class*="col-"]:first-child {
+    flex: 0 0 65%;
+    max-width: 65%;
+}
+
+.solver-workspace .solver-filter-controls .filter-block-primary .row > [class*="col-"]:last-child {
+    flex: 0 0 35%;
+    max-width: 35%;
+}
+
+.solver-workspace .solver-filter-controls .row > [class*="col-"]:last-child {
+    margin-bottom: 0 !important;
 }
 
 .solver-filter-panel label {
@@ -1119,6 +1166,10 @@ a {
 
 .filter-block-advanced {
     border-left: 4px solid var(--brand-rose);
+}
+
+.filter-block-model {
+    border-left: 4px solid var(--brand-plum);
 }
 
 .solver-filter-panel .filter-control {
@@ -1276,11 +1327,15 @@ a {
 
 .active-filters {
     align-items: center;
+    background: rgba(255,255,255,0.64);
+    border: 1px dashed rgba(100,116,139,0.24);
+    border-radius: 8px;
     display: flex;
     flex-wrap: wrap;
     gap: .45rem;
-    margin: -.15rem 0 1rem;
-    min-height: 2rem;
+    margin: 0 0 1rem;
+    min-height: 8rem;
+    padding: .7rem;
 }
 
 .active-filter-note,
@@ -1306,6 +1361,8 @@ a {
     color: #115e59;
     cursor: pointer;
     font-weight: 700;
+    max-width: 100%;
+    text-align: left;
     transition: background-color .14s ease, transform .1s ease;
 }
 
@@ -1331,6 +1388,35 @@ a {
     gap: .75rem;
     justify-content: flex-end;
     margin-top: .25rem;
+}
+
+.solver-results-panel {
+    min-width: 0;
+}
+
+.solver-results-header {
+    align-items: flex-start;
+    background: rgba(255,255,255,0.82);
+    border: 1px solid var(--brand-border);
+    border-radius: 8px;
+    box-shadow: 0 10px 28px rgba(23,32,51,0.06);
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.solver-results-header .solver-summary {
+    background: #ffffff;
+    border: 1px solid rgba(15,118,110,0.18);
+    border-radius: 999px;
+    color: var(--brand-navy);
+    display: inline-flex;
+    font-size: .9rem;
+    font-weight: 800;
+    padding: .45rem .75rem;
+    white-space: nowrap;
 }
 
 .solver-summary {
@@ -1374,6 +1460,26 @@ a {
     background: #fbfdff;
     border-top: 1px solid var(--brand-border);
     padding: 1rem;
+}
+
+.solver-detail-grid {
+    display: grid;
+    gap: .8rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.solver-detail-group {
+    background: #ffffff;
+    border: 1px solid rgba(17,24,39,0.08);
+    border-radius: 8px;
+    padding: .75rem;
+}
+
+.solver-detail-label {
+    color: var(--brand-navy);
+    font-size: .82rem;
+    font-weight: 800;
+    margin-bottom: .35rem;
 }
 
 .solver-meta {
@@ -1437,13 +1543,10 @@ a {
     margin-top: .8rem;
 }
 
-.solver-operators {
-    background: #fbfdff;
-    border: 1px solid rgba(0,0,0,0.06);
-    border-radius: 6px;
+.solver-operators-list {
     max-height: 6.8rem;
     overflow: auto;
-    padding: .5rem;
+    padding-right: .2rem;
 }
 
 .solver-empty,
@@ -1478,6 +1581,22 @@ a {
 @media (max-width: 1199.98px) {
     .official-library-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .solver-filter-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .active-filter-panel {
+        position: relative;
+        top: auto;
+    }
+
+    .solver-workspace .solver-filter-controls .row > [class*="col-"],
+    .solver-workspace .solver-filter-controls .filter-block-primary .row > [class*="col-"]:first-child,
+    .solver-workspace .solver-filter-controls .filter-block-primary .row > [class*="col-"]:last-child {
+        flex: 0 0 100%;
+        max-width: 100%;
     }
 }
 
@@ -1529,6 +1648,15 @@ a {
 
     .filter-header {
         display: block;
+    }
+
+    .solver-results-header {
+        display: block;
+    }
+
+    .solver-results-header .solver-summary {
+        margin-top: 1rem;
+        white-space: normal;
     }
 
     .filter-status {
