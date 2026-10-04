@@ -72,6 +72,7 @@
     var state = {
         solvers: [],
         filtered: [],
+        operatorChoices: [],
         query: null
     };
 
@@ -135,6 +136,40 @@
         return value.split(",")
             .map(function (item) { return item.trim(); })
             .filter(Boolean);
+    }
+
+    function operatorInputState() {
+        var raw = $("filter-operators").value;
+        var parts = raw.split(",");
+        var known = {};
+        state.operatorChoices.forEach(function (operator) {
+            known[operator.toLowerCase()] = operator;
+        });
+        var lastRaw = parts.length ? parts[parts.length - 1] : "";
+        var last = lastRaw.trim();
+        var endsWithDelimiter = /,\s*$/.test(raw);
+        var selected = [];
+
+        parts.slice(0, -1).forEach(function (part) {
+            var value = part.trim();
+            if (known[value.toLowerCase()]) {
+                selected.push(known[value.toLowerCase()]);
+            }
+        });
+
+        if (last && known[last.toLowerCase()]) {
+            selected.push(known[last.toLowerCase()]);
+            last = "";
+        }
+
+        return {
+            selected: unique(selected),
+            search: endsWithDelimiter ? "" : last
+        };
+    }
+
+    function operatorSearchTerm() {
+        return operatorInputState().search.toLowerCase();
     }
 
     function valuesFromParams(params, field) {
@@ -337,7 +372,7 @@
             multiple_io: valuesFrom($("filter-multiple-io")),
             multiple_networks: valuesFrom($("filter-multiple-networks")),
             node_comparisons: valuesFrom($("filter-node-comparisons")),
-            operators: commaValues($("filter-operators").value),
+            operators: operatorInputState().selected,
             element_types: valuesFrom($("filter-element-types")),
             serialise_assignments: valuesFrom($("filter-serialise-assignments")),
             onnx_opset: $("filter-onnx-opset").value.trim(),
@@ -351,6 +386,7 @@
 
     function search() {
         syncAllPillGroups();
+        renderOperatorChoices();
         var query = currentQuery();
         state.query = query;
         updateUrl(query);
@@ -468,10 +504,39 @@
 
     function populateOperatorSuggestions(solvers) {
         var operators = allOperators(solvers);
+        state.operatorChoices = unique(operators.concat(COMMON_ONNX_OPERATORS)).sort();
         $("operator-suggestions").innerHTML = operators.map(function (operator) {
             return '<option value="' + escapeHtml(operator) + '"></option>';
         }).join("");
-        $("operator-choices").innerHTML = operators.map(function (operator) {
+        renderOperatorChoices();
+    }
+
+    function addOperatorChoice(operator) {
+        var selected = operatorInputState().selected;
+        if (selected.indexOf(operator) === -1) {
+            selected.push(operator);
+        }
+        $("filter-operators").value = selected.join(", ");
+        $("filter-operators").dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    function renderOperatorChoices() {
+        var inputState = operatorInputState();
+        var selected = {};
+        var term = operatorSearchTerm();
+        inputState.selected.forEach(function (operator) {
+            selected[operator] = true;
+        });
+        var matches = state.operatorChoices.filter(function (operator) {
+            return !selected[operator] && (!term || operator.toLowerCase().indexOf(term) !== -1);
+        });
+
+        if (!matches.length) {
+            $("operator-choices").innerHTML = '<div class="operator-empty">No ONNX operators match "' + escapeHtml(inputState.search) + '".</div>';
+            return;
+        }
+
+        $("operator-choices").innerHTML = matches.map(function (operator) {
             return '<button type="button" class="pill operator-choice" data-operator="' + escapeHtml(operator) + '">'
                 + escapeHtml(operator) + "</button>";
         }).join("");
@@ -712,8 +777,20 @@
             if (!choice) {
                 return;
             }
-            $("filter-operators").value = mergeCommaInput($("filter-operators").value, [choice.dataset.operator]);
-            $("filter-operators").dispatchEvent(new Event("input", { bubbles: true }));
+            addOperatorChoice(choice.dataset.operator);
+        });
+
+        $("filter-operators").addEventListener("keydown", function (event) {
+            var firstChoice;
+            if (event.key !== "Enter") {
+                return;
+            }
+            firstChoice = $("operator-choices").querySelector(".operator-choice");
+            if (!firstChoice) {
+                return;
+            }
+            event.preventDefault();
+            addOperatorChoice(firstChoice.dataset.operator);
         });
 
         [

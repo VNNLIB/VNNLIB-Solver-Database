@@ -1820,6 +1820,16 @@ main {
     background: #ffffff;
 }
 
+.operator-empty {
+    background: rgba(255,255,255,0.72);
+    border: 1px dashed rgba(100,116,139,0.34);
+    border-radius: 8px;
+    color: #64748b;
+    font-size: .86rem;
+    padding: .75rem .85rem;
+    width: 100%;
+}
+
 .solver-filter-panel .filter-file-control {
     background: #ffffff;
     font-size: .9rem;
