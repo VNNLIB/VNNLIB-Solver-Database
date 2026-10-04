@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="css/site.css">
 </head>
 
-<body class="solver-page">
+<body class="solver-page page-home">
     <nav class="navbar navbar-expand-lg bg-secondary fixed-top" id="mainNav">
         <div class="container">
             <a class="navbar-brand" href="index.html">
@@ -33,7 +33,7 @@
         </div>
     </nav>
 
-    <header class="masthead site-hero bg-gradient text-white">
+    <header class="masthead site-hero visual-hero visual-hero-home text-white">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-7">
@@ -72,41 +72,54 @@
     </header>
 
     <main>
-        <section class="page-section">
+        <section class="page-section home-intro-section">
             <div class="container">
-                <div class="section-heading">
-                    <p class="eyebrow">Introduction</p>
-                    <h2>What VNN-LIB Provides</h2>
-                    <p class="lead-copy">
-                        VNN-LIB is an open-source standard for automated solvers of
-                        satisfiability problems over neural networks. The goal of the standard is
-                        to foster interoperability in the neural network verification community.
-                    </p>
-                    <p class="lead-copy">To this end, the standard defines:</p>
-                    <ol class="intro-list">
-                        <li>A formal syntax for defining satisfiability queries.</li>
-                        <li>A formal semantics for that syntax.</li>
-                        <li>A command-line interface for solvers.</li>
-                    </ol>
-                    <p class="lead-copy">
-                        Contributions and suggestions to the standard are welcome. If interested,
-                        please open an issue describing your proposal on the
-                        <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/issues">VNN-LIB Standard GitHub repository</a>.
-                    </p>
+                <div class="home-intro-panel">
+                    <div class="home-intro-copy">
+                        <p class="eyebrow">Introduction</p>
+                        <h2>What VNN-LIB Provides</h2>
+                        <p class="lead-copy">
+                            VNN-LIB is an open-source standard for automated solvers of
+                            satisfiability problems over neural networks. The goal of the standard is
+                            to foster interoperability in the neural network verification community.
+                        </p>
+                        <p class="lead-copy">
+                            Contributions and suggestions to the standard are welcome. If interested,
+                            please open an issue describing your proposal on the
+                            <a target="_blank" rel="noopener" href="https://github.com/VNNLIB/VNNLIB-Standard/issues">VNN-LIB Standard GitHub repository</a>.
+                        </p>
+                    </div>
+                    <div class="intro-definition-grid" aria-label="VNN-LIB standard definitions">
+                        <article class="intro-definition-card">
+                            <span>01</span>
+                            <h3>Formal syntax</h3>
+                            <p>Defines satisfiability queries in a shared, machine-readable format.</p>
+                        </article>
+                        <article class="intro-definition-card">
+                            <span>02</span>
+                            <h3>Formal semantics</h3>
+                            <p>Gives precise meaning to each query so tools interpret problems consistently.</p>
+                        </article>
+                        <article class="intro-definition-card">
+                            <span>03</span>
+                            <h3>Solver interface</h3>
+                            <p>Specifies a command-line interface for exchanging queries with solvers.</p>
+                        </article>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="page-section section-muted">
+        <section class="page-section section-muted news-section">
             <div class="container">
-                <div class="row">
-                    <div class="col-lg-5">
-                        <div class="section-heading">
+                <div class="news-layout">
+                    <div class="news-heading">
+                        <div>
                             <p class="eyebrow">Latest News</p>
                             <h2>Project Updates</h2>
                         </div>
                     </div>
-                    <div class="col-lg-7">
+                    <div class="news-feed">
                         <div class="timeline-list">
                             <div class="timeline-item">
                                 <strong>June 2, 2026</strong>
@@ -148,9 +161,9 @@
             </div>
         </section>
 
-        <section class="page-section section-muted">
+        <section class="page-section section-muted team-section">
             <div class="container">
-                <div class="section-heading">
+                <div class="section-heading team-heading">
                     <p class="eyebrow">Team Members</p>
                     <h2>People Behind VNN-LIB</h2>
                 </div>
