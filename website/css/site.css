@@ -15,22 +15,25 @@
 }
 
 body.solver-page {
-    background:
-        linear-gradient(180deg, rgba(8,13,30,0.22), rgba(8,13,30,0.06) 34%, rgba(247,248,251,0.20) 100%),
-        var(--page-background-image, linear-gradient(135deg, #172033 0%, #334155 38%, #0f766e 72%, #d97706 100%));
+    background-color: #d5e2ee;
+    background-image:
+        radial-gradient(circle at 14% 10%, rgba(15,118,110,0.24), transparent 25rem),
+        radial-gradient(circle at 88% 2%, rgba(37,99,235,0.22), transparent 24rem),
+        linear-gradient(rgba(23,32,51,0.105) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23,32,51,0.105) 1px, transparent 1px),
+        linear-gradient(180deg, #dceaf5 0%, #cbd9e7 48%, #dce5ee 100%);
     background-attachment: fixed;
-    background-position: center top;
-    background-repeat: no-repeat;
-    background-size: cover;
+    background-position: center top, center top, center top, center top, center top;
+    background-repeat: no-repeat, no-repeat, repeat, repeat, no-repeat;
+    background-size: 64rem 44rem, 54rem 38rem, 44px 44px, 44px 44px, cover;
     color: var(--brand-ink);
     padding-top: 83px;
 }
 
 body.solver-page::before {
     background:
-        radial-gradient(circle at 16% 10%, rgba(124,58,237,0.16), transparent 30%),
-        radial-gradient(circle at 88% 6%, rgba(37,99,235,0.18), transparent 28%),
-        linear-gradient(180deg, rgba(8,13,30,0.18), rgba(247,248,251,0.18) 48%, rgba(247,248,251,0.28));
+        linear-gradient(118deg, transparent 0 28%, rgba(15,118,110,0.16) 28% 28.2%, transparent 28.2% 100%),
+        linear-gradient(62deg, transparent 0 68%, rgba(37,99,235,0.14) 68% 68.2%, transparent 68.2% 100%);
     content: "";
     inset: 0;
     pointer-events: none;
@@ -39,23 +42,28 @@ body.solver-page::before {
 }
 
 .page-home {
-    --page-background-image: url("../assets/img/background/background-4.png");
+    --page-accent: var(--brand-cyan);
+    --page-accent-soft: rgba(15,118,110,0.14);
 }
 
 .page-documents {
-    --page-background-image: url("../assets/img/background/background-3.png");
+    --page-accent: var(--brand-cyan);
+    --page-accent-soft: rgba(15,118,110,0.13);
 }
 
 .page-solvers {
-    --page-background-image: url("../assets/img/background/background-2.png");
+    --page-accent: var(--brand-plum);
+    --page-accent-soft: rgba(124,58,237,0.13);
 }
 
 .page-libraries {
-    --page-background-image: url("../assets/img/background/background-1.png");
+    --page-accent: var(--brand-amber);
+    --page-accent-soft: rgba(217,119,6,0.13);
 }
 
 .page-related {
-    --page-background-image: url("../assets/img/background/background-1.png");
+    --page-accent: var(--brand-blue);
+    --page-accent-soft: rgba(37,99,235,0.13);
 }
 
 a {
@@ -178,9 +186,12 @@ main {
 
 .visual-hero::after {
     background:
-        linear-gradient(90deg, rgba(8,13,30,0.52), rgba(23,32,51,0.20) 45%, rgba(8,13,30,0.04)),
-        radial-gradient(circle at 12% 28%, rgba(15,118,110,0.20), transparent 32%),
-        linear-gradient(180deg, rgba(8,13,30,0.16), transparent 46%, rgba(247,248,251,0.16));
+        linear-gradient(135deg, rgba(203,218,233,0.95), rgba(188,207,225,0.82) 52%, rgba(216,222,235,0.80)),
+        radial-gradient(circle at 16% 26%, var(--page-accent-soft, rgba(15,118,110,0.20)), transparent 34%),
+        radial-gradient(circle at 86% 10%, rgba(37,99,235,0.20), transparent 31%),
+        linear-gradient(rgba(23,32,51,0.105) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23,32,51,0.105) 1px, transparent 1px);
+    background-size: auto, auto, auto, 58px 58px, 58px 58px;
     content: "";
     inset: 0;
     position: absolute;
@@ -192,13 +203,16 @@ main {
 .page-libraries .visual-hero::after,
 .page-related .visual-hero::after {
     background:
-        linear-gradient(90deg, rgba(8,13,30,0.38), rgba(23,32,51,0.14) 46%, rgba(8,13,30,0.02)),
-        radial-gradient(circle at 14% 30%, rgba(15,118,110,0.14), transparent 34%),
-        linear-gradient(180deg, rgba(8,13,30,0.12), transparent 45%, rgba(247,248,251,0.14));
+        linear-gradient(135deg, rgba(205,221,235,0.96), rgba(191,211,228,0.84) 54%, rgba(218,224,236,0.82)),
+        radial-gradient(circle at 15% 28%, var(--page-accent-soft, rgba(15,118,110,0.19)), transparent 34%),
+        radial-gradient(circle at 86% 8%, rgba(37,99,235,0.19), transparent 32%),
+        linear-gradient(rgba(23,32,51,0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23,32,51,0.10) 1px, transparent 1px);
+    background-size: auto, auto, auto, 58px 58px, 58px 58px;
 }
 
 .visual-hero::before {
-    color: rgba(255,255,255,0.075);
+    color: rgba(17,24,39,0.055);
     content: "";
     font-size: clamp(3.4rem, 10vw, 8.5rem);
     font-weight: 800;
@@ -242,13 +256,13 @@ main {
 .page-hero.visual-hero > .container,
 .solver-hero.visual-hero > .container {
     background:
-        linear-gradient(135deg, rgba(10,18,35,0.48), rgba(23,32,51,0.18)),
-        rgba(255,255,255,0.06);
+        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,252,0.88)),
+        rgba(255,255,255,0.90);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.22);
-    border-left: 5px solid rgba(167,243,223,0.86);
+    border: 1px solid rgba(100,116,139,0.30);
+    border-left: 5px solid var(--page-accent, var(--brand-cyan));
     border-radius: 10px;
-    box-shadow: 0 22px 56px rgba(8,13,30,0.18);
+    box-shadow: 0 22px 56px rgba(23,32,51,0.16);
     max-width: 1140px;
     padding: 1.55rem 1.7rem;
     width: calc(100% - 30px);
@@ -274,16 +288,14 @@ main {
 }
 
 .visual-hero h1 {
-    background: linear-gradient(90deg, #ffffff 0%, #a7f3df 45%, #93c5fd 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    background: none;
+    color: var(--brand-ink);
     text-shadow: none;
 }
 
 .visual-hero .lead,
 .visual-hero .hero-copy {
-    color: rgba(255,255,255,0.88);
+    color: #334155;
 }
 
 .visual-hero-home .code-panel {
@@ -538,7 +550,7 @@ main {
 .content-band,
 .process-step,
 .code-panel {
-    background: rgba(255,255,255,0.78);
+    background: rgba(255,255,255,0.92);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -1061,7 +1073,7 @@ main {
 }
 
 .news-heading .eyebrow {
-    background: rgba(255,255,255,0.70);
+    background: rgba(255,255,255,0.92);
     border: 1px solid rgba(255,255,255,0.42);
     border-radius: 999px;
     box-shadow: 0 10px 24px rgba(23,32,51,0.08);
@@ -1076,8 +1088,8 @@ main {
 
 .timeline-item {
     background:
-        linear-gradient(135deg, rgba(255,255,255,0.80), rgba(255,255,255,0.58)),
-        rgba(255,255,255,0.70);
+        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.86)),
+        rgba(255,255,255,0.92);
     backdrop-filter: blur(16px);
     border-left: 4px solid var(--brand-cyan);
     border-radius: 8px;
@@ -1457,7 +1469,7 @@ main {
 }
 
 .library-note {
-    background: rgba(255,255,255,0.64);
+    background: rgba(255,255,255,0.92);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 999px;
@@ -1475,7 +1487,7 @@ main {
 .solver-filter-panel {
     background:
         linear-gradient(135deg, rgba(15,118,110,0.08), rgba(217,119,6,0.08) 42%, rgba(124,58,237,0.07)),
-        rgba(255,255,255,0.72);
+        rgba(255,255,255,0.94);
     backdrop-filter: blur(18px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -1497,7 +1509,7 @@ main {
 }
 
 .active-filter-panel {
-    background: rgba(255,255,255,0.72);
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(15,118,110,0.14);
     border-radius: 8px;
@@ -1914,7 +1926,7 @@ main {
 
 .solver-results-header {
     align-items: flex-start;
-    background: rgba(255,255,255,0.74);
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -1944,7 +1956,7 @@ main {
 }
 
 .solver-table-shell {
-    background: rgba(255,255,255,0.74);
+    background: rgba(255,255,255,0.96);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -1953,7 +1965,7 @@ main {
 }
 
 .solver-table {
-    background: rgba(255,255,255,0.62);
+    background: rgba(255,255,255,0.92);
     margin-bottom: 0;
     min-width: 720px;
 }
