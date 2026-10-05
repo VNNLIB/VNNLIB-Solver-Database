@@ -1,23 +1,11 @@
 #!/usr/bin/env python3
-"""
-Unit tests for scripts/collect.py.
-
-No install, no venv, no network: `run_query` is the only thing in collect.py
-that touches the outside world, and the one test needing it swaps in a lookup
-table.
-
-    python3 tests/unit/collect.py
-"""
+"""Unit tests for scripts/collect.py."""
 
 import importlib.util
 import pathlib
 import sys
 
-# Loaded by path, not by `import collect`: this file is also named collect.py,
-# so a plain import would resolve to itself depending on cwd.
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[2] / "scripts"
-# collect.py imports its sibling schema.py, which loading by path does not
-# put on sys.path for it.
 sys.path.insert(0, str(_SCRIPTS))
 
 _SOURCE = _SCRIPTS / "collect.py"
@@ -40,7 +28,6 @@ split_note = solver_collect.split_note
 def test_split_note():
     assert split_note("POLY") == ("POLY", None)
     assert split_note("POLY * a note") == ("POLY", "* a note")
-    # Delimiter is not assumed to be '*', only that something separates.
     assert split_note("POLY -- other") == ("POLY", "-- other")
 
 
@@ -59,14 +46,12 @@ def test_theory_output():
 
 
 def test_theory_output_normalises_order():
-    # Reported out of order, blank lines, duplicates -> PERMITTED order, no dupes.
     identifiers, _, errors = parse_theory_output("POLY\n\nBND\nPOLY\n", "arithmetic")
     assert identifiers == ["BND", "POLY"]
     assert errors == []
 
 
 def test_theory_output_rejects_unpermitted():
-    # SCHEMA.md's brokennn case, message included.
     identifiers, _, errors = parse_theory_output("LINEAR\n", "arithmetic")
     assert identifiers == []
     assert errors == [
@@ -75,16 +60,11 @@ def test_theory_output_rejects_unpermitted():
 
 
 def test_theory_output_empty_is_not_an_error_here():
-    # Empty output is not this function's error to raise: collect() records it.
     assert parse_theory_output("", "arithmetic") == ([], [], [])
 
 
 def test_any_whitespace_separates_identifier_from_note():
-    """
-    A tab is still whitespace. Splitting on ' ' alone turned 'POLY\ttext' into
-    the identifier 'POLY\t*', reported as a conformance failure for the theory
-    fields, and silently stored as a bogus type name for element_types.
-    """
+    """A tab is still whitespace."""
     assert split_note("POLY\t* note") == ("POLY", "* note")
     assert split_note("POLY  * note") == ("POLY", "* note")
 
@@ -98,10 +78,7 @@ def test_any_whitespace_separates_identifier_from_note():
 
 
 def test_opset_range_must_not_be_inverted():
-    """
-    [20, 8] contains nothing, so keeping it would quietly exclude the solver
-    from every opset query instead of reporting two lines the wrong way round.
-    """
+    """[20, 8] contains nothing, so it is an error rather than a stored range."""
     assert parse_opset("20\n8\n") is None
     assert parse_opset("13\n13\n") == [13, 13]
 
@@ -113,7 +90,6 @@ def test_min_max():
     assert parse_opset("8\n20\n21\n") is None
     assert parse_opset("eight\ntwenty") is None
     assert parse_vnnlib_versions("1.0\n2.0\n") == ["1.0", "2.0"]
-    # Not coerced to numbers: '2.0' stays a string.
     assert parse_vnnlib_versions("2.0\n2.0") == ["2.0", "2.0"]
     assert parse_vnnlib_versions("2.0") is None
 
@@ -136,9 +112,6 @@ def test_operators():
         "Conv": ["float64", "float32"],
         "Relu": ["float64", "float32"],
     }
-    # A bare name is stored as an empty list, exactly as printed. It MEANS
-    # every type in element_types, but expanding it here would put derived
-    # data in capabilities, because consumers do that reading.
     assert parse_operators("Conv float64\nRelu\nGemm\n") == {
         "Conv": ["float64"],
         "Relu": [],
@@ -151,8 +124,6 @@ def test_operators():
 def test_boolean():
     assert parse_boolean(" true \n") is True
     assert parse_boolean("false\n") is False
-    # Not conforming, and not guessed at: the caller turns None into an error
-    # and leaves the field null.
     assert parse_boolean("yes") is None
     assert parse_boolean("True") is None
     assert parse_boolean("") is None
@@ -160,9 +131,7 @@ def test_boolean():
 
 def test_closure():
     assert expand_closure("arithmetic", ["POLY"]) == ["BND", "OUTC", "LIN", "POLY"]
-    # PERMITTED order, not input order, not alphabetical.
     assert expand_closure("arithmetic", ["LIN", "BND"]) == ["BND", "OUTC", "LIN"]
-    # SNET and MENET are disjoint: MINET does not imply SNET.
     assert expand_closure("multiple_networks", ["MINET"]) == ["MENET", "MINET"]
     assert expand_closure("multiple_networks", ["SNET", "MINET"]) == [
         "SNET",
@@ -223,7 +192,6 @@ def test_collect_conforming_solver():
 
     assert record["status"] == "ok"
     assert "errors" not in record
-    # Capability order follows SUPPORTS_FLAGS, so records diff cleanly.
     assert list(record["capabilities"]) == [
         "onnx_opset",
         "element_types",
@@ -261,7 +229,6 @@ def test_collect_survives_broken_flags():
     assert record["capabilities"]["onnx_opset"] is None
     assert record["satisfies"]["node_comparisons"] == []
     assert record["satisfies"]["arithmetic"] == []
-    # Untouched flags still collected.
     assert record["capabilities"]["multiple_networks"] == ["SNET", "MENET", "MINET"]
     assert record["errors"] == [
         "--onnx-opset-versions: exited 1: boom",
@@ -292,6 +259,7 @@ def test_run_query_reports_missing_binary_without_raising():
 
 
 def main():
+    """Run every test_ function in this module."""
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for test in tests:
         test()

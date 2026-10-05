@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Unit tests for scripts/build.py. Pure dictionary merging over temporary
-files, so these run anywhere in milliseconds.
-
-    python3 tests/unit/build.py
-"""
+"""Unit tests for scripts/build.py."""
 
 import importlib.util
 import json
@@ -51,6 +46,7 @@ def database_with(*entries):
 
 
 def record(database, solver_id):
+    """The first version record of one solver in a database."""
     for solver in database["solvers"]:
         if solver["id"] == solver_id:
             return solver["versions"][0]
@@ -58,6 +54,7 @@ def record(database, solver_id):
 
 
 def ids(database):
+    """The solver ids in a database, sorted."""
     return sorted(s["id"] for s in database["solvers"])
 
 
@@ -87,24 +84,17 @@ def test_offered_versions_reads_the_directory_tree():
 
 
 def test_solver_toml_withdrawn_takes_a_release_off_offer():
-    """
-    The mechanism the client asked for: submissions are never deleted, they are
-    retired in place by a flag in their own solver.toml.
-    """
+    """A release is retired in place by a flag, never deleted."""
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp) / "solvers"
         submission(root, "alpha", "1.0.0", withdrawn=True)
         submission(root, "alpha", "2.0.0")
-        # The directory is still there; only the flag decides.
         assert (root / "alpha" / "1.0.0").is_dir()
         assert offered_versions(root) == {("alpha", "2.0.0")}
 
 
 def test_a_solver_level_toml_retires_every_version():
-    """
-    For a project that has been abandoned rather than one release superseded:
-    one file beside the version directories, not a line in each of them.
-    """
+    """One solver.toml beside the version directories retires all of them."""
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp) / "solvers"
         submission(root, "alpha", "1.0.0")
@@ -128,10 +118,7 @@ def test_solver_level_file_is_not_mistaken_for_a_version():
 
 
 def test_a_retired_release_is_dropped_from_the_database():
-    """
-    The client wants the database to describe only what can be used today, so
-    a retired release is removed rather than flagged.
-    """
+    """The database describes what can be used today, so a retired release goes."""
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp) / "solvers"
         submission(root, "alpha", "1.0.0", withdrawn=True)
@@ -155,11 +142,7 @@ def test_a_solver_keeps_its_other_versions():
 
 
 def test_a_dropped_record_is_recoverable_by_re_collecting():
-    """
-    Dropping is safe because the submission stays. Clearing the line and
-    collecting again reproduces the record, so nothing measured is lost for
-    good, it only stops being published.
-    """
+    """Dropping is safe because the submission stays."""
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp) / "solvers"
         directory = submission(root, "alpha", "1.0.0", withdrawn=True)
@@ -174,11 +157,9 @@ def test_a_dropped_record_is_recoverable_by_re_collecting():
 
 
 def test_only_clean_collections_are_published():
-    """
-    The database advertises what a solver can do, so a release that could not
-    be installed, or answered only some queries, has nothing to advertise.
-    """
+    """A release that did not install, or answered only some queries, is not published."""
     def entry(solver_id, status):
+        """A minimal database entry for one solver with the given status."""
         record = {"version": "1.0.0", "collected_at": "x", "status": status}
         if status != "install_failed":
             record["capabilities"] = {"element_types": ["real"]}
@@ -202,10 +183,7 @@ def test_a_failed_version_does_not_take_its_siblings():
 
 
 def test_retire_failures_writes_the_flag_once():
-    """
-    The bot marks a release that was merged and then failed to install, so the
-    pipeline stops reinstalling something already known to be broken.
-    """
+    """A release that was merged and then failed to install is flagged once."""
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp) / "solvers"
         directory = submission(root, "alpha", "1.0.0")
@@ -215,12 +193,10 @@ def test_retire_failures_writes_the_flag_once():
         assert solver_build.retire_failures(results, root) == [directory]
         assert offered_versions(root) == set(), "no longer on offer"
 
-        # Idempotent: a second run must not append the line again.
         assert solver_build.retire_failures(results, root) == []
         text = (directory / "solver.toml").read_text()
         assert text.count("withdrawn") == 1, text
 
-        # The author's own fields survive; the flag is appended, not rewritten.
         assert 'url = "https://example.invalid/x"' in text
 
 
@@ -235,11 +211,7 @@ def test_retire_failures_leaves_clean_collections_alone():
 
 
 def test_missing_solvers_directory_is_none_not_empty():
-    """
-    The distinction that matters most here. Treating "cannot see the
-    submissions" as "there are no submissions" would empty the entire database
-    in one run.
-    """
+    """The distinction that matters most here."""
     assert offered_versions("/nonexistent/solvers") is None
 
     database = database_with(("alpha", "1.0.0"))
@@ -262,10 +234,7 @@ def test_dropping_everything_leaves_a_valid_empty_database():
 
 
 def test_a_release_collected_in_this_run_is_never_dropped():
-    """
-    Ordering check: dropping happens after the merge, so a submission added and
-    collected in the same run cannot be removed by a listing taken before it.
-    """
+    """Dropping happens after the merge, so a release collected this run survives."""
     incoming = [
         {
             "id": "gamma",
@@ -279,12 +248,7 @@ def test_a_release_collected_in_this_run_is_never_dropped():
 
 
 def test_build_does_not_mutate_its_input():
-    """
-    build() must not touch what it was given. When an earlier version edited
-    records in place, those edits landed on the caller's "before" too, so
-    main() compared a structure against itself, concluded nothing had changed,
-    and silently never wrote the file.
-    """
+    """build() must not touch what it was given."""
     database = database_with(("alpha", "1.0.0"))
     snapshot = json.dumps(database, sort_keys=True)
 
@@ -296,12 +260,7 @@ def test_build_does_not_mutate_its_input():
 
 
 def test_build_returns_records_the_caller_does_not_share():
-    """
-    The assertion above only catches a mutation that has already happened. This
-    one catches the shape that allows it: if the returned records are the same
-    objects as the input's, the next edit-in-place reintroduces the bug, and
-    the test above would go on passing until it did.
-    """
+    """The assertion above only catches a mutation that has already happened."""
     database = database_with(("alpha", "1.0.0"))
     built = build(database, [], offered={("alpha", "1.0.0")})
 
@@ -325,6 +284,7 @@ def test_merge_still_preserves_unknown_fields_and_other_solvers():
 
 
 def main():
+    """Run every test_ function in this module."""
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for test in tests:
         test()

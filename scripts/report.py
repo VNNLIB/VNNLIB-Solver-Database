@@ -1,23 +1,10 @@
 #!/usr/bin/env python3
-"""
-report.py: render register.py's records as markdown, for a pull request
-comment or an Actions job summary.
-
-Presentation only: it reads the same JSON Lines build.py merges and writes
-nothing. Kept out of the workflow YAML because a heredoc full of jq is not
-something anyone can test.
-
-    python3 scripts/report.py results.jsonl > report.md
-
-Testing: see tests/README.md.
-"""
+"""report.py: render register.py's records as markdown."""
 
 import json
 import sys
 from pathlib import Path
 
-# What each status means to the person reading the comment, rather than what
-# it means to the schema.
 VERDICT = {
     "ok": "All eleven capability queries answered. This is what will be recorded.",
     "incomplete": "Installed, but some queries were unusable. The rest is still recorded.",
@@ -25,8 +12,6 @@ VERDICT = {
     "non_conforming": "Runs, but does not implement the VNN-LIB 2.0 CLI.",
 }
 
-# Capability fields worth showing in a summary table. The rest are in the
-# collapsed JSON below it.
 HIGHLIGHTS = [
     ("vnnlib_versions", "VNN-LIB"),
     ("onnx_opset", "ONNX opset"),
@@ -36,6 +21,7 @@ HIGHLIGHTS = [
 
 
 def _cell(value):
+    """One capability value as a table cell."""
     if value is None:
         return "-"
     if isinstance(value, list):
@@ -128,6 +114,7 @@ def load(path):
 
 
 def main():
+    """Render a results file as markdown on stdout."""
     if len(sys.argv) != 2:
         print("usage: report.py <results.jsonl>", file=sys.stderr)
         return 2

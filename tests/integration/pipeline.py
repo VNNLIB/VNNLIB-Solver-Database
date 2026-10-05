@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
-"""
-End-to-end test of the whole pipeline: register.py -> results.jsonl ->
-build.py -> solvers.json, driven by the fixtures in tests/fixtures.
-
-Real: a venv per solver, the submitted install.sh executed, the binary run, a
-database written. Slow and platform-bound, so it skips rather than fails where
-it cannot run.
-
-    python3 tests/integration/pipeline.py           # fakes only, ~8s, offline
-    python3 tests/integration/pipeline.py --slow    # also the real solvers
-
---slow reaches PyPI and pulls torch, so it can go red for reasons that have
-nothing to do with the code here.
-
-Nothing outside a temporary directory is written, and data/solvers.json is never
-touched.
-"""
+"""End to end: register.py -> results.jsonl -> build.py -> solvers.json."""
 
 import importlib.util
 import json
@@ -31,13 +15,8 @@ FIXTURES = REPO / "tests" / "fixtures"
 REGISTER = REPO / "scripts" / "register.py"
 BUILD = REPO / "scripts" / "build.py"
 
-# install.sh is trivial in every fixture; this only needs to be long enough to
-# survive a slow venv creation on a loaded machine.
 TIMEOUT = 180
 
-# What each fixture is supposed to demonstrate, and whether a record for it
-# should carry capabilities at all. SCHEMA.md's rule is to read the absence of
-# capabilities rather than the status string, so both are asserted.
 EXPECTED = {
     "testsolver": ("1.0.0", "ok", True),
     "brokensolver": ("0.9.0", "incomplete", True),
@@ -45,21 +24,12 @@ EXPECTED = {
     "ghostsolver": ("1.0.0", "install_failed", False),
 }
 
-# Real solvers: network, minutes, and an outcome that depends on PyPI. Only
-# under --slow.
-#
-# vibecheck expects install_failed because it currently IS uninstallable: both
-# releases pin onnxruntime==1.26.0, which is not published. Change to "ok" when
-# that is fixed upstream.
 SLOW = {
     "vibecheck": ("1.1.0", "ok", True),
 }
 
-# install.sh for a real solver pulls torch; 180s is not enough.
 SLOW_TIMEOUT = 30 * 60
 
-# Kept in step with scripts/schema.py without importing it: this file runs
-# before anything in scripts/ is known to be importable.
 MINIMUM_PYTHON = (3, 11)
 
 
@@ -75,8 +45,6 @@ def skip_reason():
         return "bash not found on PATH"
     if importlib.util.find_spec("ensurepip") is None:
         return "ensurepip missing, so venv creation will fail (apt install python3-venv)"
-    # register.py refuses below this, so every run_register would fail on an
-    # assertion about a return code rather than saying what is actually wrong.
     if sys.version_info[:2] < MINIMUM_PYTHON:
         running = ".".join(str(v) for v in sys.version_info[:2])
         return f"needs Python 3.12; running {running}"
@@ -92,18 +60,14 @@ def run_register(fixture_dir, workdir, timeout=TIMEOUT):
         text=True,
         timeout=timeout,
     )
-    # Always 0, even for install_failed: a recorded failure is not a broken run.
     assert completed.returncode == 0, completed.stderr
     lines = [l for l in completed.stdout.splitlines() if l.strip()]
-    # Exactly one line, or `>> results.jsonl` stops being valid JSON Lines.
     assert len(lines) == 1, f"expected 1 line of JSON, got {len(lines)}"
     return json.loads(lines[0])
 
 
 def run_build(results_path, database_path, *extra, solvers_dir=FIXTURES):
-    # --solvers-dir points at the fixtures, because here they are the
-    # submissions. A test that invents a release must pass its own tree, or the
-    # release is dropped for having no submission.
+    """Run build.py against a temporary database and return the finished process."""
     completed = subprocess.run(
         [sys.executable, str(BUILD), str(results_path), "--database", str(database_path),
          "--solvers-dir", str(solvers_dir), *extra],
@@ -117,12 +81,7 @@ def run_build(results_path, database_path, *extra, solvers_dir=FIXTURES):
 
 
 def test_fixtures_are_valid_submissions(state):
-    """
-    Runs first, because a fixture that fails validation fails every test after
-    it in a way that says nothing useful. The case this exists for: git records
-    the executable bit separately from the filesystem, so a fixture committed
-    as mode 644 works locally and fails on a runner with Permission denied.
-    """
+    """Runs first: a bad fixture would fail every later test unhelpfully."""
     spec = importlib.util.spec_from_file_location("solver_validate", REPO / "scripts" / "validate.py")
     validate = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validate)
@@ -139,8 +98,6 @@ def test_register_every_fixture(state):
         record = solver["versions"][0]
 
         assert solver["id"] == solver_id
-        # url comes from solver.toml, so it is filled even when the install
-        # failed and nothing was ever queried.
         assert solver["url"] == f"https://github.com/example/{solver_id}", solver["url"]
         assert record["version"] == version, "directory name is the authority on version"
         assert record["status"] == status, f"{solver_id}: {record}"
@@ -150,13 +107,10 @@ def test_register_every_fixture(state):
 
         state["solvers"].append(solver)
 
-    # The one fully conforming fixture is worth checking in detail.
     testsolver = next(s for s in state["solvers"] if s["id"] == "testsolver")
     record = testsolver["versions"][0]
     assert testsolver["name"] == "TestSolver", "display name from solver.toml"
     assert record["capabilities"]["onnx_opset"] == [8, 20]
-    # Typed and bare operators end up in the shape SCHEMA.md describes; the
-    # bare one keeps its empty list rather than being expanded.
     assert record["capabilities"]["operators"]["Conv"] == ["float64", "float32"]
     assert record["capabilities"]["operators"]["Relu"] == []
     assert record["satisfies"]["arithmetic"] == ["BND", "OUTC", "LIN", "POLY"]
@@ -164,10 +118,7 @@ def test_register_every_fixture(state):
 
 
 def test_real_solvers(state):
-    """
-    Only under --slow. Same assertions as the fakes, but the outcome depends
-    on PyPI, so it stays out of the default run.
-    """
+    """Only under --slow."""
     if not state["slow"]:
         raise Skipped("real solvers; pass --slow to include them")
 
@@ -179,8 +130,6 @@ def test_real_solvers(state):
         assert record["status"] == status, f"{solver_id}: {record['errors']}"
         assert ("capabilities" in record) is has_capabilities
         if status != "ok":
-            # The whole point of raising OUTPUT_TAIL_LINES: a failure the
-            # submitter can act on, not just the fact that one happened.
             assert record["errors"][0].strip(), f"{solver_id} failed without saying why"
 
 
@@ -195,17 +144,11 @@ def test_install_failed_names_the_cause(state):
     assert "no executable" in errors["ghostsolver"], errors["ghostsolver"]
 
 
-# The fixtures cover every outcome, but only a clean collection is published.
 PUBLISHED = sorted(i for i, (_, status, _) in EXPECTED.items() if status == "ok")
 
 
 def test_build_publishes_only_clean_collections(state):
-    """
-    register's JSON Lines feed straight into build with nothing in between,
-    and only releases that collected cleanly come out the other side: the
-    database advertises what a solver can do, and the other three fixtures
-    have nothing to advertise.
-    """
+    """Only releases that collected cleanly survive the merge."""
     results = state["workdir"] / "results.jsonl"
     with results.open("w", encoding="utf-8", newline="\n") as handle:
         for solver in state["solvers"]:
@@ -219,8 +162,6 @@ def test_build_publishes_only_clean_collections(state):
     assert [s["id"] for s in built["solvers"]] == PUBLISHED, (
         "incomplete and install_failed fixtures must not be published"
     )
-    # The author still learns what happened: report.py renders every record,
-    # including the ones that never reach the database.
     rendered = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "report.py"), str(results)],
         cwd=str(REPO), capture_output=True, text=True, timeout=TIMEOUT,
@@ -241,12 +182,7 @@ def test_second_build_is_a_no_op(state):
 
 
 def test_recollecting_replaces_and_new_version_appends(state):
-    """
-    SUBMITTING.md's "Updating": overwrite the version, keep the old ones.
-
-    Against its own copy of the submissions, with a second version directory
-    added, because a release with no submission is dropped rather than kept.
-    """
+    """SUBMITTING.md's "Updating": overwrite the version, keep the old ones."""
     submissions = state["workdir"] / "updating"
     shutil.copytree(FIXTURES / "testsolver", submissions / "testsolver")
     shutil.copytree(submissions / "testsolver" / "1.0.0", submissions / "testsolver" / "1.2.0")
@@ -258,13 +194,11 @@ def test_recollecting_replaces_and_new_version_appends(state):
     first.write_text(json.dumps(solver) + "\n", encoding="utf-8")
     run_build(first, database, solvers_dir=submissions)
 
-    # Same version, collected again: the record is replaced, not duplicated.
     solver["versions"][0]["capabilities"]["element_types"] = ["real"]
     recollect = state["workdir"] / "recollect.jsonl"
     recollect.write_text(json.dumps(solver) + "\n", encoding="utf-8")
     run_build(recollect, database, solvers_dir=submissions)
 
-    # A later release of the same solver.
     solver = json.loads(json.dumps(solver))
     solver["versions"][0]["version"] = "1.2.0"
     newer = state["workdir"] / "newer.jsonl"
@@ -280,13 +214,7 @@ def test_recollecting_replaces_and_new_version_appends(state):
 
 
 def test_a_failed_release_is_retired_in_place(state):
-    """
-    A release that fails on main is merged in error. --retire-failed writes the
-    flag into its own solver.toml so the pipeline stops reinstalling something
-    already known to be broken, half an hour at a time.
-
-    Run against a copy of the fixtures, because it edits a submission.
-    """
+    """A release that fails on main is merged in error."""
     submissions = state["workdir"] / "solvers"
     shutil.copytree(FIXTURES / "deadsolver", submissions / "deadsolver")
     toml = submissions / "deadsolver" / "1.0.0" / "solver.toml"
@@ -309,8 +237,6 @@ def test_a_failed_release_is_retired_in_place(state):
 
     retired = toml.read_text(encoding="utf-8")
     assert "withdrawn = true" in retired
-    # Replaced, not appended. A second key would be invalid TOML, tomllib would
-    # refuse the file, and the release just retired would read as live again.
     assert retired.count("withdrawn") == 1, retired
 
     spec = importlib.util.spec_from_file_location(
@@ -321,18 +247,11 @@ def test_a_failed_release_is_retired_in_place(state):
     assert checker.is_withdrawn(toml.parent) is True, (
         "the file the pipeline wrote must still read back as retired"
     )
-    # Nothing was published, so there was nothing to write: build.py leaves the
-    # file alone rather than committing an empty database. A run that collects
-    # only failures therefore produces no commit at all.
     assert not database.exists(), "a run with nothing to publish must write nothing"
 
 
 def test_hand_written_fields_survive(state):
-    """
-    Fields build.py does not know about survive a collection. Fields it does
-    know about are refreshed from the submission, which is the point of
-    collecting them.
-    """
+    """Fields build.py does not know about survive a collection."""
     built = json.loads(state["database"].read_text(encoding="utf-8"))
     built["house_keeping"] = "unknown top-level field"
     for solver in built["solvers"]:
@@ -347,8 +266,6 @@ def test_hand_written_fields_survive(state):
     testsolver = next(s for s in built["solvers"] if s["id"] == "testsolver")
     assert built["house_keeping"] == "unknown top-level field"
     assert testsolver["maintainer_note"] == "unknown solver field"
-    # url now has a source, solver.toml, so the collected value wins over
-    # a hand edit rather than being overwritten by an empty string.
     assert testsolver["url"] == "https://github.com/example/testsolver"
 
 
@@ -359,11 +276,7 @@ def test_no_environments_left_behind(state):
 
 
 def real_database():
-    """
-    The committed database, or None if it isn't there. Absent is a legitimate
-    state, a fresh clone before the first collection, and must not stop the
-    tests from running.
-    """
+    """The committed database, or None if it isn't there."""
     path = REPO / "data" / "solvers.json"
     return path.read_bytes() if path.exists() else None
 
@@ -374,6 +287,7 @@ def test_real_database_untouched(state):
 
 
 def main():
+    """Run the suite, skipping where the environment cannot support it."""
     slow = "--slow" in sys.argv[1:]
 
     reason = skip_reason()
@@ -389,8 +303,6 @@ def main():
             "slow": slow,
             "real_database": real_database(),
         }
-        # Ordered by definition, not alphabetically: each step builds on the
-        # state the previous one left.
         ordered = [
             test_fixtures_are_valid_submissions,
             test_register_every_fixture,
@@ -402,7 +314,6 @@ def main():
             test_hand_written_fields_survive,
             test_no_environments_left_behind,
             test_real_database_untouched,
-            # Last: it is the slowest, and nothing else depends on its state.
             test_real_solvers,
         ]
         assert len(ordered) == len(tests), "a test was defined but not ordered"

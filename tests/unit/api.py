@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Unit tests for api/app.py, using Flask's test client: no server, no port,
-no network.
-
-    python3 tests/unit/api.py
-"""
+"""Unit tests for api/app.py, using Flask's test client: no server, no port, no network."""
 
 import importlib.util
 import json
@@ -27,7 +22,6 @@ def _release(version, arithmetic):
             "element_types": ["float32"],
             "operators": ["Relu"],
             "vnnlib_versions": ["2.0", "2.0"],
-            # Unusable, per SCHEMA.md: the solver's answer could not be parsed.
             "serialise_assignments": None,
         },
         "satisfies": {"arithmetic": arithmetic, "hidden_nodes": ["NH"],
@@ -36,7 +30,6 @@ def _release(version, arithmetic):
     }
 
 
-# One release of each shape the filter has to handle.
 DATABASE = {
     "schema_version": "2.0",
     "generated_at": "2026-08-17T00:00:00Z",
@@ -52,7 +45,6 @@ DATABASE = {
                     "vnnlib_versions": ["1.0", "2.0"],
                     "serialise_assignments": True,
                 },
-                # Reported POLY, so the closure covers the weaker ones.
                 "satisfies": {"arithmetic": ["BND", "OUTC", "LIN", "POLY"],
                               "hidden_nodes": ["NH", "H"],
                               "multiple_io": ["SIO"],
@@ -77,9 +69,6 @@ DATABASE = {
             }],
         },
         {
-            # Five releases, and LIN comes and goes: 1.0.0 and 1.1.0 have it,
-            # 1.2.0 and 2.0.0 lose it, 2.1.0 has it again. A LIN search must
-            # therefore come back as two ranges, not one span across the hole.
             "id": "multi", "name": "Multi", "url": "https://e/multi",
             "versions": [
                 _release("1.0.0", ["BND", "OUTC", "LIN"]),
@@ -91,7 +80,6 @@ DATABASE = {
         },
         {
             "id": "broken", "name": "Broken", "url": "https://e/broken",
-            # install_failed: no capabilities at all.
             "versions": [{"version": "1.0.0", "status": "install_failed",
                           "errors": ["install script exited 1: boom"]}],
         },
@@ -100,6 +88,7 @@ DATABASE = {
 
 
 def load_app(database_path):
+    """Load api/app.py by path, pointed at the given database file."""
     spec = importlib.util.spec_from_file_location("solver_api", REPO / "api" / "app.py")
     module = importlib.util.module_from_spec(spec)
     sys.modules["solver_api"] = module
@@ -110,15 +99,18 @@ def load_app(database_path):
 
 
 def ids(payload):
+    """The solver ids in a response body, sorted."""
     return sorted(s["id"] for s in payload["solvers"])
 
 
 def run(client, url):
+    """GET a url through the test client, returning status and parsed body."""
     response = client.get(url)
     return response.status_code, json.loads(response.data)
 
 
 def main():
+    """Run every check against a temporary database."""
     with tempfile.TemporaryDirectory() as tmp:
         path = pathlib.Path(tmp) / "solvers.json"
         path.write_text(json.dumps(DATABASE), encoding="utf-8")
@@ -127,6 +119,7 @@ def main():
         checks = []
 
         def check(name, condition, detail=""):
+            """Assert one condition and record it as a named check."""
             assert condition, f"{name}: {detail}"
             checks.append(name)
             print(f"ok  {name}")
@@ -146,9 +139,6 @@ def main():
         status, body = run(client, "/solvers")
         check("list every solver", status == 200 and len(body["solvers"]) == 4)
 
-        # `url` is the field SCHEMA.md 2.0 renamed from `repo`. The API passes
-        # the record through rather than reading it, so without these a rename
-        # would reach every consumer with nothing here failing first.
         check("every solver carries url",
               all("url" in s for s in body["solvers"]),
               [sorted(s) for s in body["solvers"]])
@@ -193,14 +183,12 @@ def main():
         status, body = run(client, "/search?operators=Conv,Relu")
         check("several operators mean all of them", ids(body) == ["strong"], ids(body))
 
-        # "Conv float64 float32" -> restricted to those two types.
         status, body = run(client, "/search?operators=Conv:float64")
         check("operator at a listed type", ids(body) == ["strong"], ids(body))
 
         status, body = run(client, "/search?operators=Conv:bfloat16")
         check("operator at a type it is not listed for", body["count"] == 0)
 
-        # "Relu" with no types means every type in element_types, not none.
         status, body = run(client, "/search?operators=Relu:real")
         check("empty type list means every element type, not none",
               ids(body) == ["strong"], ids(body))
@@ -224,8 +212,6 @@ def main():
               ids(body) == ["strong"], ids(body))
 
         status, body = run(client, "/search?arithmetic=POLY&operators=Relu&element_types=real")
-        # multi has POLY and Relu but no `real`, so it is the one the third
-        # criterion removes.
         check("criteria combine with AND", ids(body) == ["strong"], ids(body))
 
         status, body = run(client, "/search?arithmetic=POLY&element_types=bfloat16")
@@ -237,18 +223,13 @@ def main():
         status, body = run(client, "/search?arithmatic=POLY")
         check("misspelled filter is rejected, not ignored", status == 400, body)
 
-        # install_failed never matches: nothing about it was measured.
         check("install_failed excluded from every search",
               all("broken" not in ids(run(client, u)[1])
                   for u in ["/search", "/search?arithmetic=BND", "/search?operators=Relu"]))
 
-        # ------------------------------------------- range grouping ------
-        #
-        # The point of computing this in the API rather than in each consumer:
-        # a caller only ever receives the matching releases, so from those
-        # alone it cannot tell a solid run of three from three with gaps.
 
         def multi(url):
+            """The matches object the 'multi' solver gets back from a url."""
             _, body = run(client, url)
             for entry in body["solvers"]:
                 if entry["id"] == "multi":
@@ -304,7 +285,6 @@ def main():
               all("_last_index" not in r for r in entry["matches"]["ranges"]),
               entry["matches"]["ranges"])
 
-        # ------------------------------------- serialise_assignments -----
         status, body = run(client, "/search?serialise_assignments=true")
         check("a boolean capability can be required",
               ids(body) == ["strong"], ids(body))
@@ -327,19 +307,12 @@ def main():
               status == 200 and sorted(body["operators"]) == ["Conv", "Relu"], body.get("operators"))
         check("and every element type",
               body["element_types"] == ["float32", "real"], body.get("element_types"))
-        # `strong` prints "Conv float64 float32", so Conv carries those two even
-        # though float64 is not among its own element_types: the restriction is
-        # what the solver said, and the search reports back what it was told.
         check("an operator's explicit type list is carried through",
               body["operators"]["Conv"] == ["float32", "float64"], body["operators"].get("Conv"))
-        # A bare `Relu` means every type that solver reports, per 5.4.1, so the
-        # union picks those up rather than leaving the widest operator empty.
         check("a bare operator takes its solvers' element types, not an empty list",
               body["operators"]["Relu"] == ["float32", "real"], body["operators"].get("Relu"))
 
-        # ------------------------------- paging, sorting and the name ----
 
-        # Twelve solvers, so the default page size of ten leaves a second page.
         many = {
             "schema_version": "2.0", "generated_at": "2026-09-25T00:00:00Z",
             "solvers": [
@@ -385,8 +358,6 @@ def main():
         status, body = run(client, "/search?sort=name-desc&limit=3")
         check("descending name", ids(body) == ["s10", "s11", "s12"], ids(body))
 
-        # "Solver 01" does not contain "solver 1"; "Solver 10" does. The point
-        # is that it is a substring test, not a word or prefix test.
         status, body = run(client, "/search?name=solver%201&sort=name-asc")
         check("name is a substring of the display name, case-insensitively",
               body["total"] == 3 and ids(body) == ["s10", "s11", "s12"], ids(body))
@@ -406,7 +377,6 @@ def main():
         check("an unknown sort is rejected, not quietly replaced",
               status == 400 and "sort" in body["error"], body)
 
-        # 10.0.0 after 9.0.0, which a plain string comparison gets backwards.
         status, body = run(client, "/search?sort=version-desc&limit=4")
         check("versions sort naturally, not as strings",
               [s["matches"]["latest"]["version"] for s in body["solvers"]]
@@ -418,8 +388,6 @@ def main():
               == ["1.0.0", "2.0.0", "3.0.0"],
               [s["matches"]["latest"]["version"] for s in body["solvers"]])
 
-        # Paging must not lose or repeat a solver: every page, concatenated, is
-        # the whole set exactly once.
         seen = []
         for offset in range(0, 12, 5):
             _, chunk = run(client, f"/search?sort=name-asc&limit=5&offset={offset}")
@@ -435,8 +403,6 @@ def main():
         module.DATABASE = path
         os.utime(path, (time.time() + 2, time.time() + 2))
 
-        # A corrupt or half-written database must degrade to "no solvers, here
-        # is why", not 500 on every endpoint until someone reads the log.
         broken = pathlib.Path(tmp) / "broken.json"
         broken.write_text("{oops", encoding="utf-8")
         module.DATABASE = broken
@@ -457,7 +423,6 @@ def main():
 
         module.DATABASE = path
 
-        # The file changing on disk is picked up without a restart.
         changed = json.loads(json.dumps(DATABASE))
         changed["solvers"] = changed["solvers"][:1]
         path.write_text(json.dumps(changed), encoding="utf-8")

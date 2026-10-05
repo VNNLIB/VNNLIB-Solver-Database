@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Unit tests for scripts/validate.py. Pure file inspection, and nothing is
-installed, so these run anywhere in milliseconds.
-
-    python3 tests/unit/validate.py
-"""
+"""Unit tests for scripts/validate.py."""
 
 import importlib.util
 import pathlib
@@ -22,9 +17,6 @@ _spec.loader.exec_module(solver_validate)
 validate = solver_validate.validate
 
 GOOD_SCRIPT = '#!/usr/bin/env bash\nset -euo pipefail\npip install thesolver==1.2.0\n'
-# Split, because `withdrawn` is optional and several tests need to supply their
-# own value for it, and appending a second one would be a duplicate key rather
-# than an override.
 BARE_TOML = 'name = "TheSolver"\nurl = "https://github.com/example/thesolver"\n'
 GOOD_TOML = BARE_TOML + "withdrawn = false\n"
 
@@ -101,13 +93,10 @@ def test_install_script_that_is_not_a_file():
         assert validate(directory) == ["install.sh is not a file"]
 
 
-def test_repo_must_be_a_quoted_url():
-    """
-    Typed explicitly because the two TOML readers disagree otherwise: tomllib
-    returns `url = 12345` as an int, the 3.10 regex fallback sees no quoted
-    string at all. Same submission, different verdict per interpreter.
-    """
+def test_url_must_be_a_quoted_url():
+    """Checked explicitly, because the two TOML readers disagree on a bare number."""
     def problems_for(toml):
+        """The problems validate() reports for one solver.toml."""
         with tempfile.TemporaryDirectory() as tmp:
             return validate(make_submission(tmp, toml=toml))
 
@@ -118,11 +107,7 @@ def test_repo_must_be_a_quoted_url():
 
 
 def test_withdrawn_submissions_skip_the_checks():
-    """
-    A retired release is never installed again, so nothing about it needs
-    checking. Its install script may well have stopped working, which is often
-    exactly why it was retired.
-    """
+    """A retired release is never installed again, so nothing about it needs checking."""
     broken = "#!/bin/sh\necho no version here\n"
     with tempfile.TemporaryDirectory() as tmp:
         directory = make_submission(tmp, script=broken, toml=GOOD_TOML)
@@ -148,11 +133,7 @@ def test_a_retired_solver_takes_its_versions_out_of_scope():
 
 
 def test_withdrawn_may_be_left_out_and_then_means_false():
-    """
-    A submission is an offer to have the solver installed, so absent has to mean
-    still offered. The alternative, rejecting the file, made every author write
-    a line that says what the directory already said.
-    """
+    """A submission is an offer to have the solver installed, so absent has to mean still offered."""
     with tempfile.TemporaryDirectory() as tmp:
         directory = make_submission(tmp, toml=BARE_TOML)
         assert validate(directory) == [], validate(directory)
@@ -161,12 +142,7 @@ def test_withdrawn_may_be_left_out_and_then_means_false():
 
 
 def test_retire_adds_the_key_when_the_author_left_it_out():
-    """
-    The pipeline retires a release that will not install, and now it cannot
-    assume the line is there to flip. Either way the key must end up in the file
-    exactly once: twice is not valid TOML, the file then reads as unparseable,
-    and a release the pipeline just retired would come back as still offered.
-    """
+    """Retiring cannot assume a `withdrawn` line is already there to flip."""
     with tempfile.TemporaryDirectory() as tmp:
         directory = make_submission(tmp, toml=BARE_TOML)
         assert solver_validate.retire(directory) is True
@@ -174,10 +150,8 @@ def test_retire_adds_the_key_when_the_author_left_it_out():
         text = (directory / "solver.toml").read_text(encoding="utf-8")
         assert text.count("withdrawn") == 1, text
         assert solver_validate.is_withdrawn(directory) is True
-        # And the file is still readable, which is the failure mode that matters.
         assert validate(directory) == [], validate(directory)
 
-        # A second run changes nothing, so a re-run does not keep editing.
         assert solver_validate.retire(directory) is False
 
 
@@ -199,12 +173,7 @@ def test_withdrawn_must_be_a_boolean():
 
 
 def test_capitalised_boolean_is_rejected_not_ignored():
-    """
-    TOML booleans are lowercase. `withdrawn = True` is a syntax error, and
-    tomllib refuses the whole file. The 3.10 fallback used to skip the line
-    quietly instead, which left a release published locally and its pull
-    request rejected in CI.
-    """
+    """TOML booleans are lowercase."""
     with tempfile.TemporaryDirectory() as tmp:
         directory = make_submission(tmp, toml=BARE_TOML + "withdrawn = True\n")
         assert solver_validate.read_solver_toml(directory / "solver.toml") is None
@@ -215,11 +184,7 @@ def test_capitalised_boolean_is_rejected_not_ignored():
 
 
 def test_toml_fallback_agrees_with_tomllib_on_booleans():
-    """
-    The 3.10 fallback has to read `withdrawn = true` as a boolean. Reading it
-    as absent there while CI reads it as True would mean a retired solver
-    looked retired on the runner and available on a developer's machine.
-    """
+    """The 3.10 fallback has to read `withdrawn = true` as a boolean."""
     with tempfile.TemporaryDirectory() as tmp:
         path = pathlib.Path(tmp) / "solver.toml"
         path.write_text(BARE_TOML + "withdrawn = true\n", encoding="utf-8")
@@ -230,13 +195,7 @@ def test_toml_fallback_agrees_with_tomllib_on_booleans():
 
 
 def test_retire_replaces_the_template_line_instead_of_duplicating_it():
-    """
-    SUBMITTING.md ships `withdrawn = false` in the template, so most files
-    already have the key. Appending a second one would make the file invalid
-    TOML, which tomllib refuses outright: the release the pipeline had just
-    decided to retire would read as not retired and be reinstalled on the next
-    push. The whole point of retiring it is that this stops happening.
-    """
+    """SUBMITTING.md ships `withdrawn = false` in the template, so most files already have the key."""
     with tempfile.TemporaryDirectory() as tmp:
         directory = make_submission(tmp, toml=GOOD_TOML)
 
@@ -248,21 +207,14 @@ def test_retire_replaces_the_template_line_instead_of_duplicating_it():
         assert solver_validate.is_withdrawn(directory) is True
         assert solver_validate.is_offered(directory) is False
 
-        # The author's other fields are not collateral damage.
         assert 'url = "https://github.com/example/thesolver"' in text
 
-        # And a second pass is a no-op rather than another line.
         assert solver_validate.retire(directory) is False
         assert (directory / "solver.toml").read_text(encoding="utf-8") == text
 
 
 def test_retire_appends_when_the_key_is_absent():
-    """
-    Validation now requires `withdrawn`, so a submission reaching this path has
-    already been rejected. `retire()` still handles it, because it is also
-    called on files nobody validated: the solver-level solver.toml, and
-    anything written before the field was required.
-    """
+    """A solver.toml with no `withdrawn` line at all still has to be retirable."""
     with tempfile.TemporaryDirectory() as tmp:
         directory = make_submission(tmp, toml=BARE_TOML)
         assert solver_validate.retire(directory) is True
@@ -276,6 +228,7 @@ def test_missing_directory_is_reported_not_raised():
 
 
 def main():
+    """Run every test_ function in this module."""
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for test in tests:
         test()

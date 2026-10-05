@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""
-app.py: read-only HTTP API over data/solvers.json.
-
-Answers "given what I need, which solvers can do it". Nothing here writes; the
-database is produced by scripts/build.py.
-
-    pip install -r api/requirements.txt
-
-    python3 api/app.py                  # the real database, data/solvers.json
-    python3 api/app.py --dev            # tests/fixtures/solvers.demo.json
-    python3 api/app.py --database PATH  # anything else
-
-A WSGI host imports this module rather than running it, so there is no command
-line there; SOLVERS_JSON does the same job.
-"""
+"""app.py: read-only HTTP API over data/solvers.json."""
 
 import argparse
 import json
@@ -25,23 +11,14 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Anchored to this file, not the working directory: a WSGI server imports the
-# module from wherever it happens to be running.
 REPO = Path(__file__).resolve().parent.parent
 
 LIVE_DATABASE = REPO / "data" / "solvers.json"
 
-# Fixture data: every status in one file, including failures the real database
-# does not carry.
 DEMO_DATABASE = REPO / "tests" / "fixtures" / "solvers.demo.json"
 
-# Module level so a WSGI host, which never reaches __main__, can still point
-# this somewhere else. The command line below overrides it.
 DATABASE = Path(os.environ.get("SOLVERS_JSON", LIVE_DATABASE))
 
-# Theory fields are matched against `satisfies`, not `capabilities`: the
-# downward closure is already computed there, so "give me OUTC" correctly
-# matches a solver that reported only POLY.
 THEORY_FIELDS = [
     "hidden_nodes",
     "multiple_io",
@@ -50,17 +27,12 @@ THEORY_FIELDS = [
     "arithmetic",
 ]
 
-# Asked for as a single value, checked against an inclusive [min, max] pair.
 RANGE_FIELDS = ["onnx_opset", "vnnlib_versions"]
 
-# Asked for as "true" or "false". Section 5.4.3 of the standard calls these
-# "other": neither a theory nor an ONNX fact. Both values are answerable.
 BOOLEAN_FIELDS = ["serialise_assignments"]
 
 FILTERS = THEORY_FIELDS + RANGE_FIELDS + BOOLEAN_FIELDS + ["operators", "element_types"]
 
-# Presentation rather than selection. Kept apart from FILTERS so a typo in
-# either is still rejected, and so /search can echo the filters back alone.
 CONTROLS = ["name", "sort", "limit", "offset"]
 
 _cache = {"mtime": None, "data": None}
@@ -70,13 +42,7 @@ EMPTY = {"schema_version": None, "generated_at": None, "solvers": []}
 
 
 def database():
-    """
-    The database, re-read when the file changes on disk.
-
-    Cached on mtime, so a new file is picked up without a restart. A missing or
-    corrupt file yields the empty database and an "error" field rather than a
-    500 on every endpoint.
-    """
+    """The database, re-read when the file changes on disk."""
     if not DATABASE.exists():
         return dict(EMPTY)
 
@@ -101,13 +67,7 @@ def solver_versions(solver):
 
 
 def operator_types(capabilities):
-    """
-    {operator name: [types it is restricted to]} for one version.
-
-    Handles both shapes collect.py might hand over: the raw lines it stores
-    today ("Conv float64 float32", "Relu"), and the object SCHEMA.md
-    describes ({"Conv": ["float64"], "Relu": []}).
-    """
+    """{operator name: [types it is restricted to]} for one version."""
     operators = capabilities.get("operators") or []
     if isinstance(operators, dict):
         return {name: list(types or []) for name, types in operators.items()}
@@ -119,15 +79,7 @@ def operator_types(capabilities):
 
 
 def operator_matches(capabilities, wanted):
-    """
-    Whether a version supports one operator, optionally at one element type:
-    "Conv" or "Conv:float64".
-
-    The trap, straight from Section 5.4.1: an operator listed with NO types
-    supports *every* type in element_types, not none. Reading an empty list
-    as "supports nothing" is the single easiest mistake to make here, and it
-    would silently exclude the solvers that support the most.
-    """
+    """Whether a version supports "Conv", or "Conv:float64" at one element type."""
     name, _, wanted_type = wanted.partition(":")
     supported = operator_types(capabilities)
     if name not in supported:
@@ -146,22 +98,14 @@ def in_range(pair, wanted):
     if not pair or len(pair) != 2:
         return False
     low, high = pair
-    try:  # opset versions are ints, vnnlib versions are strings like "2.0"
+    try:
         return float(low) <= float(wanted) <= float(high)
     except (TypeError, ValueError):
         return str(low) <= str(wanted) <= str(high)
 
 
 def version_matches(record, query):
-    """
-    Whether one release satisfies every criterion given.
-
-    A criterion left out is ignored rather than assumed, so an empty query
-    matches every release that was measured. A release with no capabilities,
-    meaning install_failed, never matches, not even an empty query: search answers
-    "what can do this", and nothing is known about what it can do. Use
-    /solvers to see those.
-    """
+    """Whether one release satisfies every criterion given."""
     capabilities = record.get("capabilities")
     if not capabilities:
         return False
@@ -188,10 +132,6 @@ def version_matches(record, query):
 
     for field in BOOLEAN_FIELDS:
         for wanted in query.get(field, []):
-            # `is` rather than `==`, and an exact match on the boolean. A field
-            # that is null, meaning the solver's answer was unusable, matches
-            # neither true nor false: nothing was established about it, so it
-            # cannot satisfy a question about it either way.
             if capabilities.get(field) is not (wanted == "true"):
                 return False
 
@@ -199,13 +139,8 @@ def version_matches(record, query):
 
 
 def parse_query(args):
-    """
-    Query string to criteria. Repeats and commas both mean AND:
-    ?arithmetic=POLY&operators=Conv,Relu wants all three.
-    """
+    """Query string to criteria."""
     query = {}
-    # FILTERS, not a second hand-written list: the two drifting apart is how a
-    # filter gets advertised by `/` and then silently ignored by `/search`.
     for field in FILTERS:
         values = []
         for raw in args.getlist(field):
@@ -216,16 +151,7 @@ def parse_query(args):
 
 
 def group_ranges(versions, matching_indices):
-    """
-    Matching releases as consecutive runs: [{"from": ..., "to": ..., "versions": [...]}].
-
-    Two releases are consecutive when they are adjacent in `versions`, which
-    SCHEMA.md makes a sorted array, so this never parses a version string: a
-    second comparison rule here would eventually disagree with the build's.
-
-    A run of one has `from` equal to `to`. Matching 1.0.0 and 2.0.0 but not the
-    1.1.0 between them gives two runs, not one span.
-    """
+    """Matching releases as consecutive runs: [{"from": ..., "to": ..., "versions": [...]}]."""
     runs = []
     for index in matching_indices:
         version = versions[index]["version"]
@@ -248,12 +174,7 @@ def group_ranges(versions, matching_indices):
 
 
 def match_summary(solver, matching_indices):
-    """
-    What a consumer needs to show one solver as a single row.
-
-    `ranges` is the grouping above, `latest` is the newest matching release, and
-    `matched` / `total` are counts.
-    """
+    """What a consumer needs to show one solver as a single row."""
     versions = solver_versions(solver)
     latest = versions[matching_indices[-1]]
     return {
@@ -268,13 +189,7 @@ def match_summary(solver, matching_indices):
 
 
 def search(query, name=""):
-    """
-    Solvers with at least one release matching, carrying only those releases.
-
-    Each result also carries `matches`, which groups those releases into
-    consecutive ranges. That grouping needs each release's position in the
-    solver's full version list, which only this side has.
-    """
+    """Solvers with at least one release matching, carrying only those releases."""
     results = []
     for solver in database()["solvers"]:
         if not isinstance(solver, dict):
@@ -295,14 +210,7 @@ def search(query, name=""):
 
 
 def natural_key(version):
-    """
-    Ordering for a version string: digit runs compare as numbers, so 1.10.0
-    sorts after 1.9.0 rather than before it.
-
-    The same rule as `version_sort_key` in scripts/build.py, duplicated rather
-    than imported so deploying the API does not pull in the collection pipeline.
-    Change one and change the other.
-    """
+    """Ordering for a version string, with digit runs compared as numbers."""
     parts = []
     for chunk in re.split(r"(\d+)", str(version)):
         if chunk.isdigit():
@@ -312,9 +220,6 @@ def natural_key(version):
     return parts
 
 
-# Sort key to what it orders on. `latest` is the newest matching release, which
-# is what a result is dated and versioned by: a solver is as current as its
-# newest usable release.
 SORTS = {
     "name-asc": (lambda r: (r["name"].lower(), natural_key(r["matches"]["latest"]["version"])), False),
     "name-desc": (lambda r: (r["name"].lower(), natural_key(r["matches"]["latest"]["version"])), True),
@@ -328,16 +233,11 @@ DEFAULT_SORT = "date-desc"
 
 DEFAULT_LIMIT = 10
 
-# A ceiling, so one request cannot ask for the whole database by accident.
 MAX_LIMIT = 200
 
 
 def matches_name(solver, needle):
-    """
-    Whether a solver's display name or its id contains `needle`, case-insensitively.
-
-    The id is matched as well as the name because the id is what appears in URLs.
-    """
+    """Whether a solver's display name or its id contains `needle`, case-insensitively."""
     if not needle:
         return True
     needle = needle.lower()
@@ -361,25 +261,19 @@ def positive_int(raw, default, maximum=None):
 
 @app.after_request
 def allow_cross_origin(response):
-    """
-    Let a caller on another origin read this.
-
-    Safe to open to everyone: the data is public and read-only, and there is no
-    session or credential to steal.
-    """
+    """Let a caller on another origin read this."""
     response.headers["Access-Control-Allow-Origin"] = "*"
     return response
 
 
 @app.get("/")
 def index():
+    """The database's version, when it was generated, and what can be filtered on."""
     data = database()
     return jsonify(
         {
             "schema_version": data["schema_version"],
             "generated_at": data["generated_at"],
-            # Collected data or the fixture, so nobody builds against demo
-            # numbers thinking they are real.
             "source": "demo" if DATABASE == DEMO_DATABASE else "collected",
             "solvers": len(data["solvers"]),
             "endpoints": {
@@ -404,11 +298,10 @@ def index():
 
 @app.get("/health")
 def health():
+    """Whether the service is up and the database file readable."""
     data = database()
     return jsonify(
         {
-            # False when the file is there but unreadable: the process is
-            # alive, the data is not, and a monitor should tell them apart.
             "ok": "error" not in data,
             "database": str(DATABASE),
             "exists": DATABASE.exists(),
@@ -422,12 +315,14 @@ def health():
 
 @app.get("/solvers")
 def solvers():
+    """Every solver, with every release, unfiltered."""
     data = database()
     return jsonify({"generated_at": data["generated_at"], "solvers": data["solvers"]})
 
 
 @app.get("/solvers/<solver_id>")
 def solver(solver_id):
+    """One solver by id, or 404."""
     for entry in database()["solvers"]:
         if isinstance(entry, dict) and entry.get("id") == solver_id:
             return jsonify(entry)
@@ -436,16 +331,7 @@ def solver(solver_id):
 
 @app.get("/vocabulary")
 def vocabulary():
-    """
-    Every operator name and element type any solver reports, read from the whole
-    database rather than from one page of results.
-
-    `operators` maps each name to the types it can usefully be asked for, which
-    is not simply the types printed beside it. Section 5.4.1 says an operator
-    listed with no types supports *every* type that solver reports, so the union
-    is the explicit lists plus, for any solver that listed the operator bare,
-    that solver's whole `element_types`.
-    """
+    """Every operator name and element type any solver reports."""
     operators = {}
     element_types = set()
     for solver in database()["solvers"]:
@@ -469,17 +355,14 @@ def vocabulary():
 
 @app.get("/search")
 def search_endpoint():
+    """Solvers matching the query, each carrying only its matching releases."""
     query = parse_query(request.args)
     unknown = set(request.args) - set(FILTERS) - set(CONTROLS)
     if unknown:
-        # Silently ignoring a typo would return everything and look like a
-        # successful search, which is the worst possible answer.
         return jsonify({"error": f"unknown filter(s): {sorted(unknown)}"}), 400
 
     sort = request.args.get("sort", DEFAULT_SORT)
     if sort not in SORTS:
-        # Falling back to the default would answer a different question than the
-        # one asked and look like it had worked.
         return jsonify(
             {"error": f"unknown sort {sort!r}, expected one of {sorted(SORTS)}"}
         ), 400
@@ -487,8 +370,6 @@ def search_endpoint():
     for field in BOOLEAN_FIELDS:
         bad = [v for v in query.get(field, []) if v not in ("true", "false")]
         if bad:
-            # Rejected rather than coerced: anything truthy-looking would answer
-            # a different question than the one asked and look like it worked.
             return jsonify(
                 {"error": f"{field} must be 'true' or 'false', got {sorted(bad)}"}
             ), 400
@@ -502,7 +383,6 @@ def search_endpoint():
     key, reverse = SORTS[sort]
     results.sort(key=key, reverse=reverse)
 
-    # `total` is the whole result set, `solvers` is one page of it.
     page = results[offset : offset + limit] if limit else results
 
     return jsonify(
@@ -514,9 +394,6 @@ def search_endpoint():
             "limit": limit,
             "offset": offset,
             "total": len(results),
-            # Kept for callers written against the older response, where count
-            # was the number of solvers returned and there was only ever one
-            # page of them.
             "count": len(page),
             "solvers": page,
         }
@@ -524,6 +401,7 @@ def search_endpoint():
 
 
 def parse_args():
+    """The command-line options for running the API directly."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     source = parser.add_mutually_exclusive_group()
     source.add_argument(
@@ -544,7 +422,5 @@ if __name__ == "__main__":
     elif args.database:
         DATABASE = Path(args.database)
 
-    # Said out loud at startup: serving the demo fixture while believing it is
-    # the real database is the one mistake this flag makes easy.
     print(f"serving {DATABASE.resolve()}" + ("" if DATABASE.exists() else "  (MISSING)"))
     app.run(host=args.host, port=args.port)

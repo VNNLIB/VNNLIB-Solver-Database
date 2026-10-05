@@ -8,8 +8,7 @@ Verifiers that conform to [VNN-LIB 2.0](https://www.vnnlib.org/) implement a
 each registered solver once, asks it, records the answer, and throws the solver
 away. Everything downstream reads the recorded answers.
 
-A release enters the database when it installs and answers all eleven capability
-queries, and leaves when its author retires it. Nothing is deleted from the
+A release enters the database when it installs and answers all queries, and leaves when its author retires it. Nothing is deleted from the
 repository, so a retired release can be brought back.
 
 ## Layout
@@ -19,7 +18,6 @@ solvers/<id>/<version>/    one directory per release: install.sh, solver.toml
 data/solvers.json          the collected database
 scripts/                   the collection pipeline
 api/                       read-only HTTP API over the database
-src/vnnfilter/             command-line client for the database
 tests/                     unit, integration and fake-solver fixtures
 docs/                      how to submit, and what the database records mean
 ```

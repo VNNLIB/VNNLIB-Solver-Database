@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""
-collect.py: ask an already-running solver binary what it supports, and turn its
-answers into the shapes defined in docs/SCHEMA.md.
-
-Never installs anything. It calls an executable already on PATH and parses what
-it prints; register.py owns how that binary got there.
-
-Testing: see tests/README.md.
-"""
+"""collect.py: ask a solver binary what it supports, in SCHEMA.md's shapes."""
 
 import subprocess
 
@@ -27,7 +19,6 @@ SUPPORTS_FLAGS = [
     "--serialise-assignments",
 ]
 
-# Maps each theory-set flag to the schema field name it fills in.
 THEORY_FLAGS = {
     "--hidden-node-theories": "hidden_nodes",
     "--multiple-input-output-theories": "multiple_io",
@@ -36,7 +27,6 @@ THEORY_FLAGS = {
     "--arithmetic-complexity-theories": "arithmetic",
 }
 
-# Every other supports flag, and the schema field it fills in.
 OTHER_FLAGS = {
     "--onnx-opset-versions": "onnx_opset",
     "--onnx-element-types": "element_types",
@@ -46,11 +36,8 @@ OTHER_FLAGS = {
     "--serialise-assignments": "serialise_assignments",
 }
 
-# Catches the two tables drifting apart if a twelfth flag is ever added.
 assert set(THEORY_FLAGS) | set(OTHER_FLAGS) == set(SUPPORTS_FLAGS)
 
-# The only identifiers each field is allowed to report. Anything else is a
-# conformance failure, not an unknown value to shrug off.
 PERMITTED_VALUES = {
     "hidden_nodes": ["NH", "H"],
     "multiple_io": ["SIO", "MIO"],
@@ -59,8 +46,6 @@ PERMITTED_VALUES = {
     "arithmetic": ["BND", "OUTC", "LIN", "POLY"],
 }
 
-# Chapter 4 downward closure, per docs/SCHEMA.md's "Satisfies" table.
-# Note SNET and MENET are disjoint, not nested.
 CLOSURE = {
     "hidden_nodes": {"NH": ["NH"], "H": ["NH", "H"]},
     "multiple_io": {"SIO": ["SIO"], "MIO": ["SIO", "MIO"]},
@@ -79,22 +64,13 @@ CLOSURE = {
     },
 }
 
-# One supports query is a print statement, not a proof search.
 QUERY_TIMEOUT_SECONDS = 60
 
-# Conventional shell exit code for "killed by timeout".
 TIMEOUT_RETURNCODE = 124
 
 
 def run_query(binary, *args):
-    """
-    Run `binary *args` with a short timeout, capturing stdout/stderr.
-
-    Return (returncode, stdout_text, stderr_text). Must NOT raise on a
-    non-zero exit or a timeout, and the caller decides what that means. A
-    timeout looks like a failed returncode, with the timeout noted in
-    stderr_text.
-    """
+    """Run `binary *args` with a short timeout, capturing stdout/stderr."""
     command = [str(binary), *[str(a) for a in args]]
     try:
         completed = subprocess.run(
@@ -102,7 +78,6 @@ def run_query(binary, *args):
             capture_output=True,
             text=True,
             timeout=QUERY_TIMEOUT_SECONDS,
-            # A solver that reads stdin would otherwise hang until the timeout.
             stdin=subprocess.DEVNULL,
         )
     except subprocess.TimeoutExpired as exc:
@@ -126,19 +101,7 @@ def _as_text(stream):
 
 
 def split_note(line):
-    """
-    'POLY * some note' -> ('POLY', '* some note')
-    'POLY'              -> ('POLY', None)
-
-    Identifier is the first token; note is everything after it, unstripped of
-    its delimiter. Per docs/SCHEMA.md, text keeps whatever trailed the
-    identifier, since the collector doesn't assume the delimiter looks like
-    '* ', only that something separates the two.
-
-    Splits on any whitespace, not just a space. A solver separating the two
-    with a tab is still printing a valid identifier, and SCHEMA.md's rule is
-    that capabilities are "normalised only for whitespace".
-    """
+    """'POLY * some note' -> ('POLY', '* some note') 'POLY'              -> ('POLY', None)."""
     parts = line.split(None, 1)
     if not parts:
         return "", None
@@ -148,12 +111,7 @@ def split_note(line):
 
 
 def parse_theory_output(raw_text, field_name):
-    """
-    Turn the raw stdout of one theory-set flag into (identifiers, notes,
-    errors): recognised values in PERMITTED_VALUES order, one note dict per
-    line carrying a note, and one error per line that is not a recognised
-    identifier at all. Never raises: bad output is data to record.
-    """
+    """One theory-set flag's stdout as (identifiers, notes, errors)."""
     permitted = PERMITTED_VALUES[field_name]
     seen = set()
     notes = []
@@ -171,18 +129,12 @@ def parse_theory_output(raw_text, field_name):
         seen.add(identifier)
         if note is not None:
             notes.append({"field": field_name, "identifier": identifier, "text": note})
-    # PERMITTED_VALUES order, so two solvers reporting the same set produce
-    # identical records whatever order they printed them in.
     identifiers = [value for value in permitted if value in seen]
     return identifiers, notes, errors
 
 
 def parse_min_max(raw_text, converter=None):
-    """
-    Shared shape behind parse_opset and parse_vnnlib_versions: exactly two
-    non-blank lines, min then max. Returns None if the line count is wrong,
-    or if converter fails on either line.
-    """
+    """Exactly two non-blank lines, min then max."""
     lines = [l.strip() for l in raw_text.splitlines() if l.strip()]
     if len(lines) != 2:
         return None
@@ -195,15 +147,7 @@ def parse_min_max(raw_text, converter=None):
 
 
 def parse_opset(raw_text):
-    """
-    --onnx-opset-versions prints two lines, min then max. Returns [min, max]
-    as ints, or None if that isn't what came back; the caller records the
-    error and leaves the field null.
-
-    min > max is rejected too. Such a range can never contain anything, so
-    keeping it would silently exclude the solver from every opset query
-    instead of telling its author the two lines are the wrong way round.
-    """
+    """--onnx-opset-versions prints two lines, min then max."""
     pair = parse_min_max(raw_text, converter=int)
     if pair is None or pair[0] > pair[1]:
         return None
@@ -211,19 +155,12 @@ def parse_opset(raw_text):
 
 
 def parse_vnnlib_versions(raw_text):
-    """
-    --vnnlib-versions has the same two-line shape, but these are version
-    strings ('1.0', '2.0'), so they are not coerced to numbers.
-    """
+    """--vnnlib-versions: two lines, kept as version strings rather than numbers."""
     return parse_min_max(raw_text)
 
 
 def parse_element_types(raw_text):
-    """
-    One type name per line (ONNX Set 1 names, plus 'real'), with any ' * note'
-    suffix split off. No ordering between them, since float64 does not
-    imply float32, so input order is kept. Returns (types, notes).
-    """
+    """One type name per line (ONNX Set 1 names, plus 'real'), with any ' * note' suffix split off."""
     types = []
     notes = []
     for line in raw_text.splitlines():
@@ -231,8 +168,6 @@ def parse_element_types(raw_text):
         if not line:
             continue
         identifier, note = split_note(line)
-        # No allowlist: SCHEMA.md doesn't enumerate the permitted names, and
-        # inventing that list here would reject types the standard allows.
         if identifier not in types:
             types.append(identifier)
         if note is not None:
@@ -243,17 +178,7 @@ def parse_element_types(raw_text):
 
 
 def parse_operators(raw_text):
-    """
-    One operator per line: a name, then zero or more element types.
-
-        'Conv float64 float32'  ->  {'Conv': ['float64', 'float32']}
-        'Relu'                  ->  {'Relu': []}
-
-    The empty list is stored as printed, NOT expanded. Section 5.4.1 reads an
-    empty type list as every type the solver reports, but capabilities holds
-    exactly what was printed; expanding here would freeze today's
-    element_types into a record that said "all of them". Consumers expand.
-    """
+    """One operator per line: a name, then zero or more element types."""
     operators = {}
     for line in raw_text.splitlines():
         if not line.strip():
@@ -264,14 +189,7 @@ def parse_operators(raw_text):
 
 
 def parse_boolean(raw_text):
-    """
-    For --optimised-disjunctive-reasoning and --serialise-assignments.
-    Returns True, False, or None if it is neither.
-
-    Exactly 'true' or 'false', case-sensitive. A solver printing 'Yes' is not
-    conforming and the caller records an error rather than guessing: guessing
-    would record False for any spelling not anticipated.
-    """
+    """For --optimised-disjunctive-reasoning and --serialise-assignments."""
     text = raw_text.strip()
     if text == "true":
         return True
@@ -281,10 +199,7 @@ def parse_boolean(raw_text):
 
 
 def expand_closure(field_name, reported_identifiers):
-    """
-    The 'satisfies' computation: union the closures of every reported
-    identifier, returned in PERMITTED_VALUES order.
-    """
+    """The 'satisfies' computation: the union of each identifier's closure."""
     closure = CLOSURE[field_name]
     satisfied = set()
     for identifier in reported_identifiers:
@@ -301,26 +216,12 @@ def _failure_reason(returncode, stderr_text):
 
 
 def collect(binary, solver_id, version):
-    """
-    Call all 13 commands (--name, --version, and every flag in SUPPORTS_FLAGS)
-    against `binary`, and assemble one version record matching SCHEMA.md's
-    "Version" table.
-
-    status is "ok" only if every command ran (exit 0) AND parsed into a
-    permitted value. Any single failure downgrades the record to "incomplete"
-    without aborting collection of the rest.
-
-    Never returns "install_failed": that is register.py's call to make.
-    """
+    """Run all 13 commands against `binary` and assemble one version record."""
     errors = []
     notes = []
     capabilities = {}
     satisfies = {}
 
-    # Neither global option lands in the record: the Version table has no name
-    # field (register.py queries --name itself), and version comes from the
-    # submission directory. They are still queried because a solver that can't
-    # answer them is not conforming, and that belongs in errors[].
     returncode, stdout, stderr = run_query(binary, "--name")
     if returncode != 0:
         errors.append(f"--name: {_failure_reason(returncode, stderr)}")
@@ -335,13 +236,11 @@ def collect(binary, solver_id, version):
     else:
         reported = stdout.strip().splitlines()[0].strip()
         if reported != version:
-            # Cross-check, not a correction: the directory name still wins.
             errors.append(
                 f"--version: reported {reported!r}, "
                 f"submission directory says {version!r}"
             )
 
-    # SUPPORTS_FLAGS order, so capabilities keys land in SCHEMA.md's order.
     for flag in SUPPORTS_FLAGS:
         field = THEORY_FLAGS.get(flag) or OTHER_FLAGS[flag]
         is_theory = flag in THEORY_FLAGS
@@ -358,8 +257,6 @@ def collect(binary, solver_id, version):
             identifiers, field_notes, field_errors = parse_theory_output(stdout, field)
             notes.extend(field_notes)
             errors.extend(f"{flag}: {message}" for message in field_errors)
-            # One bad line nulls the field: a partial list would assert more
-            # than was actually established.
             value = None if field_errors else identifiers
         elif flag == "--onnx-opset-versions":
             value = parse_opset(stdout)
@@ -381,8 +278,6 @@ def collect(binary, solver_id, version):
 
         capabilities[field] = value
         if is_theory:
-            # Null field -> [], per SCHEMA.md's brokennn record. The key is
-            # always present so consumers never need a None check.
             satisfies[field] = expand_closure(field, value or [])
 
     record = {

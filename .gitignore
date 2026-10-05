@@ -216,7 +216,3 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-
-# Staging copies of the two sites, built for their own Pages repositories.
-# Regenerate rather than commit: the source of truth is website/ and website-2/.
-deploy/

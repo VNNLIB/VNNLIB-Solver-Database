@@ -1,20 +1,5 @@
 #!/usr/bin/env python3
-"""
-build.py: fold the records register.py produced into data/solvers.json.
-
-A merge, never a regeneration. The database on disk is the starting point:
-
-  - re-collecting a version OVERWRITES it, it does not duplicate
-  - a solver absent from results.jsonl is left exactly as it was
-  - unrecognised top-level fields are carried through
-  - if nothing changed, the file is not rewritten
-
-Only clean collections are published. A release retired with `withdrawn = true`
-has its record removed while the submission stays, so clearing the line and
-re-collecting brings the record back.
-
-Testing: see tests/README.md.
-"""
+"""build.py: fold the records register.py produced into data/solvers.json."""
 
 import argparse
 import copy
@@ -37,14 +22,8 @@ def empty_database():
 
 
 def load_database(path):
-    """
-    The database on disk, or an empty one. Refuses a file whose MAJOR schema
-    version differs: carrying the version exists so a reader can decline
-    rather than half-understand a file.
-    """
+    """The database on disk, or an empty one."""
     path = Path(path)
-    # Zero bytes counts as absent: that is what a truncated or touch-created
-    # file looks like, and there is nothing in it to preserve.
     if not path.exists() or path.stat().st_size == 0:
         return empty_database()
 
@@ -52,8 +31,6 @@ def load_database(path):
         with path.open(encoding="utf-8") as handle:
             database = json.load(handle)
     except json.JSONDecodeError as exc:
-        # Named, not a traceback: the fix is to restore or delete the file,
-        # and overwriting it silently would destroy whatever is left.
         raise SystemExit(f"{path}: not valid JSON ({exc}). Refusing to overwrite it.")
 
     found = database.get("schema_version", "")
@@ -68,11 +45,7 @@ def load_database(path):
 
 
 def load_results(path):
-    """
-    register.py's JSON Lines as a list of Solver entries. A malformed line is
-    fatal and names its number: silently dropping a solver is how a database
-    quietly stops matching reality.
-    """
+    """register.py's JSON Lines as a list of Solver entries."""
     solvers = []
     with Path(path).open(encoding="utf-8") as handle:
         for number, line in enumerate(handle, start=1):
@@ -83,9 +56,6 @@ def load_results(path):
                 entry = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise SystemExit(f"{path}:{number}: not valid JSON ({exc})")
-            # Shape-checked here so a malformed record fails by name. Reaching
-            # the merge with a version that has no "version" key would be a
-            # KeyError traceback naming nothing useful.
             if not isinstance(entry, dict):
                 raise SystemExit(f"{path}:{number}: expected an object, got {type(entry).__name__}")
             if not entry.get("id") or not isinstance(entry.get("versions"), list):
@@ -98,14 +68,7 @@ def load_results(path):
 
 
 def version_sort_key(version):
-    """
-    Natural ordering, so 1.10.0 sorts after 1.9.0. Digit runs compare as
-    numbers, text after numbers so 'unknown' lands last.
-
-    Deliberately NOT semver: nothing says these strings are semver, and
-    guessing wrong would silently misorder a release. So 1.0.0-rc1 sorts
-    after 1.0.0, not before.
-    """
+    """Natural ordering, so 1.10.0 sorts after 1.9.0."""
     key = []
     for chunk in re.split(r"(\d+)", str(version)):
         if chunk.isdigit():
@@ -116,19 +79,12 @@ def version_sort_key(version):
 
 
 def merge_solver(existing, incoming):
-    """
-    Fold a collected entry into the one on file: same version replaced, new
-    version added. Sorted ascending, which SCHEMA.md makes part of the
-    contract, because consumers compute ranges from the ordering alone.
-    """
+    """Fold a collected entry into the one on file: same version replaced, new version added."""
     by_version = {v["version"]: v for v in existing.get("versions", [])}
     for version_record in incoming.get("versions", []):
         by_version[version_record["version"]] = version_record
 
     merged = dict(existing)
-    # Incoming wins on display fields, but only when it actually has a value:
-    # url is still empty out of register.py (known gap), and an empty
-    # string must not wipe a url someone filled in by hand.
     for field in ("name", "url"):
         if incoming.get(field):
             merged[field] = incoming[field]
@@ -140,17 +96,7 @@ def merge_solver(existing, incoming):
 
 
 def offered_versions(solvers_dir):
-    """
-    {(id, version)} for every release still on offer, or None if solvers/ is
-    not there at all.
-
-    On offer means the directory exists and neither its own solver.toml nor
-    `solvers/<id>/solver.toml` says `withdrawn = true`.
-
-    None and "empty" are kept apart on purpose: a missing solvers/ means the
-    caller cannot say what is registered, and emptying the whole database on
-    that basis would be a disaster dressed as a feature.
-    """
+    """{(id, version)} for every release still on offer, or None if solvers/ is not there at all."""
     solvers_dir = Path(solvers_dir)
     if not solvers_dir.is_dir():
         return None
@@ -168,15 +114,7 @@ def offered_versions(solvers_dir):
 
 
 def retire_failures(results, solvers_dir):
-    """
-    Mark every release in `results` that did not collect cleanly as withdrawn,
-    by writing the flag into its own solver.toml.
-
-    Without it the pipeline reinstalls a known-broken release on every push,
-    half an hour at a time, to reach the same conclusion.
-
-    Returns the directories it changed.
-    """
+    """Write `withdrawn = true` into the solver.toml of every release that failed."""
     retired = []
     for entry in results:
         for record in entry.get("versions", []):
@@ -189,14 +127,7 @@ def retire_failures(results, solvers_dir):
 
 
 def drop_incomplete(by_id):
-    """
-    Remove every release that did not collect cleanly, and any solver left
-    with none.
-
-    A release that could not be installed, or answered only some of the eleven
-    queries, has nothing to advertise. The author still finds out: the pull
-    request comment reports what happened.
-    """
+    """Remove every release that did not collect cleanly, and any solver left with none."""
     kept = {}
     for solver_id, solver in by_id.items():
         versions = [
@@ -209,17 +140,7 @@ def drop_incomplete(by_id):
 
 
 def drop_withdrawn(by_id, offered):
-    """
-    Remove every release that is no longer on offer, and any solver left with
-    no releases at all.
-
-    A retired release is gone from the database rather than flagged, so what is
-    published describes only what can be used today. The one place this is not
-    append-only, and safe because the install script stays: clearing the line
-    and re-collecting reproduces the record.
-
-    Pass None for `offered` to leave the database alone.
-    """
+    """Remove every release that is no longer on offer, and any solver left with no releases at all."""
     if offered is None:
         return by_id
 
@@ -236,19 +157,7 @@ def drop_withdrawn(by_id, offered):
 
 
 def build(database, results, offered=None):
-    """
-    A new database with every entry in results merged in, keyed by id (the
-    directory name, which never changes). url is SCHEMA.md's key for
-    detecting the same solver submitted twice, which is warned about below.
-
-    `offered` is the set of (id, version) pairs still on offer. Anything in the
-    database and not in that set is dropped. Pass None to leave the database
-    alone.
-    """
-    # Deep-copied, because this function must not touch what it was given.
-    # Marking withdrawal edits records in place, and without the copy those
-    # edits would land on the caller's `before` as well, leaving main() to
-    # compare a structure against itself and conclude nothing had changed.
+    """A new database with every entry in results merged in, keyed by id."""
     by_id = {
         solver["id"]: copy.deepcopy(solver) for solver in database.get("solvers", [])
     }
@@ -265,26 +174,17 @@ def build(database, results, offered=None):
             )
             by_id[solver_id] = incoming
 
-    # After the merge, so a release collected in this very run is never dropped
-    # on the strength of a stale directory listing.
     by_id = drop_withdrawn(by_id, offered)
     by_id = drop_incomplete(by_id)
 
-    # Two ids sharing one url is the duplicate-submission case SCHEMA.md
-    # wants caught. A warning, not a failure: it needs a human to decide which
-    # id is the real one, and dropping either silently would be worse.
     duplicates = _duplicate_urls(by_id.values())
     for url, ids in duplicates.items():
         print(f"warning: {url} is registered under {len(ids)} ids: "
               f"{', '.join(ids)}", file=sys.stderr)
 
-    # Starts from the existing file, so any top-level field this script does
-    # not know about survives instead of being dropped on the next run.
     merged = dict(database)
     merged["schema_version"] = schema.SCHEMA_VERSION
     merged["generated_at"] = schema.now_iso()
-    # SCHEMA.md guarantees no order, but sorting by id keeps the committed
-    # file's diff limited to what actually changed.
     merged["solvers"] = sorted(by_id.values(), key=lambda s: s["id"])
     return merged
 
@@ -299,11 +199,7 @@ def _version_map(database):
 
 
 def describe_changes(before, after):
-    """
-    (added, updated, removed) lists of (id, version). `removed` is how a
-    retirement shows up: the release is no longer on offer, so its record has
-    been dropped.
-    """
+    """(added, updated, removed) lists of (id, version)."""
     old, new = _version_map(before), _version_map(after)
     added = sorted(key for key in new if key not in old)
     updated = sorted(key for key in new if key in old and new[key] != old[key])
@@ -312,10 +208,7 @@ def describe_changes(before, after):
 
 
 def is_unchanged(before, after):
-    """
-    True when the merge produced nothing new. generated_at is excluded: it
-    changes every run, and would otherwise force a timestamp-only commit.
-    """
+    """True when the merge produced nothing new."""
     strip = lambda db: {k: v for k, v in db.items() if k != "generated_at"}
     return strip(before) == strip(after)
 
@@ -348,6 +241,7 @@ def summarise(database):
 
 
 def main():
+    """Merge a results file into the database and report what changed."""
     parser = argparse.ArgumentParser(
         description="Merge register.py's results.jsonl into data/solvers.json."
     )
@@ -410,16 +304,10 @@ def main():
     for solver_id, version in updated:
         print(f"~ {solver_id} {version} (re-collected)", file=sys.stderr)
     for solver_id, version in removed:
-        # Two different things end a record, and a maintainer reading the log
-        # needs to tell them apart: someone set `withdrawn = true`, or the
-        # submission directory is not there any more. The second is rare and
-        # deliberate, so it should not look like the routine case.
         gone = args.solvers_dir and not (Path(args.solvers_dir) / solver_id / version).is_dir()
         why = "submission deleted" if gone else "retired"
         print(f"- {solver_id} {version} ({why})", file=sys.stderr)
 
-    # Nothing new: leave the file exactly as it is, rather than rewriting it
-    # so the only diff is a fresh generated_at.
     if is_unchanged(before, after) and Path(output) == Path(args.database):
         print(f"no changes; {output} left untouched", file=sys.stderr)
         return 0

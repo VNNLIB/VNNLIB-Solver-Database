@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Copy the canonical database into the vnnfilter package before a release.
-
-``data/solvers.json`` at the repo root is the source of truth, and it's what
-the collection pipeline writes. ``src/vnnfilter/_data/solvers.json`` is a
-bundled copy so ``pip install vnnfilter`` works without a network call.
-
-Run this whenever ``data/solvers.json`` changes and you're about to cut a
-new vnnfilter release. CI can also run it in a check-only mode to catch a
-release that would otherwise ship a stale database.
-"""
+"""Copy the canonical database into the vnnfilter package before a release."""
 
 from __future__ import annotations
 
@@ -24,6 +15,7 @@ DEST = REPO_ROOT / "src" / "vnnfilter" / "_data" / "solvers.json"
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Copy the database into the package, or check that the copy is current."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check",
