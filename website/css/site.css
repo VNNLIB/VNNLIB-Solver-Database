@@ -1465,7 +1465,10 @@ main {
 }
 
 .solver-workspace {
-    display: block;
+    align-items: start;
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(300px, 0.42fr) minmax(0, 1fr);
 }
 
 .solver-filter-panel {
@@ -1476,16 +1479,18 @@ main {
     border: 1px solid var(--brand-border);
     border-radius: 8px;
     box-shadow: var(--brand-shadow);
+    max-height: none;
     overflow: visible;
     padding: 1.35rem;
     position: relative;
+    top: auto;
 }
 
 .solver-filter-layout {
     align-items: start;
-    display: grid;
-    gap: 1.25rem;
-    grid-template-columns: minmax(0, 1.45fr) minmax(280px, .65fr);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .solver-filter-controls {
@@ -1498,27 +1503,28 @@ main {
     border: 1px solid rgba(15,118,110,0.14);
     border-radius: 8px;
     box-shadow: 0 16px 38px rgba(23,32,51,0.12);
-    max-height: calc(100vh - 7.4rem);
+    max-height: calc(100vh - 7.2rem);
+    order: -1;
     overflow: auto;
     padding: 1rem;
     position: sticky;
-    top: 6.4rem;
-    z-index: 2;
+    top: 6.25rem;
+    z-index: 4;
 }
 
 .solver-workspace .solver-filter-controls .row > [class*="col-"] {
-    flex: 0 0 50%;
-    max-width: 50%;
+    flex: 0 0 100%;
+    max-width: 100%;
 }
 
 .solver-workspace .solver-filter-controls .filter-block-primary .row > [class*="col-"]:first-child {
-    flex: 0 0 65%;
-    max-width: 65%;
+    flex: 0 0 100%;
+    max-width: 100%;
 }
 
 .solver-workspace .solver-filter-controls .filter-block-primary .row > [class*="col-"]:last-child {
-    flex: 0 0 35%;
-    max-width: 35%;
+    flex: 0 0 100%;
+    max-width: 100%;
 }
 
 .solver-workspace .solver-filter-controls .row > [class*="col-"]:last-child {
@@ -1579,6 +1585,10 @@ main {
     box-shadow: 0 8px 24px rgba(23,32,51,0.06);
     margin-bottom: 1rem;
     padding: 1rem;
+}
+
+.filter-block .row {
+    display: block;
 }
 
 .filter-block-primary {
@@ -1905,7 +1915,12 @@ main {
 }
 
 .solver-results-panel {
+    align-self: start;
+    max-height: calc(100vh - 7rem);
     min-width: 0;
+    overflow: auto;
+    position: sticky;
+    top: 6.25rem;
 }
 
 .solver-results-header {
@@ -1914,12 +1929,15 @@ main {
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
-    box-shadow: 0 10px 28px rgba(23,32,51,0.06);
+    box-shadow: 0 14px 34px rgba(23,32,51,0.12);
     display: flex;
     gap: 1rem;
     justify-content: space-between;
     margin-bottom: 1rem;
     padding: 1rem 1.1rem;
+    position: sticky;
+    top: 0;
+    z-index: 3;
 }
 
 .solver-results-header .solver-summary {
@@ -1945,13 +1963,15 @@ main {
     border: 1px solid var(--brand-border);
     border-radius: 8px;
     box-shadow: var(--brand-shadow);
-    overflow-x: auto;
+    overflow-x: visible;
 }
 
 .solver-table {
     background: rgba(255,255,255,0.78);
     margin-bottom: 0;
-    min-width: 720px;
+    min-width: 0;
+    table-layout: fixed;
+    width: 100%;
 }
 
 .solver-table th {
@@ -1961,13 +1981,40 @@ main {
     font-size: .9rem;
     font-weight: 800;
     letter-spacing: .01em;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .solver-table td {
     border-color: rgba(17,24,39,0.08);
     font-size: .95rem;
+    overflow-wrap: anywhere;
     vertical-align: middle;
+}
+
+.solver-table th:nth-child(1),
+.solver-table td:nth-child(1) {
+    width: 18%;
+}
+
+.solver-table th:nth-child(2),
+.solver-table td:nth-child(2) {
+    width: 10%;
+}
+
+.solver-table th:nth-child(3),
+.solver-table td:nth-child(3) {
+    width: 23%;
+}
+
+.solver-table th:nth-child(4),
+.solver-table td:nth-child(4) {
+    width: 35%;
+}
+
+.solver-table th:nth-child(5),
+.solver-table td:nth-child(5) {
+    text-align: right;
+    width: 14%;
 }
 
 .solver-table tbody tr {
@@ -2179,6 +2226,28 @@ main {
 
     .intro-definition-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .solver-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .solver-filter-panel {
+        max-height: none;
+        overflow: visible;
+        position: relative;
+        top: auto;
+    }
+
+    .active-filter-panel,
+    .solver-results-panel,
+    .solver-results-header {
+        max-height: none;
+        order: initial;
+        overflow: visible;
+        position: relative;
+        top: auto;
+        z-index: 1;
     }
 }
 
