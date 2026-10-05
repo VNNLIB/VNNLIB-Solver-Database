@@ -8,21 +8,14 @@ solvers/<id>/<version>/
     solver.toml
 ```
 
-`<id>` is a short lowercase name, letters, digits and hyphens. It becomes part
-of URLs, so it does not change once accepted. `<version>` is the release you are
-registering.
+`<id>` is lowercase letters, digits and hyphens, and does not change once
+accepted. `<version>` is the release you are registering.
 
 ---
 
 ## install.sh
 
-A shell script that installs your solver. It runs on a fresh Ubuntu machine that
-is destroyed immediately afterwards.
-
-It is executed directly, as `./install.sh`, not passed to an interpreter
-explicitly. That means the first line must be `#!/usr/bin/env bash`, the file
-must be executable, and it must be valid bash. This is also why line endings
-matter, see below.
+A bash script that installs your solver, run on a fresh Ubuntu machine.
 
 ```bash
 #!/usr/bin/env bash
@@ -31,74 +24,36 @@ set -euo pipefail
 pip install --quiet mysolver==1.2.0
 ```
 
-**What the environment gives you**
+**Requirements**
 
-- an empty Python virtual environment, already on `PATH`, so a plain
-  `pip install` lands inside it and affects nothing else
-- `$SOLVER_BIN_DIR`, the directory that environment puts executables in, for
-  scripts that install by writing an executable directly
-- network access, and `sudo` for system packages
+- First line exactly `#!/usr/bin/env bash`
+- LF line endings, not CRLF
+- Executable bit set
+- Mentions `<version>` somewhere in its text
+- Finishes within 30 minutes
+- Leaves an executable named exactly `<id>` on `PATH`
 
-**What you must leave behind**
+**Available to the script**
 
-When the script finishes, an executable named exactly `<id>` must be on `PATH`.
-That is the whole contract. Anything else is up to you.
+- An empty Python virtual environment, already on `PATH`
+- `$SOLVER_BIN_DIR`, where that environment puts executables
+- Network access and `sudo`
 
-**It must install the version the directory names.**
+**Setting the executable bit**
 
-The script has to mention `<version>` somewhere, normally as the pin itself,
-`pip install mysolver==1.2.0`. A script in `1.2.0/` that installs `1.1.0`, or
-that leaves the version unpinned and installs whatever is newest, is rejected
-before anything is installed and you will be asked to push a fix.
-
-This is checked two ways. Before installing, the text of your script must
-contain the version string. After installing, `<solver> --version` is compared
-against the directory name. The directory always wins: it decides which
-release the record describes, so a script that installs something else would
-record one release's capabilities under another's name.
-
-If your script installs from a git tag or builds from source, name the version
-in it anyway: the tag, the checkout, or a comment.
-
-**What counts as failure**
-
-| | What happened |
-|---|---|
-| The install failed | the script exited non-zero, ran longer than 30 minutes, or left no executable named `<id>` |
-| The collection failed | it installed, but one of the eleven queries answered with something unusable |
-
-Both are reported with the error in the comment on your pull request, and
-**neither enters the database.** The database advertises what a solver can do,
-and a release nobody can install or measure has nothing to advertise.
-
-On the main branch, failing also retires the release: the workflow sets
-`withdrawn = true` in its `solver.toml` and commits that, so the pipeline stops
-spending half an hour per push to reach a conclusion it already has. Fix the
-problem, **set `withdrawn` back to `false` yourself, or delete the line**, and
-the next collection
-picks the release up. It does not resume on its own, because a retired release
-is skipped before anything is installed: a fixed `install.sh` alone changes
-nothing.
-
-Failing the static checks is different. Nothing is installed at all, and the
-pull request cannot be merged until it is fixed.
-
-**Line endings must be LF.** A script saved with Windows line endings fails on
-the runner with a confusing `bad interpreter` error. The `.gitattributes` in
-this repository enforces this, so it should happen automatically.
-
-**The executable bit is recorded by git, not by your filesystem.** If you
-author on Windows, the file is committed as non-executable even when it looks
-executable locally, and the collection fails on the runner. `.gitattributes`
-cannot set this. Check and fix with:
+Git records this, not your filesystem. If you author on Windows, set it
+explicitly:
 
 ```bash
 git ls-files -s solvers/<id>/<version>/install.sh   # want 100755, not 100644
 git update-index --chmod=+x solvers/<id>/<version>/install.sh
 ```
 
-Running `git config core.hooksPath .githooks` once in your clone does it
-automatically on every commit.
+Or run this once in your clone and it happens on every commit:
+
+```bash
+git config core.hooksPath .githooks
+```
 
 ---
 
@@ -111,37 +66,17 @@ license = "MIT"
 contact = "you@example.edu"
 ```
 
-| Field | Required | Notes |
+| Field | Required | Value |
 |---|---|---|
 | `name` | no | Display name. Defaults to what `<solver> --name` reports |
-| `url` | yes | Where to find the solver: its repository, project page or documentation. Used to detect the same solver submitted twice |
+| `url` | yes | Repository, project page or documentation |
 | `license` | no | SPDX identifier |
 | `contact` | no | Who to ask when collection fails |
-| `withdrawn` | no | Leave it out on a live release. Absent means `false`. Write it only to [retire](#retiring-a-solver) the release |
+| `withdrawn` | no | Leave it out. Absent means `false`. Set it only to [retire](#retiring-a-release) the release |
 
 ---
 
-## What happens next
-
-1. A workflow checks your submission without installing anything: layout, line
-   endings, shebang, executable bit, `solver.toml`, and that the install script
-   names the version its directory claims. Anything wrong here fails in seconds
-   and needs a fix pushed before the rest runs.
-2. A workflow installs your solver and posts its capabilities as a comment on
-   your pull request. 
-3. A maintainer reviews the install script and merges.
-4. A second workflow installs it again on the main branch, records the
-   capabilities, and commits them.
-
-The solver installation is deleted after each collection. Nothing about it is kept except
-the capability record.
-
----
-
-## What is collected
-
-Two global options and the eleven `supports` capabilities that Section 5.4 of
-the standard makes mandatory:
+## Your solver must answer these 13 commands
 
 ```
 <solver> --name
@@ -160,32 +95,52 @@ the standard makes mandatory:
 <solver> supports --serialise-assignments
 ```
 
-If a query fails or returns a value outside the permitted set, the comment on
-your pull request names the flag and what it printed. All eleven have to work
-before the release is published, so one bad flag is worth fixing rather than
-ignoring.
+All eleven `supports` queries must succeed and return permitted values.
+`--version` must report the same version as the directory name.
+
+See [SCHEMA.md](SCHEMA.md) for the permitted values of each.
 
 ---
 
-## Retiring a solver
+## After you open the pull request
 
-Retiring takes a release out of the database while leaving the submission in the
-repository, which is almost always what you want. To retire a release, add a
-`withdrawn` line to its `solver.toml` and open a pull request:
+1. Static checks run in seconds. If they fail, push a fix.
+2. Your solver is installed and its capabilities posted as a comment.
+3. A maintainer reviews and merges.
+4. The capabilities are collected again on `main` and committed.
+
+**If the install fails** (non-zero exit, over 30 minutes, or no `<id>` on
+`PATH`) **or a query returns something unusable**, the error appears in the
+pull request comment and nothing enters the database.
+
+A failure on `main` also sets `withdrawn = true` in your `solver.toml`. To
+resume after fixing: delete that line, or set it to `false`, in the same pull
+request as the fix. A fixed `install.sh` alone is not enough.
+
+---
+
+## Updating a solver
+
+Add a new directory for the new version. Do not edit existing ones.
+
+To correct a release already recorded, edit that version's `install.sh`. The
+next collection replaces the record rather than adding a duplicate.
+
+---
+
+## Retiring a release
+
+Add to its `solver.toml`:
 
 ```toml
 withdrawn = true
 ```
 
-Lowercase `true` is required.
+Lowercase `true`. If the file already has a `withdrawn` line, change that line
+rather than adding a second one.
 
-If the file already has a `withdrawn` line, change that one rather than adding a
-second. A key twice in one TOML file is an error, not a later value winning, so
-the file stops being readable and the retirement does not take effect.
-
-To retire **every** release at once, when the project itself is no longer
-maintained rather than one release being superseded, put the same line in a
-`solver.toml` one level up, beside the version directories:
+To retire every release of a solver, put the same line in a `solver.toml` beside
+the version directories:
 
 ```
 solvers/<id>/
@@ -194,52 +149,22 @@ solvers/<id>/
     1.1.0/
 ```
 
-Either file saying so is enough; they are two ways to answer the same
-question, not two conditions to satisfy.
+The records leave the database; your submission stays in the repository. To
+bring it back, delete the line and let the next collection run.
 
-Your record is then **removed from the database**, so what is published
-describes only what can be used today. Your submission stays in the repository,
-which is what makes this reversible: setting the flag back to `false` or simply remove the withdrawn field and
-letting the next collection run reproduces the record exactly.
-
-A retired release is never installed again, so the usual checks are skipped
-for it: your `install.sh` is not validated and not run, which matters because
-an old script that has stopped working is often the reason for retiring a
-release in the first place.
-
-### Deleting a submission outright
-
-You can delete a submission the same way you do anything else here: remove the
-files and open a pull request.
-
-**Retiring is usually the better choice, though.** It takes the records out of
-the database just as deletion does, and it keeps the install script, so the
-record can be reproduced later. Deletion throws that away. The capabilities were
-measured by installing software that may no longer exist anywhere, and once the
-script is gone, nothing in this repository can produce that record again. So if
-what you want is for the solver to stop being listed, retire it.
-
-```bash
-git rm -r solvers/<id>              # every release
-git rm -r solvers/<id>/<version>/   # or one of them
-```
-
-No other step is needed. `build.py` compares the database against the
-submissions that exist, so the next collection drops the records and logs
-`submission deleted` rather than `retired`. The two are distinguished in the
-log because they mean different things to whoever reads it later.
-
-Note that `git rm` does not erase anything from the repository's history. If
-the reason for deleting was a committed secret, rotate the secret: the old
-commit still contains it.
+A retired release is not validated and not installed, so a broken `install.sh`
+does not block retiring it.
 
 ---
 
-## Updating
+## Deleting a submission
 
-Add a new directory for the new version. Do not edit the old one. Every version
-is kept.
+```bash
+git rm -r solvers/<id>              # every release
+git rm -r solvers/<id>/<version>/   # or one release
+```
 
-To correct a mistake in a release already recorded, edit that version's
-`install.sh`. Re-collection overwrites the existing record rather than creating
-a duplicate.
+Open a pull request. The next collection drops the records.
+
+Retiring is usually the better choice: it also removes the records, but keeps
+the install script so the record can be reproduced later.

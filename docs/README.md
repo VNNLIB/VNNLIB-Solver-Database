@@ -14,6 +14,7 @@ Documentation that belongs with code lives next to that code instead:
 | Where | Covers |
 |---|---|
 | [`scripts/README.md`](../scripts/README.md) | The collection pipeline: how a submission becomes a database record, and the things about it that are easy to get wrong |
-| [`api/README.md`](../api/README.md) | The read-only query API, and how it is deployed |
+| [`api/README.md`](../api/README.md) | The read-only query API: endpoints, filters, what a result carries |
+| [`api/DEPLOY.md`](../api/DEPLOY.md) | You are hosting the API or changing how it is deployed |
 | [`tests/README.md`](../tests/README.md) | What is tested, and how to run it |
 | [`README.md`](../README.md) | The project as a whole, and where to start |

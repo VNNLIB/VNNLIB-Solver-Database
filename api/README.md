@@ -1,8 +1,7 @@
 # The HTTP API
 
-Read-only. Serves `data/solvers.json` and answers the reverse question a
-solver's `supports` command cannot: *given what I need, which solvers can do
-it?*
+Read-only. Serves `data/solvers.json` and answers the reverse of a solver's
+`supports` command: *given what I need, which solvers can do it?*
 
 ```bash
 pip install -r api/requirements.txt
@@ -13,10 +12,10 @@ python3 api/app.py --database PATH    # anything else
 python3 api/app.py --port 8080
 ```
 
-It prints which file it is serving at startup, because serving the demo
-fixture while believing it is the real database is the one mistake `--dev`
-makes easy. A WSGI host imports this module rather than running it, so there
-is no command line there, so `SOLVERS_JSON` does the same job.
+It prints which file it is serving at startup. A WSGI host imports this module
+rather than running it, so set `SOLVERS_JSON` there instead.
+
+Deployment is in [DEPLOY.md](DEPLOY.md).
 
 ## Endpoints
 
@@ -26,16 +25,13 @@ is no command line there, so `SOLVERS_JSON` does the same job.
 | `GET /health` | liveness, and whether the database file is present |
 | `GET /solvers` | everything, including releases that failed to install |
 | `GET /solvers/<id>` | one solver, 404 if unknown |
-| `GET /search?...` | filter; returns solvers with only their matching releases, grouped into version ranges |
-| `GET /vocabulary` | every operator name and element type any solver reports, for populating a picker without paging through `/search` |
+| `GET /search?...` | filter; returns solvers with only their matching releases |
+| `GET /vocabulary` | every operator name and element type any solver reports |
 
-Every response carries `Access-Control-Allow-Origin: *`, so a page on another
-origin, the Stage 3 search page or anyone's script, can read it. The data
-is public and read-only, and there is no session or credential involved.
+Every response carries `Access-Control-Allow-Origin: *`.
 
-`/` and `/health` report `"source"`: `collected` for the real database,
-`demo` for the fixture. Anyone building against this should check it before
-trusting the numbers.
+`/` and `/health` report `"source"`: `collected` for the real database, `demo`
+for the fixture. Check it before trusting the numbers.
 
 ## Filtering
 
@@ -46,60 +42,34 @@ trusting the numbers.
 /search?hidden_nodes=H&multiple_networks=MNET
 ```
 
-Criteria combine with AND, and repeats or commas both mean "all of these".
-Anything you leave out is ignored rather than assumed. A misspelled filter is
-a 400, not a silent match-everything.
+Criteria combine with AND; repeats and commas both mean "all of these". A
+misspelled filter is a 400, not a silent match-everything.
 
-**Theory fields are matched against `satisfies`, not `capabilities`.** The
-downward closure is already computed there, so `?arithmetic=OUTC` correctly
-matches a solver that only ever reported `POLY`.
+**Theory fields are matched against `satisfies`, not `capabilities`,** so
+`?arithmetic=OUTC` matches a solver that only reported `POLY`.
 
-**Operators can be asked for with or without an element type.**
+**Operators take an optional element type.**
 
 ```
 /search?operators=Conv            # supports Conv at all
 /search?operators=Conv:float64    # supports Conv for float64
 ```
 
-An operator listed with **no** types supports *every* type in that solver's
-`element_types`, not none. Section 5.4.1 says so, and reading the empty list
-backwards would silently exclude the solvers that support the most. So
-`Relu:float64` matches a solver that printed a bare `Relu` and lists `float64`
-among its element types.
+An operator listed with no types supports *every* type in that solver's
+`element_types`, so `Relu:float64` matches a solver that printed a bare `Relu`
+and lists `float64`.
 
-Both halves of this are real. The standard's own example prints types:
-
-```
-checkNN supports --onnx-operators
-Conv float64 float32
-Relu float64 float32
-```
-
-while vibecheck prints 51 bare names, restricting nothing.
-
-**Boolean capabilities take `true` or `false`.**
+**Booleans take `true` or `false`.** Anything else is a 400. A release whose
+answer was unusable, so the field is `null`, matches neither value.
 
 ```
 /search?serialise_assignments=true
 ```
 
-Section 5.4.3 of the standard calls these "other": neither a theory nor an ONNX
-fact. A release whose answer was unusable, so the field is `null`, matches
-neither value: nothing was established about it, so it cannot satisfy a question
-about it either way. Anything other than `true` or `false` is a 400 rather than
-being coerced.
-
-Both values are answerable: `?serialise_assignments=false` asks which solvers do
-not have the capability, which is as valid a question as the other way round.
-
-**Ranges take a single value.** `onnx_opset` and `vnnlib_versions` are stored
-as inclusive `[min, max]` pairs, so `?onnx_opset=16` asks "does 16 fall in
-your range".
+**Ranges take a single value.** `onnx_opset` and `vnnlib_versions` are stored as
+inclusive `[min, max]` pairs, so `?onnx_opset=16` asks whether 16 falls in range.
 
 ## Sorting, paging and the name
-
-`/search` also takes four parameters that change how the answer is presented
-rather than which solvers it contains:
 
 | | |
 |---|---|
@@ -112,48 +82,35 @@ rather than which solvers it contains:
 /search?arithmetic=POLY&sort=name-asc&limit=10&offset=20
 ```
 
-The response carries `solvers`, which is the requested page, and `total`, which
-is the size of the whole result set before `limit` and `offset` were applied.
+The response carries `solvers`, the requested page, and `total`, the size of the
+whole result set before `limit` and `offset`.
 
-`name` is not a capability. It narrows the result set like the filters do, but
-it is matched against the record's own `name` and `id` rather than against
-anything a solver reported.
-
-An unknown `sort` is a 400, like an unknown filter: quietly substituting the
-default would answer a different question and look like it had worked. A `limit`
-or `offset` that is not a number falls back to the default instead, since those
-are a caller's arithmetic rather than a name they might have misspelled.
+An unknown `sort` is a 400. A `limit` or `offset` that is not a number falls
+back to the default.
 
 ## /vocabulary
 
-```
-GET /vocabulary
+```json
 {
-  "operators": { "Conv": ["float32", "float64"], "MatMul": ["real"], ... },
-  "element_types": ["float16", "float32", ...],
+  "operators": { "Conv": ["float32", "float64"], "MatMul": ["real"] },
+  "element_types": ["float16", "float32"],
   "generated_at": "2026-09-25T15:30:28Z"
 }
 ```
 
-Every element type any solver reports, and every operator mapped to the types it
-can usefully be asked for. 
-
-**The types beside an operator are not just the ones printed next to it.** The
-empty-list rule above applies here too, so the union is the explicit lists plus,
-for any solver that listed the operator bare, that solver's whole
-`element_types`. Reading the empty list as "no types" would offer nothing for
-exactly the operators that are supported most widely.
+The types beside an operator are the explicit lists plus, for any solver that
+listed the operator bare, that solver's whole `element_types`.
 
 ## What a search result carries
 
-Each solver in a `/search` response has its `versions` narrowed to the releases
-that matched, and an extra `matches` object describing them as a whole:
+Each solver has its `versions` narrowed to the releases that matched, plus a
+`matches` object:
 
 ```json
 {
   "id": "testsolver11",
   "name": "TestSolver Eleven",
-  "versions": [ ... only the matching records ... ],
+  "versions": [ "... only the matching records ..." ],
   "matches": {
     "ranges": [
       { "from": "1.0.0", "to": "1.1.0", "versions": ["1.0.0", "1.1.0"] },
@@ -166,199 +123,16 @@ that matched, and an extra `matches` object describing them as a whole:
 }
 ```
 
-`matches` summarises which of a solver's releases met the query, so a consumer
-can show one row per solver instead of one per release.
-
 `ranges` is a list of **consecutive runs**, not one span. Two releases are
-consecutive when they are adjacent in the solver's `versions`
-array, which SCHEMA.md makes a sorted list, so no version string is ever
-parsed here: "does 1.10.0 come after 1.9.0" is a question the build already
-answered, and answering it a second time with a different rule is how two
-orderings end up disagreeing.
+consecutive when they are adjacent in the solver's `versions` array, which
+SCHEMA.md makes a sorted list, so no version string is parsed here. A run of one
+has `from` equal to `to`.
 
-A run of one has `from` equal to `to`. `latest` is the newest **matching**
-release, and `matched` / `total` say how many of the solver's releases qualified
-out of how many it has.
+`latest` is the newest matching release. `matched` and `total` say how many of
+the solver's releases qualified out of how many it has.
 
-**Releases that never installed never match**, not even an empty query. Search
-answers "what can do this", and nothing was measured about them: they are
+**Releases that never installed never match**, not even an empty query. They are
 still visible through `/solvers`.
-
-## Hosting it on PythonAnywhere
-
-Free tier, no card, and `.github.com` / `.githubusercontent.com` are on their
-whitelist, so `git pull` works.
-
-**1. Get the code there.** Bash console:
-
-```bash
-git clone https://github.com/VNNLIB/VNNLIB-Solver-Database.git
-mkvirtualenv --python=/usr/bin/python3.12 solverdb
-pip install flask
-```
-
-3.12, like the rest of the project. The API itself would run on anything from
-3.9 up, since it only imports `json`, `pathlib`, `argparse` and Flask, but keeping
-one version everywhere means one thing to remember. The stricter requirement
-elsewhere belongs to `register.py`, which installs solvers; nothing is
-installed here.
-
-**2. Web tab → Add a new web app → Manual configuration**, same Python
-version. Set **Virtualenv** to `solverdb`.
-
-**3. Edit the WSGI file** (link near the top of the Web tab). Delete what is
-there and put:
-
-```python
-import sys
-path = '/home/<you>/VNNLIB-Solver-Database'
-if path not in sys.path:
-    sys.path.insert(0, path)
-
-from api.app import app as application
-```
-
-Note it imports `app`; it never calls `app.run()`. That call lives under
-`if __name__ == "__main__"` and would crash the site if it ran on import.
-
-**4. Reload.** Done: `https://<you>.pythonanywhere.com/health`.
-
-### Serving the demo data while the real database is still empty
-
-`data/solvers.json` holds nothing until a collection has run on `main`, so
-until then point the deployment at the fixture by adding one line to the WSGI
-file, after the import:
-
-```python
-from api.app import app as application
-import api.app
-api.app.DATABASE = api.app.DEMO_DATABASE   # remove once main has real data
-```
-
-`/health` and `/` then report `"source": "demo"`, so whoever builds against
-this knows they are looking at fixture data rather than collected data. Delete
-the line and reload once the real database has content.
-
-## Keeping it up to date
-
-Two things are deployed, on different schedules, and conflating them is the one
-mistake this setup makes easy. **The data and the code are separate.**
-
-| | Where it lives | Who updates it | Needs a reload |
-|---|---|---|---|
-| The database | `/home/<you>/solvers.json`, outside the clone | `collect.yml`, after every collection | No |
-| The code | the clone the WSGI file imports from | nobody, unless you set it up | Yes |
-
-`database()` re-reads the file whenever its mtime changes, so an upload is live
-on the next request. A running web app, by contrast, holds `app.py` in memory
-from whenever it last started, so new code needs the process restarted.
-
-That asymmetry is why the API can look maintained while being months behind: the
-data is fresh, `/health` says `ok`, and a route added last week is simply absent.
-
-### The data
-
-`collect.yml` pushes the database to PythonAnywhere after a collection, using
-their Files API. Set two repository secrets (Settings → Secrets and variables →
-Actions):
-
-| Secret | Value |
-|---|---|
-| `PA_USERNAME` | your PythonAnywhere username |
-| `PA_API_TOKEN` | Account page → API Token tab |
-
-Add a repository *variable* `PA_HOST` = `eu.pythonanywhere.com` if your account
-is on their EU system. Without the secrets the step prints `no PythonAnywhere
-secrets set, skipping publish` and the workflow carries on.
-
-It uploads **outside** the git clone on purpose, so the checkout stays clean and
-a `git pull` there never conflicts with a file the API overwrote. The consequence
-worth knowing: pulling the repository on the server does **not** change the data
-being served, because the served file is not in the repository. Point the web app
-at it in the WSGI file:
-
-```python
-from api.app import app as application
-import api.app, pathlib
-api.app.DATABASE = pathlib.Path('/home/<you>/solvers.json')
-```
-
-This lives inside `collect.yml` rather than in a workflow watching `data/**`,
-because a push made with `GITHUB_TOKEN` deliberately does not trigger further
-workflows, and a separate one would never run.
-
-### The code
-
-Merging to main deploys nothing: PythonAnywhere serves from its own clone, which
-nothing on GitHub's side touches.
-
-By hand, once:
-
-```bash
-cd ~/VNNLIB-Solver-Database && git pull
-grep -c vocabulary api/app.py      # more than 0, or you pulled the wrong checkout
-```
-
-then **Web tab → Reload**, and confirm what is actually serving:
-
-```bash
-curl -s https://<you>.pythonanywhere.com/ | grep -c vocabulary
-```
-
-A `0` from the first `grep` means the directory you pulled is not the one the web
-app imports from; the WSGI file link at the top of the Web tab gives the real
-path.
-
-**On push:** `deploy-api.yml` uploads everything in `api/` and calls the reload
-endpoint, using the same two secrets. It runs on pushes to `main` touching
-`api/**`, and can be triggered from the Actions tab. Afterwards it fetches `/`
-and fails the job if the new routes are absent, so a deploy that landed in the
-wrong directory is a red build rather than a silent no-op.
-
-Two optional repository variables:
-
-| Variable | Default | When to set it |
-|---|---|---|
-| `PA_DOMAIN` | `<user>.pythonanywhere.com` | a custom domain |
-| `PA_APP_DIR` | `VNNLIB-Solver-Database` | the clone is somewhere else |
-
-`PA_APP_DIR` must match the path the WSGI file imports from, since that is where
-the files are uploaded.
-
-Because it uploads rather than pulls, two cases still need a console: a new
-dependency, which it cannot `pip install`, and code the API imports from outside
-`api/`, which it does not ship.
-
-**Daily:** the free tier includes one scheduled task, which deploys the whole
-repository and so covers both of those. Schedule tab, once a day:
-
-```bash
-cd ~/VNNLIB-Solver-Database && git pull && touch /var/www/<you>_pythonanywhere_com_wsgi.py
-```
-
-Touching the WSGI file is what Reload does. Take the exact filename from the Web
-tab, since it is derived from the domain.
-
-The two automations are worth having together: the scheduled pull keeps the
-server in step with `main` including what the upload misses, and the workflow
-makes a change live now rather than tomorrow.
-
-Two things about the free tier: the web app expires every three months until you
-click the button on the Web tab, and outbound HTTP from your code is restricted
-to their whitelist, which is irrelevant here since this API makes no outbound
-requests.
-
-## Anywhere else
-
-Any WSGI host imports `api.app:app` the same way PythonAnywhere does; the
-`app.run()` at the bottom is only for running it locally. Paths are resolved
-relative to `api/app.py`, not the working directory, so it does not matter
-where the server is started from.
-
-Worth knowing before paying for hosting: because the database *is* a static
-file, `raw.githubusercontent.com/<you>/VNNLIB-Solver-Database/main/data/solvers.json`
-already serves the same data over HTTP for free, with nothing to operate.
-This API exists for the filtering, not for the file.
 
 ## Tests
 
@@ -366,4 +140,4 @@ This API exists for the filtering, not for the file.
 python3 tests/unit/api.py
 ```
 
-26 checks against Flask's test client: no server, no port, no network.
+Flask's test client: no server, no port, no network.

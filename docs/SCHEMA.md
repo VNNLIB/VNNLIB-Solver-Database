@@ -1,130 +1,76 @@
 # `data/solvers.json`: field reference
 
-The collection pipeline writes to the solver database, the `vnnfilter`
-package and the website fetches it. 
-
-Every field traces back to a specific command in Section 5 of the VNN-LIB 2.0
-standard. Nothing here is invented.
-
-## Schema history
-
-| Version | Change |
-|---|---|
-| `2.0` | The solver field `repo` is now `url`. A rename is a breaking change for anything reading the file by name, so the major version moved with it |
-| `1.0` | First published schema |
-
-`build.py` compares the file against `schema.SCHEMA_VERSION` and refuses to
-merge into one whose major version it does not know. That guard is the point of
-the version: a reader that does not understand the file says so instead of
-half-reading it. A consumer written against 1.0 will refuse this file, which is
-the intended outcome and how it is told to update.
-
----
+Every field comes from a command in Section 5 of the VNN-LIB 2.0 standard.
 
 ## Top level
 
 | Field | Type | Meaning |
 |---|---|---|
-| `schema_version` | string | `MAJOR.MINOR`. Bumped on any change that could break a reader, so consumers can refuse a file they do not understand rather than half-reading it |
+| `schema_version` | string | `MAJOR.MINOR`. A reader should refuse a file whose major version it does not know |
 | `generated_at` | string | ISO 8601 UTC of the run that produced the file |
-| `solvers` | array | One entry per registered solver, in no guaranteed order |
+| `solvers` | array | One entry per solver, in no guaranteed order |
+
+Current version is `2.0`. In `1.0` the solver field `url` was called `repo`.
 
 ## Solver
 
 | Field | Type | Meaning |
 |---|---|---|
-| `id` | string | Directory name under `solvers/`. Lowercase, alphanumeric and hyphens. Appears in URLs and citations, so it never changes once assigned |
-| `name` | string | Display name, from `solver.toml` or failing that from `--name` |
-| `url` | string | The solver's own page: its repository, project site or documentation. The uniqueness key for detecting the same solver submitted twice |
-| `versions` | array | One entry per release collected, **sorted ascending**. Consumers rely on the ordering to compute ranges without parsing versions, so it is part of the contract |
+| `id` | string | Directory name under `solvers/`. Lowercase, alphanumeric and hyphens. Never changes once assigned |
+| `name` | string | Display name, from `solver.toml` or from `--name` |
+| `url` | string | The solver's repository, project site or documentation |
+| `versions` | array | One entry per release, **sorted ascending**. The ordering is part of the contract |
 
-There is no `latest_version`. It is the last element of `versions`.
+There is no `latest_version`; it is the last element of `versions`.
 
 ## Version
 
 | Field | Present | Meaning |
 |---|---|---|
-| `version` | always | Release identifier, from the submission directory name, cross-checked against `--version` |
+| `version` | always | Release identifier, from the submission directory name |
 | `collected_at` | always | ISO 8601 UTC of when this release was installed and queried |
 | `status` | always | See below |
 | `errors` | when not `ok` | One entry per failure, naming the command and what was observed |
 | `capabilities` | unless install failed | What the solver reported |
 | `satisfies` | unless install failed | Downward closure of the reported theories |
-| `notes` | when the solver attached any | Free-text caveats, linked to a specific capability where that was possible to tell, otherwise general |
-
-### What gets published
-
-Only releases that collected cleanly. A release that could not be installed,
-or that answered some queries with unusable output, is not written to this
-file: it has nothing to advertise, and publishing a partial measurement
-invites a reader to draw conclusions from it.
-
-The author is still told what happened, in the comment on their pull request.
-That is where a failure is useful, as feedback rather than as a catalogue
-entry.
-
-One consequence worth knowing: `status` is therefore always `ok` in this file.
-The other values below describe outcomes a collection can have, and are what
-the pull request comment reports; they are not states a published record can
-be in.
-
-### Retirement
-
-A retired release is removed from this file while its submission stays in the
-repository. A release is retired by setting `withdrawn = true` in
-its `solver.toml`, or every release of a solver at once by setting it in
-`solvers/<id>/solver.toml`. The database then describes only what can be used
-today.
-
-This is the one place the database is not append-only. It is safe because the
-submission survives: `solvers/<id>/<version>/` still holds the install script,
-so setting the flag back to `false`, or deleting the line, and re-collecting
-reproduces the record exactly. Nothing measured becomes unrecoverable, it only
-stops being published.
-
-A release whose directory has gone is dropped the same way, so the file can
-never describe a submission that no longer exists.
-
-The flag is usually set by a person, but the main-branch workflow also sets it
-on any release that did not collect cleanly there, so a submission merged in
-error stops being reinstalled on every later push. That is a commit like any
-other, and undone by setting the flag back to `false`.
+| `notes` | when the solver attached any | Free-text caveats |
 
 ### Status values
 
 | Value | Meaning | `capabilities` |
 |---|---|---|
-| `ok` | All eleven queries returned valid output | full |
-| `incomplete` | Installed, some queries unusable | present, with `null` per unusable field |
+| `ok` | All queries returned valid output | full |
+| `incomplete` | Installed, some queries unusable | present, `null` per unusable field |
 | `non_conforming` | Runs, but does not implement the VNN-LIB 2.0 CLI | absent |
 | `install_failed` | Script failed, timed out, or left no executable | absent |
 
-`non_conforming` exists because "installed fine but does not speak 2.0" is a
-different problem from "your install script is broken", and the submitter needs
-to be told which. Marabou is the concrete case: it installs perfectly from
-`pip install maraboupy` and then crashes on every `supports` query, because it
-predates the interface.
+**Only `ok` records are published**, so `status` is always `ok` in this file.
+The other values appear in the pull request comment on a submission.
 
-**Read the absence of `capabilities`, not the status string.** Code that tests
-`status == "install_failed"` breaks the day a fifth status is added.
+Test for the absence of `capabilities` rather than for a particular status
+string.
+
+### Retirement
+
+A release with `withdrawn = true` in its `solver.toml`, or whose directory has
+been deleted, is removed from the database. The submission stays in the
+repository, so clearing the flag and re-collecting reproduces the record.
 
 ---
 
 ## Capabilities
 
-### ONNX capabilities, Section 5.4.1
+### ONNX
 
 | Field | Source | Type | Meaning |
 |---|---|---|---|
-| `onnx_opset` | `--onnx-opset-versions` | `[min, max]` | Inclusive. The command prints exactly two lines, so the array keeps that shape without inventing key names |
-| `element_types` | `--onnx-element-types` | array | ONNX Set 1 names plus `real`. Order not meaningful, and these have **no ordering among themselves**: `float64` does not imply `float32`. A solver must report `real` rather than a concrete type where its analysis is not sound for that type |
-| `operators` | `--onnx-operators` | object | Key is the operator name, case-sensitive as in ONNX. Value is the element types restricting it |
+| `onnx_opset` | `--onnx-opset-versions` | `[min, max]` | Inclusive |
+| `element_types` | `--onnx-element-types` | array | ONNX Set 1 names plus `real`. No ordering among themselves: `float64` does not imply `float32` |
+| `operators` | `--onnx-operators` | object | Operator name to the element types restricting it |
 
 **An empty operator type list means every type in `element_types`, not none.**
-Section 5.4.1 says so explicitly, and it is the single easiest thing in this
-file to get backwards. Filtering by operator name alone avoids the trap.
 
-### Query capabilities, Section 5.4.2
+### Queries
 
 | Field | Source | Permitted values |
 |---|---|---|
@@ -136,30 +82,22 @@ file to get backwards. Filtering by operator name alone avoids the trap.
 | `arithmetic` | `--arithmetic-complexity-theories` | `BND` variable against constant, `OUTC` comparisons between hidden or output variables, `LIN` linear expressions, `POLY` polynomial |
 | `optimised_disjunction` | `--optimised-disjunctive-reasoning` | boolean |
 
-Each theory field is an **array**. The standard says the output is "a
-newline-separated list of theories", and a solver may report the strongest it
-supports or the full set. Both readings fit; `satisfies` normalises them.
+Each theory field is an **array**: a solver may report the strongest theory it
+supports or the full set. Any value outside the permitted set makes that field
+`null` and the record `incomplete`.
 
-Any value outside the permitted set is a conformance failure: that field becomes
-`null` and the record becomes `incomplete`.
-
-### Other, Section 5.4.3
+### Other
 
 | Field | Source | Meaning |
 |---|---|---|
-| `serialise_assignments` | `--serialise-assignments` | Whether the solver can write assignments as ONNX `TensorProto` files. Recorded because the standard makes reporting it mandatory, and searchable: `/search?serialise_assignments=true` |
+| `serialise_assignments` | `--serialise-assignments` | Whether the solver can write assignments as ONNX `TensorProto` files |
 
 ---
 
 ## Satisfies
 
-For each theory set, the downward closure of what was reported. If a solver
-handles every query in theory `T`, and `S` is a subset of `T`, it handles every
-query in `S` too.
-
-This exists so consumers match with a containment test and nothing more. Without
-it, the package and the website would each embed the closure tables, and would
-eventually disagree.
+The downward closure of each reported theory set, so consumers can match with a
+containment test.
 
 | Set | Reported | Closure |
 |---|---|---|
@@ -182,62 +120,32 @@ eventually disagree.
 
 ## Notes
 
-Some solvers qualify a capability rather than claiming it outright. vibecheck
-writes `IDENT * note` on the relevant output line:
+A solver may qualify a capability rather than claiming it outright, by writing
+the caveat after the identifier on that output line:
 
 ```
-BND
-OUTC
-LIN
 POLY * polynomial constraints transpiled via nonlinear-augment
 ```
 
-**This notation is not in the standard, and nothing says another solver will
-use it, or use it the same way.** It is vibecheck's own convention. The
-collector matches a recognised identifier at the start of a line and treats
-anything trailing it as a note, but that is opportunistic parsing of one
-solver's habit, not a rule every solver is expected to follow. A future
-solver's caveat might not attach to a single identifier at all.
-
-So `notes` is a flat list, not a structure keyed by field and identifier.
-Each entry records the note text, plus a field and identifier **only when
-the parser was actually able to tell what the note was about**:
+`notes` is a flat list. `field` and `identifier` are filled in only when the
+note could be tied to one capability, and are `null` otherwise. `text` keeps
+everything that followed the identifier, delimiter included.
 
 ```json
 "notes": [
   { "field": "arithmetic", "identifier": "POLY",
     "text": "* polynomial constraints transpiled via nonlinear-augment" },
   { "field": null, "identifier": null,
-    "text": "a caveat some other solver attached in a way that could not be tied to one capability" }
+    "text": "a caveat that could not be tied to one capability" }
 ]
 ```
 
-**`text` keeps everything that trailed the identifier, delimiter included,
-it is not stripped.** The collector does not assume the delimiter looks like
-`* `, only that *something* separates the identifier from the note; stripping
-a specific character would itself be an assumption about vibecheck's own
-convention leaking into code meant to stay generic across solvers. So for
-vibecheck today, `text` starts with `* `; a solver using a different
-convention would produce whatever it prints trailing its identifier,
-unmodified.
-
-The identifier itself still stays in `capabilities` either way, and `notes` only
-ever adds the caveat text, never changes whether a capability is reported.
-
-A capability with a note still matches a search; `field`/`identifier` are what
-let a consumer show the note next to the right result when it can, and fall
-back to showing it against the solver generally when it can't. The user is
-better placed than we are to judge whether a caveat matters to them, so it is
-surfaced rather than used to exclude a match.
+A note never changes whether a capability is reported, and a capability with a
+note still matches a search.
 
 ---
 
-## Derived at read time, not stored
+## Not stored
 
-**Version ranges.** Displayed as "2.0.0 to 2.1.0 supports this". 
-
-**Latest version.** The last element of `versions`.
-
-**Whether a solver matches a query.** Computed by `vnnfilter`.
-
----
+Version ranges, the latest version, and whether a solver matches a query are all
+derived when the file is read.

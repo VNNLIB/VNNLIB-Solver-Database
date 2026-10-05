@@ -17,7 +17,7 @@
 #   that too, or be replaced by a `git pull` on the server.
 #
 # The alternative, which deploys the whole repository rather than a few files,
-# is a daily scheduled task on PythonAnywhere. See api/README.md. The two work
+# is a daily scheduled task on PythonAnywhere. See api/DEPLOY.md. The two work
 # well together: the task keeps the server honest, this makes a change live now
 # instead of tomorrow.
 
