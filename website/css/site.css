@@ -240,8 +240,8 @@ main {
 .page-hero.visual-hero > .container,
 .solver-hero.visual-hero > .container {
     background:
-        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,252,0.88)),
-        rgba(255,255,255,0.90);
+        linear-gradient(135deg, rgba(255,255,255,0.88), rgba(248,250,252,0.72)),
+        rgba(255,255,255,0.78);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(100,116,139,0.30);
     border-left: 5px solid var(--page-accent, var(--brand-cyan));
@@ -534,7 +534,7 @@ main {
 .content-band,
 .process-step,
 .code-panel {
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.82);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -749,8 +749,8 @@ main {
 
 .standard-table-shell {
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.82), rgba(248,250,252,0.76)),
-        rgba(255,255,255,0.78);
+        linear-gradient(180deg, rgba(255,255,255,0.76), rgba(248,250,252,0.64)),
+        rgba(255,255,255,0.68);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(15,118,110,0.16);
     border-top: 4px solid var(--brand-cyan);
@@ -829,7 +829,7 @@ main {
 }
 
 .citation-block {
-    background: rgba(255,255,255,0.76);
+    background: rgba(255,255,255,0.68);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(17,24,39,0.08);
     border-left: 4px solid var(--brand-amber);
@@ -863,7 +863,7 @@ main {
 .repository-resources {
     background:
         linear-gradient(135deg, rgba(15,118,110,0.04), rgba(217,119,6,0.035)),
-        rgba(255,255,255,0.74);
+        rgba(255,255,255,0.66);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(17,24,39,0.08);
     border-left: 3px solid rgba(15,118,110,0.58);
@@ -1057,7 +1057,7 @@ main {
 }
 
 .news-heading .eyebrow {
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.78);
     border: 1px solid rgba(255,255,255,0.42);
     border-radius: 999px;
     box-shadow: 0 10px 24px rgba(23,32,51,0.08);
@@ -1072,8 +1072,8 @@ main {
 
 .timeline-item {
     background:
-        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,255,255,0.86)),
-        rgba(255,255,255,0.92);
+        linear-gradient(135deg, rgba(255,255,255,0.84), rgba(255,255,255,0.70)),
+        rgba(255,255,255,0.78);
     backdrop-filter: blur(16px);
     border-left: 4px solid var(--brand-cyan);
     border-radius: 8px;
@@ -1185,8 +1185,8 @@ main {
 
 .team-card {
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.82), rgba(248,250,252,0.72)),
-        rgba(255,255,255,0.76);
+        linear-gradient(180deg, rgba(255,255,255,0.76), rgba(248,250,252,0.62)),
+        rgba(255,255,255,0.66);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(15,118,110,0.18);
     border-radius: 10px;
@@ -1453,7 +1453,7 @@ main {
 }
 
 .library-note {
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.78);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 999px;
@@ -1471,7 +1471,7 @@ main {
 .solver-filter-panel {
     background:
         linear-gradient(135deg, rgba(15,118,110,0.08), rgba(217,119,6,0.08) 42%, rgba(124,58,237,0.07)),
-        rgba(255,255,255,0.94);
+        rgba(255,255,255,0.82);
     backdrop-filter: blur(18px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -1493,7 +1493,7 @@ main {
 }
 
 .active-filter-panel {
-    background: rgba(255,255,255,0.95);
+    background: rgba(255,255,255,0.82);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(15,118,110,0.14);
     border-radius: 8px;
@@ -1910,7 +1910,7 @@ main {
 
 .solver-results-header {
     align-items: flex-start;
-    background: rgba(255,255,255,0.95);
+    background: rgba(255,255,255,0.82);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -1940,7 +1940,7 @@ main {
 }
 
 .solver-table-shell {
-    background: rgba(255,255,255,0.96);
+    background: rgba(255,255,255,0.84);
     backdrop-filter: blur(16px);
     border: 1px solid var(--brand-border);
     border-radius: 8px;
@@ -1949,7 +1949,7 @@ main {
 }
 
 .solver-table {
-    background: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.78);
     margin-bottom: 0;
     min-width: 720px;
 }
