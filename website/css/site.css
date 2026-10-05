@@ -167,48 +167,32 @@ main {
 }
 
 .site-hero {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
+    padding-top: 3.5rem;
+    padding-bottom: 2.5rem;
 }
 
 .page-hero,
 .solver-hero {
-    padding-top: 4rem;
-    padding-bottom: 3.2rem;
+    padding-top: 2.75rem;
+    padding-bottom: 2rem;
 }
 
 .visual-hero {
     isolation: isolate;
-    min-height: 19rem;
+    min-height: 0;
     overflow: hidden;
     position: relative;
 }
 
 .visual-hero::after {
-    background:
-        linear-gradient(135deg, rgba(203,218,233,0.95), rgba(188,207,225,0.82) 52%, rgba(216,222,235,0.80)),
-        radial-gradient(circle at 16% 26%, var(--page-accent-soft, rgba(15,118,110,0.20)), transparent 34%),
-        radial-gradient(circle at 86% 10%, rgba(37,99,235,0.20), transparent 31%),
-        linear-gradient(rgba(23,32,51,0.105) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(23,32,51,0.105) 1px, transparent 1px);
-    background-size: auto, auto, auto, 58px 58px, 58px 58px;
-    content: "";
-    inset: 0;
-    position: absolute;
-    z-index: -1;
+    content: none;
 }
 
 .page-documents .visual-hero::after,
 .page-solvers .visual-hero::after,
 .page-libraries .visual-hero::after,
 .page-related .visual-hero::after {
-    background:
-        linear-gradient(135deg, rgba(205,221,235,0.96), rgba(191,211,228,0.84) 54%, rgba(218,224,236,0.82)),
-        radial-gradient(circle at 15% 28%, var(--page-accent-soft, rgba(15,118,110,0.19)), transparent 34%),
-        radial-gradient(circle at 86% 8%, rgba(37,99,235,0.19), transparent 32%),
-        linear-gradient(rgba(23,32,51,0.10) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(23,32,51,0.10) 1px, transparent 1px);
-    background-size: auto, auto, auto, 58px 58px, 58px 58px;
+    content: none;
 }
 
 .visual-hero::before {
@@ -263,9 +247,9 @@ main {
     border-left: 5px solid var(--page-accent, var(--brand-cyan));
     border-radius: 10px;
     box-shadow: 0 22px 56px rgba(23,32,51,0.16);
-    max-width: 1140px;
+    max-width: 1110px;
     padding: 1.55rem 1.7rem;
-    width: calc(100% - 30px);
+    width: calc(100% - 60px);
 }
 
 .page-hero.visual-hero h1,
@@ -284,7 +268,7 @@ main {
 }
 
 .site-hero.visual-hero {
-    min-height: calc(100vh - 83px);
+    min-height: auto;
 }
 
 .visual-hero h1 {
@@ -425,7 +409,7 @@ main {
 }
 
 .home-intro-section {
-    padding-top: 5rem;
+    padding-top: 2rem;
 }
 
 .home-intro-panel {
