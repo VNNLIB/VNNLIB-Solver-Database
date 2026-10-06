@@ -8,4 +8,3 @@ set -euo pipefail
 # Not --quiet: when this fails, its output is the only diagnosis the submitter
 # gets, and register.py keeps only the tail of it.
 pip install vibecheck-nn==1.1.0
-withdrawn = true
