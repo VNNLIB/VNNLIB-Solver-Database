@@ -120,7 +120,7 @@ def retire_failures(results, solvers_dir):
     retired = []
     for entry in results:
         for record in entry.get("versions", []):
-            if record.get("status") == "ok":
+            if record.get("status") in ("ok", "withdrawn"):
                 continue
             directory = Path(solvers_dir) / entry["id"] / record["version"]
             if validate.retire(directory):

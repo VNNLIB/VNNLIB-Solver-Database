@@ -10,6 +10,7 @@ VERDICT = {
     "incomplete": "Installed, but some queries were unusable. The rest is still recorded.",
     "install_failed": "Never installed, so nothing could be asked of it.",
     "non_conforming": "Runs, but does not implement the VNN-LIB 2.0 CLI.",
+    "withdrawn": "Retired by its author, so it was not installed or queried.",
 }
 
 HIGHLIGHTS = [
@@ -94,8 +95,9 @@ def render(solvers):
 
     lines.append("---")
     lines.append(
-        "A recorded failure is not a rejection, and the solver still appears in "
-        "the database, marked with what went wrong. See "
+        "Only a release that installs and answers every query is published, so a "
+        "failure here keeps it out of the database rather than rejecting the "
+        "submission. Push a fix and the next run replaces this report. See "
         "[docs/SUBMITTING.md](docs/SUBMITTING.md)."
     )
     return "\n".join(lines) + "\n"

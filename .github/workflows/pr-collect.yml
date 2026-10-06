@@ -44,14 +44,22 @@ jobs:
           dirs=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
                  | grep '^solvers/[^/]\+/[^/]\+/' \
                  | cut -d/ -f1-3 | sort -u)
-          # Keep only what is still on offer. A pull request that retires a
-          # submission, or deletes one, needs no validation or installation:
-          # there is nothing to collect from a release nobody is offering.
-          [ -z "$dirs" ] || dirs=$(python3 scripts/validate.py --list-offered $dirs)
-          echo "dirs<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$dirs" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-          echo "$dirs"
+          # A deleted submission has no directory left to look at.
+          present=""
+          for dir in $dirs; do
+            [ -d "$dir" ] && present="$present $dir"
+          done
+          dirs=$(echo $present)
+          # Retired releases are reported, not validated: a broken install.sh
+          # must not block retiring the release it belongs to.
+          offered=""
+          [ -z "$dirs" ] || offered=$(python3 scripts/validate.py --list-offered $dirs)
+          {
+            echo "dirs<<EOF"; echo "$dirs"; echo "EOF"
+            echo "offered<<EOF"; echo "$offered"; echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "changed: $dirs"
+          echo "offered: $offered"
 
       - name: Prepare the report directory
         # Before anything that can fail, so the report step always has
@@ -68,7 +76,7 @@ jobs:
         # script before bash sees it, so a multi-line value turns every line
         # after the first into its own command.
         env:
-          DIRS: ${{ steps.changed.outputs.dirs }}
+          DIRS: ${{ steps.changed.outputs.offered }}
         run: |
           [ -n "$DIRS" ] || exit 0
           # pipefail, or tee would swallow validate.py's exit code and the
