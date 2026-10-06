@@ -2,11 +2,6 @@
 #
 # Marks every staged install.sh executable in git's index.
 #
-# Git records the executable bit itself, separately from the filesystem. A
-# file authored on Windows is committed as mode 100644 no matter what `ls -l`
-# says under WSL, and then fails on the runner with "Permission denied" —
-# after the checkout, in CI, long after the mistake was made.
-#
 # Enable once per clone:
 #     git config core.hooksPath .githooks
 #

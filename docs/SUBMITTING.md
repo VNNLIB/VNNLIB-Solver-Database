@@ -1,5 +1,23 @@
 # Submitting a solver
 
+## Before you start: enable the hook
+
+Run this once in your clone, before your first commit:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+It marks every staged `install.sh` executable as you commit. Git records that bit
+itself, separately from your filesystem, so a file authored or copied on Windows
+is committed as mode `100644` however `ls -l` looks, and the runner then fails
+with "Permission denied" after your pull request is already open.
+
+Without the hook you have to set the bit by hand, as shown under
+[install.sh](#installsh), and check it before every push.
+
+## What to submit
+
 Open a pull request adding one directory per release:
 
 ```
@@ -27,8 +45,8 @@ pip install --quiet mysolver==1.2.0
 **Requirements**
 
 - First line exactly `#!/usr/bin/env bash`
-- LF line endings, not CRLF
 - Executable bit set
+- LF line endings, which `.gitattributes` handles for you
 - Mentions `<version>` somewhere in its text
 - Finishes within 30 minutes
 - Leaves an executable named exactly `<id>` on `PATH`
@@ -41,19 +59,14 @@ pip install --quiet mysolver==1.2.0
 
 **Setting the executable bit**
 
-Git records this, not your filesystem. If you author on Windows, set it
-explicitly:
+The hook above does this for you. To check it, or to set it by hand:
 
 ```bash
 git ls-files -s solvers/<id>/<version>/install.sh   # want 100755, not 100644
 git update-index --chmod=+x solvers/<id>/<version>/install.sh
 ```
 
-Or run this once in your clone and it happens on every commit:
-
-```bash
-git config core.hooksPath .githooks
-```
+`ls -l` does not answer this question; only `git ls-files -s` does.
 
 ---
 
@@ -110,7 +123,7 @@ See [SCHEMA.md](SCHEMA.md) for the permitted values of each.
 4. The capabilities are collected again on `main` and committed.
 
 **If the install fails** (non-zero exit, over 30 minutes, or no `<id>` on
-`PATH`) **or a query returns something unusable**, the error appears in the
+`PATH`) **or a query returns non-conforming format**, the error appears in the
 pull request comment and nothing enters the database.
 
 A failure on `main` also sets `withdrawn = true` in your `solver.toml`. To
@@ -128,9 +141,9 @@ next collection replaces the record rather than adding a duplicate.
 
 ---
 
-## Retiring a release
+## Retiring one release
 
-Add to its `solver.toml`:
+Add this to the `solver.toml` already in that version's directory:
 
 ```toml
 withdrawn = true
@@ -139,18 +152,39 @@ withdrawn = true
 Lowercase `true`. If the file already has a `withdrawn` line, change that line
 rather than adding a second one.
 
-To retire every release of a solver, put the same line in a `solver.toml` beside
-the version directories:
+Only a literal `true` retires. `True`, `"true"` and `1` are rejected as errors,
+and a `solver.toml` that cannot be parsed leaves the release on offer rather than
+retiring it, so a typo fails the checks instead of quietly removing a working
+solver.
+
+---
+
+## Retiring every release of a solver
+
+**Create a new `solver.toml` next to the version directories.** This file does
+not exist yet; your submission only has one inside each version directory. Add
+it, containing nothing but the flag:
 
 ```
 solvers/<id>/
-    solver.toml          <- withdrawn = true retires all of them
+    solver.toml          <- create this, with: withdrawn = true
     1.0.0/
+        install.sh
+        solver.toml        
     1.1.0/
+        install.sh
+        solver.toml
 ```
 
-The records leave the database; your submission stays in the repository. To
-bring it back, delete the line and let the next collection run.
+```toml
+withdrawn = true
+```
+
+One line is enough. This file is not a submission, so it doesn't read `name` or
+`url`, and you do not have to repeat the flag in each version.
+
+The records leave the database; your submission stays in the repository. To bring
+it back, delete the file, or the line, and let the next collection run.
 
 A retired release is not validated and not installed, so a broken `install.sh`
 does not block retiring it.

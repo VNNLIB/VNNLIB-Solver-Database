@@ -1,6 +1,5 @@
 # `data/solvers.json`: field reference
-
-Every field comes from a command in Section 5 of the VNN-LIB 2.0 standard.
+The database only currently working solvers that are not withdrawn. Every field comes from a command in Section 5 of the VNN-LIB 2.0 standard.
 
 ## Top level
 
@@ -49,12 +48,6 @@ The other values appear in the pull request comment on a submission.
 
 Test for the absence of `capabilities` rather than for a particular status
 string.
-
-### Retirement
-
-A release with `withdrawn = true` in its `solver.toml`, or whose directory has
-been deleted, is removed from the database. The submission stays in the
-repository, so clearing the flag and re-collecting reproduces the record.
 
 ---
 

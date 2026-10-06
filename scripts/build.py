@@ -105,6 +105,8 @@ def offered_versions(solvers_dir):
     for solver in sorted(solvers_dir.iterdir()):
         if not solver.is_dir():
             continue
+        # is_withdrawn reads whichever directory it is given, so the same call
+        # serves both levels: the solver here, each version below.
         if validate.is_withdrawn(solver):
             continue
         for version in sorted(solver.iterdir()):
