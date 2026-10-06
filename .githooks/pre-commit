@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 #
-# Marks every staged install.sh executable in git's index.
+# Checks that `install.sh` is executable.
 #
 # Enable once per clone:
 #     git config core.hooksPath .githooks
 #
-set -euo pipefail
+set -eu
 
-staged=$(git diff --cached --name-only --diff-filter=ACM \
-         | grep -E '(^|/)install\.sh$' || true)
+staged=$(git diff --cached --name-only --diff-filter=ACM |
+    grep -E '(^|/)install\.sh$' || true)
 
 for file in $staged; do
     mode=$(git ls-files --stage -- "$file" | awk '{print $1}')
+
     if [ "$mode" = "100644" ]; then
-        git update-index --chmod=+x -- "$file"
-        echo "pre-commit: marked $file executable (was $mode)"
+        echo "pre-commit: $file must be executable"
+        echo "Run: chmod +x $file && git add $file"
+        exit 1
     fi
 done
