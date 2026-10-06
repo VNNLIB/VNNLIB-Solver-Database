@@ -45,7 +45,7 @@ pip install --quiet mysolver==1.2.0
 **Requirements**
 
 - First line exactly `#!/usr/bin/env bash`
-- Executable bit set
+- Executable bit set, which the githook handles for you
 - LF line endings, which `.gitattributes` handles for you
 - Mentions `<version>` somewhere in its text
 - Finishes within 30 minutes
@@ -138,6 +138,18 @@ Add a new directory for the new version. Do not edit existing ones.
 
 To correct a release already recorded, edit that version's `install.sh`. The
 next collection replaces the record rather than adding a duplicate.
+
+**Collecting a release again without changing it.** Collection runs on the
+submissions a pull request touches, so to have a release re-installed and
+re-queried, open a pull request that changes something in its directory. A
+comment line in `install.sh` is enough:
+
+```bash
+# re-collect: upstream wheel rebuilt 2026-10-06
+```
+
+Worth doing when your solver's answers changed without its version changing, or
+when a dependency it installs was republished.
 
 ---
 
