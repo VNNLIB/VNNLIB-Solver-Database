@@ -145,6 +145,20 @@ def register(solver_dir, timeout_seconds=DEFAULT_TIMEOUT_SECONDS):
     declared_name, url = _declared(solver_dir)
     name = declared_name or solver_id
 
+    if not validate.is_offered(solver_dir):
+        return {
+            "id": solver_id,
+            "name": name,
+            "url": url,
+            "versions": [
+                {
+                    "version": version,
+                    "collected_at": schema.now_iso(),
+                    "status": "withdrawn",
+                }
+            ],
+        }
+
     work_dir = tempfile.mkdtemp(prefix=f"register-{solver_id}-")
     try:
         bin_dir = make_isolated_env(work_dir)

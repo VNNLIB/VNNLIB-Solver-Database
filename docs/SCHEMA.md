@@ -42,6 +42,7 @@ There is no `latest_version`; it is the last element of `versions`.
 | `incomplete` | Installed, some queries unusable | present, `null` per unusable field |
 | `non_conforming` | Runs, but does not implement the VNN-LIB 2.0 CLI | absent |
 | `install_failed` | Script failed, timed out, or left no executable | absent |
+| `withdrawn` | Retired by its author, so it was never installed | absent |
 
 **Only `ok` records are published**, so `status` is always `ok` in this file.
 The other values appear in the pull request comment on a submission.
