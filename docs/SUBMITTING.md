@@ -1,24 +1,22 @@
 # Submitting a solver
 
-## Before you start: enable the hook
+This solver database uses the standard VNN-LIB command line format to extract information from the solver.
+Therefore to add a solver to the database, all you need to do is to upload an installation script to this repository.
 
-Run this once in your clone, before your first commit:
+## Step 1. Clone the repository and setup commit hooks
 
+Clone this repository onto your local computer.
+
+Run the following command once:
 ```bash
 git config core.hooksPath .githooks
 ```
 
-It marks every staged `install.sh` executable as you commit. Git records that bit
-itself, separately from your filesystem, so a file authored or copied on Windows
-is committed as mode `100644` however `ls -l` looks, and the runner then fails
-with "Permission denied" after your pull request is already open.
+This enables some simple checks such as you have marked your install scripts as executable.
 
-Without the hook you have to set the bit by hand, as shown under
-[install.sh](#installsh), and check it before every push.
+## Step 2. Create a PR with an installation script
 
-## What to submit
-
-Open a pull request adding one directory per release:
+Open a pull request that adds a directory with the following structure:
 
 ```
 solvers/<id>/<version>/
@@ -26,14 +24,15 @@ solvers/<id>/<version>/
     solver.toml
 ```
 
-`<id>` is lowercase letters, digits and hyphens, and does not change once
-accepted. `<version>` is the release you are registering.
+where:
 
----
+- `<id>` is the name of your solver and consists of lowercase letters, digits and hyphens, and does not change once accepted. 
 
-## install.sh
+- `<version>` is the release of your solver that you are registering.
 
-A bash script that installs your solver, run on a fresh Ubuntu machine.
+### Contents of install.sh
+
+This file should contain a bash script that installs your solver when run on a fresh Ubuntu machine. For example:
 
 ```bash
 #!/usr/bin/env bash
@@ -44,12 +43,10 @@ pip install --quiet mysolver==1.2.0
 
 **Requirements**
 
-- First line exactly `#!/usr/bin/env bash`
-- Executable bit set, which the githook handles for you
-- LF line endings, which `.gitattributes` handles for you
-- Mentions `<version>` somewhere in its text
-- Finishes within 30 minutes
-- Leaves an executable named exactly `<id>` on `PATH`
+- The first line of the script must be `#!/usr/bin/env bash`.
+- It must mention `<version>` somewhere in its text.
+- It must not take longer than 30 minutes to run.
+- It must leave an executable named `<id>` available on the `PATH` variable.
 
 **Available to the script**
 
@@ -59,87 +56,54 @@ pip install --quiet mysolver==1.2.0
 
 **Setting the executable bit**
 
-The hook above does this for you. To check it, or to set it by hand:
+The script must be marked as executable. To do this run the following command:
 
 ```bash
-git ls-files -s solvers/<id>/<version>/install.sh   # want 100755, not 100644
 git update-index --chmod=+x solvers/<id>/<version>/install.sh
 ```
 
-`ls -l` does not answer this question; only `git ls-files -s` does.
+### solver.toml
 
----
-
-## solver.toml
-
-```toml
-name    = "MySolver"
-url     = "https://github.com/example/mysolver"
-license = "MIT"
-contact = "you@example.edu"
-```
+The `.toml` file provides meta-data about your solver that cannot be obtained via the VNN-LIB command line format:
 
 | Field | Required | Value |
 |---|---|---|
-| `name` | no | Display name. Defaults to what `<solver> --name` reports |
 | `url` | yes | Repository, project page or documentation |
 | `license` | no | SPDX identifier |
 | `contact` | no | Who to ask when collection fails |
 | `withdrawn` | no | Leave it out. Absent means `false`. Set it only to [retire](#retiring-a-release) the release |
 
----
-
-## Your solver must answer these 13 commands
-
-```
-<solver> --name
-<solver> --version
-
-<solver> supports --onnx-opset-versions
-<solver> supports --onnx-element-types
-<solver> supports --onnx-operators
-<solver> supports --vnnlib-versions
-<solver> supports --hidden-node-theories
-<solver> supports --multiple-input-output-theories
-<solver> supports --multiple-network-theories
-<solver> supports --multiple-node-comparison-theories
-<solver> supports --arithmetic-complexity-theories
-<solver> supports --optimised-disjunctive-reasoning
-<solver> supports --serialise-assignments
+For example, its contents could be as follows:
+```toml
+url     = "https://github.com/example/mysolver"
+license = "MIT"
+contact = "you@example.edu"
 ```
 
-All eleven `supports` queries must succeed and return permitted values.
-`--version` must report the same version as the directory name.
-
-See [SCHEMA.md](SCHEMA.md) for the permitted values of each.
-
----
-
-## After you open the pull request
+## Step 3. After you open the pull request
 
 1. Static checks run in seconds. If they fail, push a fix.
 2. Your solver is installed and its capabilities posted as a comment.
-3. A maintainer reviews and merges.
-4. The capabilities are collected again on `main` and committed.
+3. A maintainer of the database will review and merge your PR.
+4. The capabilities are collected again on `main` and committed and the database and website will automatically update.
 
 **If the install fails** (non-zero exit, over 30 minutes, or no `<id>` on
-`PATH`) **or a query returns non-conforming format**, the error appears in the
-pull request comment and nothing enters the database.
+`PATH`) **or a query returns non-conforming format**, the error appears in the pull request comment and nothing enters the database.
 
 A failure on `main` also sets `withdrawn = true` in your `solver.toml`. To
 resume after fixing: delete that line, or set it to `false`, in the same pull
 request as the fix. A fixed `install.sh` alone is not enough.
 
----
-
-## Updating a solver
+# Updating a solver
 
 Add a new directory for the new version. Do not edit existing ones.
 
 To correct a release already recorded, edit that version's `install.sh`. The
 next collection replaces the record rather than adding a duplicate.
 
-**Collecting a release again without changing it.** Collection runs on the
+**Collecting a release again without changing it.** 
+
+Collection runs on the
 submissions a pull request touches, so to have a release re-installed and
 re-queried, open a pull request that changes something in its directory. A
 comment line in `install.sh` is enough:
@@ -151,9 +115,7 @@ comment line in `install.sh` is enough:
 Worth doing when your solver's answers changed without its version changing, or
 when a dependency it installs was republished.
 
----
-
-## Retiring one release
+# Retiring a release
 
 Add this to the `solver.toml` already in that version's directory:
 
@@ -171,7 +133,7 @@ solver.
 
 ---
 
-## Retiring every release of a solver
+# Retiring every release of a solver
 
 **Create a new `solver.toml` next to the version directories.** This file does
 not exist yet; your submission only has one inside each version directory. Add
@@ -201,9 +163,7 @@ it back, delete the file, or the line, and let the next collection run.
 A retired release is not validated and not installed, so a broken `install.sh`
 does not block retiring it.
 
----
-
-## Deleting a submission
+# Deleting a submission
 
 ```bash
 git rm -r solvers/<id>              # every release
